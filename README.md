@@ -1,0 +1,2 @@
+# celium-cli
+Celium CLI
