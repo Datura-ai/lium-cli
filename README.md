@@ -1,7 +1,6 @@
 <div align="center">
 
 # Celium CLI 
-### Rao Development Version
 [![Discord Chat](https://img.shields.io/discord/308323056592486420.svg)](https://discord.com/channels/799672011265015819/1291754566957928469)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
