@@ -1,6 +1,11 @@
+import time
+from datetime import datetime
 from rich.table import Table
+from rich.live import Live
+from rich.panel import Panel
+from rich.console import Group
 from celium_cli.src.services.api import api_client
-from celium_cli.src.utils import console, pretty_minutes
+from celium_cli.src.utils import console, pretty_minutes, pretty_seconds
 
 
 def get_executors_and_print_table() -> list[dict]:
@@ -26,6 +31,30 @@ def get_executors_and_print_table() -> list[dict]:
 
     console.print(table)
     return sorted_executors
+
+
+def render_rented_executor_table(executor_id: str, uptime_in_seconds: int) -> tuple[Table, dict]:
+    table = Table(title="Rented Executor")
+    table.add_column("ID", style="bold blue")
+    table.add_column("Name", style="bold green")
+    table.add_column("Status", style="bold red")
+    table.add_column("Uptime", style="bold white")
+
+    pod = api_client.get(f"pods/{executor_id}")
+    status_color = {
+        "RUNNING": "green",
+        "STOPPED": "red",
+        "FAILED": "red",
+        "PENDING": "yellow"
+    }.get(pod["status"], "white")
+    
+    table.add_row(
+        pod["id"],
+        pod["pod_name"], 
+        f"[{status_color}]{pod['status']}[/{status_color}]",
+        pretty_seconds(uptime_in_seconds)
+    )
+    return table, pod
 
 
 def rent_executor(executor_id: str, docker_image: str, ssh_key_path: str | None):
@@ -79,11 +108,40 @@ def rent_executor(executor_id: str, docker_image: str, ssh_key_path: str | None)
     console.print(f"[bold green]Using SSH key:[/bold green] {selected_ssh_key['id']}")
 
     # Rent the executor with the selected SSH key
-    # api_client.post(
-    #     f"executors/{executor_id}/rent",
-    #     require_auth=True,
-    #     json={
-    #         "template_id": template["id"],
-    #         "ssh_key_id": selected_ssh_key["id"]
-    #     }
-    # )
+    api_client.post(
+        f"executors/{executor_id}/rent",
+        json={
+            "pod_name": "Pod " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "template_id": template["id"],
+            "user_public_key": [
+                selected_ssh_key["public_key"]
+            ]
+        }
+    )
+    console.print(f"[bold green]Executor rented:[/bold green] {executor_id}")
+
+    # Wait until the pod is running.
+    uptime_in_seconds = 0
+    def make_renderable(status_msg, table):
+        return Panel(
+            Group(
+                status_msg,
+                table
+            ),
+            title="Executor Status",
+            border_style="blue"
+        )
+    
+    table, pod = render_rented_executor_table(executor_id, uptime_in_seconds)
+    status_msg = console.status("[cyan]Waiting until executor is ready...[/cyan] \n \n", spinner="earth")
+    with Live(make_renderable(status_msg, table), refresh_per_second=10) as live:
+        live.refresh_per_second = 1
+        while True:
+            time.sleep(4)
+            uptime_in_seconds += 4
+            table, pod = render_rented_executor_table(executor_id, uptime_in_seconds)
+            if pod["status"] == "RUNNING":
+                console.print(f"[bold green]Executor is running:[/bold green] {executor_id}")
+                break
+
+            live.update(make_renderable(status_msg, table))
