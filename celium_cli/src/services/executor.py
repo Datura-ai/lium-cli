@@ -8,9 +8,14 @@ from celium_cli.src.services.api import api_client
 from celium_cli.src.utils import console, pretty_minutes, pretty_seconds
 
 
-def get_executors_and_print_table() -> list[dict]:
+def get_executors_and_print_table(count: int, machine_name: str) -> list[dict]:
+    query_params = {
+        'gpu_count_lte': count,
+        'gpu_count_gte': count,
+        'machine_names': machine_name
+    }
     with console.status("Fetching executors...", spinner="monkey"):
-        executors = api_client.get("executors", require_auth=False)
+        executors = api_client.get("executors", params=query_params, require_auth=False)
 
     table = Table(title="Available Executors")
     table.add_column("ID", style="bold blue")
@@ -140,8 +145,7 @@ def rent_executor(executor_id: str, docker_image: str, ssh_key_path: str | None)
             time.sleep(4)
             uptime_in_seconds += 4
             table, pod = render_rented_executor_table(executor_id, uptime_in_seconds)
+            live.update(make_renderable(status_msg, table))
             if pod["status"] == "RUNNING":
                 console.print(f"[bold green]Executor is running:[/bold green] {executor_id}")
                 break
-
-            live.update(make_renderable(status_msg, table))

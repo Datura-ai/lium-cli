@@ -1,5 +1,7 @@
 from typing import TYPE_CHECKING
 
+from celium_cli.src.utils import find_machine_from_keyword
+
 if TYPE_CHECKING:
     from celium_cli.src.cli_manager import CLIManager
 
@@ -35,3 +37,22 @@ def validate_for_api_key(cli_manager: "CLIManager") -> bool:
             )
         )
     return True
+
+
+def validate_machine_name(machine_name: str) -> tuple[int, str]:
+    count, machine_keyword = machine_name.lower().split("x")
+    if not count.isdigit():
+        raise ValidationError(
+            (
+                "The [bold green]machine_name[/bold green] must be a number followed by a machine keyword."
+            )
+        )
+    
+    machine_name = find_machine_from_keyword(machine_keyword)
+    if not machine_name:
+        raise ValidationError(
+            (
+                "The [bold green]machine_name[/bold green] must be a valid machine name."
+            )
+        )
+    return count, machine_name

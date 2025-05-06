@@ -3,7 +3,7 @@ from celium_cli.src.apps import BaseApp
 from celium_cli.src.decorator import catch_validation_error
 from celium_cli.src.services.docker import build_and_push_docker_image_from_dockerfile
 from celium_cli.src.services.executor import get_executors_and_print_table, rent_executor
-from celium_cli.src.services.validator import validate_for_api_key, validate_for_docker_build
+from celium_cli.src.services.validator import validate_for_api_key, validate_for_docker_build, validate_machine_name
 from celium_cli.src.utils import console
 
 class Arguments:
@@ -56,7 +56,8 @@ class PodApp(BaseApp):
             [green]$[/green] celium pod run --machine 8XA100 --docker-image daturaai/dind:latest
         """
         validate_for_api_key(self.cli_manager)
-        
+        count, machine_name = validate_machine_name(machine)
+
         if dockerfile:
             # Validate if all configs are set for docker build
             validate_for_docker_build(self.cli_manager)
@@ -65,7 +66,7 @@ class PodApp(BaseApp):
         else:
             console.print("[bold yellow]ℹ[/bold yellow] No [blue]Dockerfile[/blue] provided, [italic]skipping build[/italic]. \n\n\n")
         
-        executors = get_executors_and_print_table()
+        executors = get_executors_and_print_table(count, machine_name)
         if len(executors) == 0:
             console.print("[bold yellow]Warning:[/bold yellow] No executors found, please try again later.")
             return
