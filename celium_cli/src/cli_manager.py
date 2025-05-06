@@ -9,6 +9,7 @@ from rich.tree import Tree
 from yaml import safe_dump, safe_load
 
 from celium_cli.src.apps.config import ConfigApp
+from celium_cli.src.apps.pod import PodApp
 from celium_cli.src.const import EPILOG
 from celium_cli.src.config import defaults
 from celium_cli.src.version import __version__
@@ -62,11 +63,18 @@ class CLIManager:
             no_args_is_help=True,
         )
         self.config_app = ConfigApp(self)
+        self.pod_app = PodApp(self)
 
         self.app.add_typer(
             self.config_app.app, 
             name="config",
             short_help="Config commands, aliases: `c`, `conf`",
+            no_args_is_help=True,
+        )
+        self.app.add_typer(
+            self.pod_app.app,
+            name="pod",
+            short_help="Pod commands, aliases: `p`, `pod`",
             no_args_is_help=True,
         )
         

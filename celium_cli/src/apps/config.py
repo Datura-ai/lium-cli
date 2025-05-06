@@ -29,6 +29,20 @@ class Arguments:
         "--docker_password",
         help="The password for the Docker registry",
     )
+    server_url: str = typer.Option(
+        None,
+        "--server-url",
+        "--server.url",
+        "--server_url",
+        help="The URL of the Celium server",
+    )
+    api_key: str = typer.Option(
+        None,
+        "--api-key",
+        "--api.key",
+        "--api_key",
+        help="The API key for the Celium server",
+    )
 
 
 class ConfigApp(BaseApp):
@@ -36,6 +50,8 @@ class ConfigApp(BaseApp):
         self.config = {
             "docker_username": None,
             "docker_password": None,
+            "server_url": "https://celiumcompute.ai",
+            "api_key": None,
         }
         self.config_base_path = os.path.expanduser(defaults.config.base_path)
         self.config_path = os.path.expanduser(defaults.config.path)
@@ -106,6 +122,8 @@ class ConfigApp(BaseApp):
         self,
         docker_username: str = Arguments.docker_username,
         docker_password: str = Arguments.docker_password,
+        server_url: str = Arguments.server_url,
+        api_key: str = Arguments.api_key,
     ):
         """
         Sets or updates configuration values in the Celium CLI config file.
@@ -126,6 +144,8 @@ class ConfigApp(BaseApp):
         args = {
             "docker_username": docker_username,
             "docker_password": docker_password,
+            "server_url": server_url,
+            "api_key": api_key,
         }
         bools = []
         if all(v is None for v in args.values()):
