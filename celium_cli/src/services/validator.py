@@ -15,14 +15,14 @@ def validate_for_docker_build(cli_manager: "CLIManager") -> bool:
         raise ValidationError(
             (
                 "The [bold green]docker_username[/bold green] is not set."
-                "Please set it using the [bold green]celium config set --docker-username[/bold green] command."
+                "Please set it using the [bold green]celium-cli config set --docker-username[/bold green] command."
             )
         )
     if not cli_manager.config_app.config["docker_password"]:
         raise ValidationError(
             (
                 "The [bold green]docker_password[/bold green] is not set."
-                "Please set it using the [bold green]celium config set --docker-password[/bold green] command."
+                "Please set it using the [bold green]celium-cli config set --docker-password[/bold green] command."
             )
         )
     return True
@@ -33,7 +33,7 @@ def validate_for_api_key(cli_manager: "CLIManager") -> bool:
         raise ValidationError(
             (
                 "The [bold green]api_key[/bold green] is not set."
-                "Please set it using the [bold green]celium config set --api-key[/bold green] command."
+                "Please set it using the [bold green]celium-cli config set --api-key[/bold green] command."
             )
         )
     return True

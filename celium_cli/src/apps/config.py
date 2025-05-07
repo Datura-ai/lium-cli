@@ -132,10 +132,10 @@ class ConfigApp(BaseApp):
 
         USAGE
         Interactive mode:
-            [green]$[/green] celium config set
+            [green]$[/green] celium-cli config set
 
         Set specific values:
-            [green]$[/green] celium config set --docker-username <username> --docker-password <password>
+            [green]$[/green] celium-cli config set --docker-username <username> --docker-password <password>
 
         [bold]NOTE[/bold]:
         - Changes are saved to ~/.celium/celium.yaml

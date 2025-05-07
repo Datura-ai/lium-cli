@@ -10,6 +10,7 @@ from yaml import safe_dump, safe_load
 
 from celium_cli.src.apps.config import ConfigApp
 from celium_cli.src.apps.pod import PodApp
+from celium_cli.src.apps.template import TemplateApp
 from celium_cli.src.const import EPILOG
 from celium_cli.src.config import defaults
 from celium_cli.src.version import __version__
@@ -64,18 +65,45 @@ class CLIManager:
         )
         self.config_app = ConfigApp(self)
         self.pod_app = PodApp(self)
+        self.template_app = TemplateApp(self)
 
+        # config aliases
         self.app.add_typer(
             self.config_app.app, 
-            name="config",
+            name="config",  
             short_help="Config commands, aliases: `c`, `conf`",
             no_args_is_help=True,
         )
         self.app.add_typer(
+            self.config_app.app, name="c", hidden=True, no_args_is_help=True,
+        )
+        self.app.add_typer(
+            self.config_app.app, name="conf", hidden=True, no_args_is_help=True,
+        )
+
+        # pod aliases
+        self.app.add_typer(
             self.pod_app.app,
             name="pod",
-            short_help="Pod commands, aliases: `p`, `pod`",
+            short_help="Pod commands, aliases: `p`",
             no_args_is_help=True,
+        )
+        self.app.add_typer(
+            self.pod_app.app, name="p", hidden=True, no_args_is_help=True,
+        )
+
+        # template aliases
+        self.app.add_typer(
+            self.template_app.app,
+            name="template",
+            short_help="Template commands, aliases: `t`, `tpl`",
+            no_args_is_help=True,
+        )
+        self.app.add_typer(
+            self.template_app.app, name="t", hidden=True, no_args_is_help=True,
+        )
+        self.app.add_typer(
+            self.template_app.app, name="tpl", hidden=True, no_args_is_help=True,
         )
         
     def main_callback(

@@ -36,6 +36,12 @@ class APIClient:
         response = requests.post(url, headers=self.get_auth_headers(require_auth), data=data, json=json)
         response.raise_for_status()
         return response.json()
+    
+    def delete(self, endpoint: str, require_auth: bool = True):
+        url = f"{self.base_url}/api/{endpoint}"
+        response = requests.delete(url, headers=self.get_auth_headers(require_auth))
+        response.raise_for_status()
+        return response.json()
 
 
 api_client = APIClient()

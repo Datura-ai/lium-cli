@@ -7,6 +7,23 @@ if TYPE_CHECKING:
     from celium_cli.src.cli_manager import CLIManager
 
 
+class TemplateBaseArguments:
+    dockerfile: str = typer.Option(
+        None,
+        "--dockerfile",
+        "--dockerfile-path",
+        help="The path to the Dockerfile to use for the pod",
+    )
+    docker_image: str = typer.Option(
+        ...,
+        "--docker-image",
+        "--dockerimage",
+        "--docker_image",
+        "--docker.image",
+        help="The name of the Docker image to use for the pod",
+    )
+
+
 class BaseApp:
     app: typer.Typer
 

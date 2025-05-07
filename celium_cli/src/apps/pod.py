@@ -1,31 +1,17 @@
 import typer
-from celium_cli.src.apps import BaseApp
+from celium_cli.src.apps import BaseApp, TemplateBaseArguments
 from celium_cli.src.decorator import catch_validation_error
 from celium_cli.src.services.docker import build_and_push_docker_image_from_dockerfile
 from celium_cli.src.services.executor import get_executors_and_print_table, rent_executor
 from celium_cli.src.services.validator import validate_for_api_key, validate_for_docker_build, validate_machine_name
 from celium_cli.src.utils import console
 
-class Arguments:
+class Arguments(TemplateBaseArguments):
     machine: str = typer.Option(
         ...,
         "--machine",
         "--machine-name",
         help="The name of the machine to run the pod on",
-    )
-    dockerfile: str = typer.Option(
-        None,
-        "--dockerfile",
-        "--dockerfile-path",
-        help="The path to the Dockerfile to use for the pod",
-    )
-    docker_image: str = typer.Option(
-        ...,
-        "--docker-image",
-        "--dockerimage",
-        "--docker_image",
-        "--docker.image",
-        help="The name of the Docker image to use for the pod",
     )
     ssh_key_path: str = typer.Option(
         None,
