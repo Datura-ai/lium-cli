@@ -3,6 +3,7 @@ from celium_cli.src.apps import BaseApp, TemplateBaseArguments
 from celium_cli.src.decorator import catch_validation_error
 from celium_cli.src.services.docker import build_and_push_docker_image_from_dockerfile
 from celium_cli.src.services.executor import get_executors_and_print_table, rent_executor
+from celium_cli.src.services.template import create_template
 from celium_cli.src.services.validator import validate_for_api_key, validate_for_docker_build, validate_machine_name
 from celium_cli.src.utils import console
 
@@ -48,7 +49,7 @@ class PodApp(BaseApp):
             # Validate if all configs are set for docker build
             validate_for_docker_build(self.cli_manager)
             # Build and push the docker image
-            build_and_push_docker_image_from_dockerfile(dockerfile, docker_image)
+            create_template(docker_image, dockerfile)
         else:
             console.print("[bold yellow]ℹ[/bold yellow] No [blue]Dockerfile[/blue] provided, [italic]skipping build[/italic]. \n\n\n")
         
