@@ -36,12 +36,26 @@ class Arguments:
         "--server_url",
         help="The URL of the Celium server",
     )
+    tao_pay_url: str = typer.Option(
+        None,
+        "--tao-pay-url",
+        "--tao.pay.url",
+        "--tao_pay_url",
+        help="The URL of the Tao Pay server",
+    )
     api_key: str = typer.Option(
         None,
         "--api-key",
         "--api.key",
         "--api_key",
         help="The API key for the Celium server",
+    )
+    network: str = typer.Option(
+        None,
+        "--network",
+        "--network.name",
+        "--network_name",
+        help="The network to use",
     )
 
 
@@ -51,7 +65,9 @@ class ConfigApp(BaseApp):
             "docker_username": None,
             "docker_password": None,
             "server_url": "https://celiumcompute.ai",
+            "tao_pay_url": "https://pay-api.celiumcompute.ai",
             "api_key": None,
+            "network": "finney",
         }
         self.config_base_path = os.path.expanduser(defaults.config.base_path)
         self.config_path = os.path.expanduser(defaults.config.path)
@@ -123,8 +139,10 @@ class ConfigApp(BaseApp):
         docker_username: str = Arguments.docker_username,
         docker_password: str = Arguments.docker_password,
         server_url: str = Arguments.server_url,
+        tao_pay_url: str = Arguments.tao_pay_url,
         api_key: str = Arguments.api_key,
-    ):
+        network: str = Arguments.network,
+    ):  
         """
         Sets or updates configuration values in the Celium CLI config file.
 
@@ -145,7 +163,9 @@ class ConfigApp(BaseApp):
             "docker_username": docker_username,
             "docker_password": docker_password,
             "server_url": server_url,
+            "tao_pay_url": tao_pay_url,
             "api_key": api_key,
+            "network": network,
         }
         bools = []
         if all(v is None for v in args.values()):

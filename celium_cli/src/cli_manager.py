@@ -9,6 +9,7 @@ from rich.tree import Tree
 from yaml import safe_dump, safe_load
 
 from celium_cli.src.apps.config import ConfigApp
+from celium_cli.src.apps.pay import PayApp
 from celium_cli.src.apps.pod import PodApp
 from celium_cli.src.apps.template import TemplateApp
 from celium_cli.src.const import EPILOG
@@ -54,6 +55,9 @@ def commands_callback(value: bool):
 
 class CLIManager:
     config_app: ConfigApp
+    pod_app: PodApp
+    pay_app: PayApp
+    template_app: TemplateApp
 
     def __init__(self):
         # Initialize the CLI app
@@ -66,6 +70,7 @@ class CLIManager:
         self.config_app = ConfigApp(self)
         self.pod_app = PodApp(self)
         self.template_app = TemplateApp(self)
+        self.pay_app = PayApp(self)
 
         # config aliases
         self.app.add_typer(
@@ -105,6 +110,9 @@ class CLIManager:
         self.app.add_typer(
             self.template_app.app, name="tpl", hidden=True, no_args_is_help=True,
         )
+
+        # pay aliases
+        self.app.command("pay")(self.pay_app.pay)
         
     def main_callback(
         self,
