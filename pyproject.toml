@@ -40,7 +40,8 @@ dependencies = [
     "Jinja2",
     "pywry>=0.6.2",
     "async-property==0.2.2",
-    "bittensor-cli>=8.4.3"
+    "bittensor-cli>=8.4.3",
+    "paramiko==3.5.0",
 ]
 
 [project.optional-dependencies]
