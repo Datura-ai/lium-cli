@@ -5,16 +5,17 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "celium-cli"
 version = "0.1.0"
-description = "A custom CLI tool for Celium"
+description = "A custom CLI tool for Celium. Celium CLI provides tools for interacting with the Celium ecosystem from the command line."
 readme = "README.md"
 requires-python = ">=3.9"
 license = "MIT"
 authors = [
-  {name = "Celium"}
+  {name = "Celium", email = "support@celium.ai"}
 ]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
@@ -55,4 +56,5 @@ package-dir = {"celium_cli" = "celium_cli"}
 [project.urls]
 # more details can be found here
 homepage = "https://github.com/Datura-ai/celium-cli"
-Repository = "https://github.com/Datura-ai/celium-cli"
+repository = "https://github.com/Datura-ai/celium-cli"
+issues = "https://github.com/Datura-ai/celium-cli/issues"
