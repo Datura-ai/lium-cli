@@ -1,10 +1,11 @@
 import time
+import uuid
 from rich.live import Live
 from celium_cli.src.services.api import api_client
 from celium_cli.src.utils import console
 
 
-def create_template(docker_image: str, dockerfile: str | None = None) -> str:
+def create_template(docker_image: str | None, dockerfile: str | None = None) -> str:
     """
     Create a new template.
 
@@ -19,10 +20,29 @@ def create_template(docker_image: str, dockerfile: str | None = None) -> str:
         build_and_push_docker_image_from_dockerfile,
         verify_docker_image_validity,
     )
+    from celium_cli.src.services.docker_credential import get_docker_credential
+
+    is_one_time_template = False
+    image_size = None # built image size in bytes
+
+    # Get docker hub credential
+    docker_username, docker_password = get_docker_credential()
+
+    if not docker_image and not dockerfile:
+        raise Exception("No [blue]Docker image[/blue] or [blue]Dockerfile[/blue] provided.")
+
+    if not docker_image:
+        docker_image = f"{docker_username}/celium-template-{uuid.uuid4()}:latest"
+        console.print("[bold yellow]Warning:[/bold yellow] No [blue]Docker image[/blue] provided, generated new docker image: [green]{docker_image}[/green]")
+        is_one_time_template = True
 
     if dockerfile:
         # Build and push the docker image
-        build_and_push_docker_image_from_dockerfile(dockerfile, docker_image)
+        is_success, built_image_size = build_and_push_docker_image_from_dockerfile(dockerfile, docker_image, docker_username, docker_password)
+        if not is_success:
+            raise Exception("Failed to build and push the docker image.")
+        
+        image_size = built_image_size
 
     # Verify the docker image is valid
     is_verified = verify_docker_image_validity(docker_image)
@@ -53,6 +73,9 @@ def create_template(docker_image: str, dockerfile: str | None = None) -> str:
         "readme": "",
         "startup_commands": "",
         "volumes": ["/workspace"],
+        "one_time_template": is_one_time_template,
+        "is_temporary": is_one_time_template,
+        "docker_image_size": image_size,
     }
     with console.status("Creating template...", spinner="monkey"):
         template = api_client.post("templates", json=payload)

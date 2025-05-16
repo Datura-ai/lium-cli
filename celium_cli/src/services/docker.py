@@ -41,7 +41,7 @@ def build_and_push_docker_image_from_dockerfile(
     image_name: str, 
     docker_username: str = None,
     docker_password: str = None
-):
+) -> tuple[bool, int]:
     """
     Build and push a docker image from a dockerfile.
 
@@ -55,6 +55,7 @@ def build_and_push_docker_image_from_dockerfile(
         bool: True if build and push successful, False otherwise
     """
     dockerfile_dir = os.path.dirname(os.path.abspath(dockerfile_path))
+    image_size = None # built image size in bytes
 
     try:
         console.rule(f"[bold blue]Building Docker Image and pushing to registry: [green]{image_name}")
@@ -68,9 +69,18 @@ def build_and_push_docker_image_from_dockerfile(
             result = subprocess.run(build_cmd, capture_output=True, text=True)
             if result.returncode != 0:
                 console.print(f"[bold red]Docker build failed![/bold red]\n{result.stderr}")
-                return False
+                return False, image_size
         
         console.print(f"[bold green]Docker image built successfully![/bold green]")
+
+        # Get the image size in bytes
+        size_cmd = ["docker", "image", "inspect", "-f", "{{.Size}}", image_name]
+        size_result = subprocess.run(size_cmd, capture_output=True, text=True)
+        if size_result.returncode == 0:
+            image_size = int(size_result.stdout.strip())
+            console.print(f"[bold blue]Docker image size:[/bold blue] {image_size / (1024*1024):.2f} MB")
+        else:
+            raise Exception("Failed to get the image size.")
 
         # Docker login if credentials are provided
         if docker_username and docker_password:
@@ -84,7 +94,7 @@ def build_and_push_docker_image_from_dockerfile(
                 )
                 if login_proc.returncode != 0:
                     console.print(f"[bold red]Docker login failed![/bold red]\n{login_proc.stderr}")
-                    return False
+                    return False, image_size
 
             console.print(f"[bold green]Docker login successful![/bold green]")
 
@@ -94,13 +104,13 @@ def build_and_push_docker_image_from_dockerfile(
             result = subprocess.run(push_cmd, capture_output=True, text=True)
             if result.returncode != 0:
                 console.print(f"[bold red]Docker push failed![/bold red]\n{result.stderr}")
-                return False
+                return False, image_size
             
         console.print(f"[bold green]Docker image pushed successfully![/bold green]")
-        return True
+        return True, image_size
     except Exception as e:
         console.print(f"[bold red]An error occurred: {e}")
-        return False
+        return False, None
 
 
 def create_docker_container(image_name: str, public_key: str) -> tuple[str, int]:

@@ -1,7 +1,6 @@
 import typer
 from celium_cli.src.apps import BaseApp, TemplateBaseArguments
 from celium_cli.src.decorator import catch_validation_error
-from celium_cli.src.services.docker import build_and_push_docker_image_from_dockerfile
 from celium_cli.src.services.executor import get_executors_and_print_table, rent_executor
 from celium_cli.src.services.template import create_template
 from celium_cli.src.services.validator import validate_for_api_key, validate_for_docker_build, validate_machine_name
@@ -44,14 +43,15 @@ class PodApp(BaseApp):
         """
         validate_for_api_key(self.cli_manager)
         count, machine_name = validate_machine_name(machine)
+        template_id = None
 
         if dockerfile:
-            # Validate if all configs are set for docker build
-            validate_for_docker_build(self.cli_manager)
             # Build and push the docker image
-            create_template(docker_image, dockerfile)
+            template_id = create_template(docker_image, dockerfile)
         else:
             console.print("[bold yellow]ℹ[/bold yellow] No [blue]Dockerfile[/blue] provided, [italic]skipping build[/italic]. \n\n\n")
+            if not docker_image:
+                docker_image = typer.prompt("Please provide a [blue]Docker image[/blue]")
         
         executors = get_executors_and_print_table(count, machine_name)
         if len(executors) == 0:
@@ -60,7 +60,7 @@ class PodApp(BaseApp):
         
         executor = executors[0]
         console.print(f"\n\n [bold blue]Deploying a pod[/bold blue] on machine: [green]{executor['id']}[/green] \n\n")
-        rent_executor(executor["id"], docker_image, ssh_key_path)
+        rent_executor(executor["id"], docker_image, template_id, ssh_key_path)
 
 
         

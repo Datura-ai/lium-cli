@@ -15,7 +15,7 @@ class TemplateBaseArguments:
         help="The path to the Dockerfile to use for the pod",
     )
     docker_image: str = typer.Option(
-        ...,
+        None,
         "--docker-image",
         "--dockerimage",
         "--docker_image",
