@@ -33,7 +33,7 @@ def create_template(docker_image: str | None, dockerfile: str | None = None) -> 
 
     if not docker_image:
         docker_image = f"{docker_username}/celium-template-{uuid.uuid4()}:latest"
-        console.print("[bold yellow]Warning:[/bold yellow] No [blue]Docker image[/blue] provided, generated new docker image: [green]{docker_image}[/green]")
+        console.print(f"[bold yellow]Warning:[/bold yellow] No [blue]Docker image[/blue] provided, generated new docker image: [green]{docker_image}[/green]")
         is_one_time_template = True
 
     if dockerfile:
