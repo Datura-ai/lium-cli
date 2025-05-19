@@ -26,7 +26,7 @@ def create_template(docker_image: str | None, dockerfile: str | None = None) -> 
     image_size = None # built image size in bytes
 
     # Get docker hub credential
-    docker_username, docker_password = get_docker_credential()
+    docker_credential_id, docker_username, docker_password = get_docker_credential()
 
     if not docker_image and not dockerfile:
         raise Exception("No [blue]Docker image[/blue] or [blue]Dockerfile[/blue] provided.")
@@ -76,6 +76,7 @@ def create_template(docker_image: str | None, dockerfile: str | None = None) -> 
         "one_time_template": is_one_time_template,
         "is_temporary": is_one_time_template,
         "docker_image_size": image_size,
+        "docker_credential_id": docker_credential_id,
     }
     with console.status("Creating template...", spinner="monkey"):
         template = api_client.post("templates", json=payload)
