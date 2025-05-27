@@ -2,7 +2,7 @@ import time
 import uuid
 from rich.live import Live
 from celium_cli.src.services.api import api_client
-from celium_cli.src.utils import console
+from celium_cli.src.styles import style_manager
 
 
 def create_template(docker_image: str | None, dockerfile: str | None = None) -> str:
@@ -33,7 +33,7 @@ def create_template(docker_image: str | None, dockerfile: str | None = None) -> 
 
     if not docker_image:
         docker_image = f"{docker_username}/celium-template-{uuid.uuid4()}:latest"
-        console.print(f"[bold yellow]Warning:[/bold yellow] No [blue]Docker image[/blue] provided, generated new docker image: [green]{docker_image}[/green]")
+        style_manager.console.print(f"[bold yellow]Warning:[/bold yellow] No [blue]Docker image[/blue] provided, generated new docker image: [green]{docker_image}[/green]")
         is_one_time_template = True
 
     if dockerfile:
@@ -56,7 +56,7 @@ def create_template(docker_image: str | None, dockerfile: str | None = None) -> 
         if full_docker_image == docker_image:
             return template["id"]
 
-    console.rule(f"[bold blue]Creating template and waiting for verification: [green]{docker_image}")
+    style_manager.console.rule(f"[bold blue]Creating template and waiting for verification: [green]{docker_image}")
 
     # Create the template
     payload = {
@@ -78,14 +78,14 @@ def create_template(docker_image: str | None, dockerfile: str | None = None) -> 
         "docker_image_size": image_size,
         "docker_credential_id": docker_credential_id,
     }
-    with console.status("Creating template...", spinner="monkey"):
+    with style_manager.console.status("Creating template...", spinner="monkey") as status:
         template = api_client.post("templates", json=payload)
         template_id = template["id"]
-        console.print(f"Template created successfully with id: {template_id}")
+        style_manager.console.print(f"Template created successfully with id: {template_id}")
 
     # Wait until the template passes the verification process.
     start_time = time.time()
-    status_msg = console.status(
+    status_msg = style_manager.console.status(
         f"[cyan]Waiting until template pass verification (waiting for {int(time.time() - start_time)} seconds)...[/cyan] \n \n", spinner="earth"
     )
     with Live(status_msg, refresh_per_second=10) as live:
@@ -99,10 +99,10 @@ def create_template(docker_image: str | None, dockerfile: str | None = None) -> 
                 raise Exception("Template verification failed. Please try again.")
 
             time.sleep(10)
-            status_msg = console.status(
+            status_msg = style_manager.console.status(
                 f"[cyan]Waiting until template pass verification (waiting for {int(time.time() - start_time)} seconds)...[/cyan] \n \n", spinner="earth"
             )
             live.update(status_msg)
 
-    console.print(f"[bold green]Template verified successfully:[/bold green] {template_id}")
+    style_manager.console.print(f"[bold green]Template verified successfully:[/bold green] {template_id}")
     return template_id

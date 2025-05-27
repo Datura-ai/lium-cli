@@ -7,11 +7,11 @@ from bittensor_cli.src import (
     WalletValidationTypes as WV,
 )
 from celium_cli.src.services.api import tao_pay_client
-from celium_cli.src.utils import console
+from celium_cli.src.styles import style_manager
 
 
 def get_client_wallets(customer_id: str) -> list[str]:
-    with console.status("Getting client wallets...", spinner="monkey"):
+    with style_manager.console.status("Getting client wallets...", spinner="monkey") as status:
         wallets = tao_pay_client.get(f"wallet/available-wallets/{customer_id}")
 
     # Print wallets table
@@ -22,7 +22,7 @@ def get_client_wallets(customer_id: str) -> list[str]:
         for wallet in wallets:
             table.add_row(wallet["wallet_hash"])
 
-        console.print(table)
+        style_manager.console.print(table)
     return wallets
 
 
@@ -35,7 +35,7 @@ def create_client_wallet(wallet: Wallet, app_id: str, customer_id: str) -> str:
     keypair = wallet.coldkey
     signed_message = keypair.sign(access_token.encode("utf-8")).hex()
 
-    console.print(f"Signed message: {signed_message}")
+    style_manager.console.print(f"Signed message: {signed_message}")
 
     # call verify endpoint
     tao_pay_client.post("token/verify", json={

@@ -5,7 +5,7 @@ import time
 import uuid
 import paramiko
 import io
-from celium_cli.src.utils import console
+from celium_cli.src.styles import style_manager
 
 
 CUSTOM_TEMPLATE_VERIFY_CONTAINER_PREFIX = "celium-cli-test-container"
@@ -58,34 +58,34 @@ def build_and_push_docker_image_from_dockerfile(
     image_size = None # built image size in bytes
 
     try:
-        console.rule(f"[bold blue]Building Docker Image and pushing to registry: [green]{image_name}")
+        style_manager.console.rule(f"[bold blue]Building Docker Image and pushing to registry: [green]{image_name}")
         build_cmd = [
             "docker", "build",
             "-f", dockerfile_path,
             "-t", image_name,
             dockerfile_dir
         ]
-        with console.status("[bold cyan]Building Docker Image...[/bold cyan]", spinner="earth"):
+        with style_manager.console.status("[bold cyan]Building Docker Image...[/bold cyan]", spinner="earth") as status:
             result = subprocess.run(build_cmd, capture_output=True, text=True)
             if result.returncode != 0:
-                console.print(f"[bold red]Docker build failed![/bold red]\n{result.stderr}")
+                style_manager.console.print(f"[bold red]Docker build failed![/bold red]\n{result.stderr}")
                 return False, image_size
         
-        console.print(f"[bold green]Docker image built successfully![/bold green]")
+        style_manager.console.print(f"[bold green]Docker image built successfully![/bold green]")
 
         # Get the image size in bytes
         size_cmd = ["docker", "image", "inspect", "-f", "{{.Size}}", image_name]
         size_result = subprocess.run(size_cmd, capture_output=True, text=True)
         if size_result.returncode == 0:
             image_size = int(size_result.stdout.strip())
-            console.print(f"[bold blue]Docker image size:[/bold blue] {image_size / (1024*1024):.2f} MB")
+            style_manager.console.print(f"[bold blue]Docker image size:[/bold blue] {image_size / (1024*1024):.2f} MB")
         else:
             raise Exception("Failed to get the image size.")
 
         # Docker login if credentials are provided
         if docker_username and docker_password:
             login_cmd = ["docker", "login", "--username", docker_username, "--password-stdin"]
-            with console.status("[bold cyan]Logging in to Docker registry...[/bold cyan]", spinner="earth"):
+            with style_manager.console.status("[bold cyan]Logging in to Docker registry...[/bold cyan]", spinner="earth") as status:
                 login_proc = subprocess.run(
                     login_cmd,
                     input=docker_password,
@@ -93,23 +93,23 @@ def build_and_push_docker_image_from_dockerfile(
                     text=True
                 )
                 if login_proc.returncode != 0:
-                    console.print(f"[bold red]Docker login failed![/bold red]\n{login_proc.stderr}")
+                    style_manager.console.print(f"[bold red]Docker login failed![/bold red]\n{login_proc.stderr}")
                     return False, image_size
 
-            console.print(f"[bold green]Docker login successful![/bold green]")
+            style_manager.console.print(f"[bold green]Docker login successful![/bold green]")
 
         # Push the docker image
-        with console.status("[bold cyan]Pushing Docker Image...[/bold cyan]", spinner="earth"):
+        with style_manager.console.status("[bold cyan]Pushing Docker Image...[/bold cyan]", spinner="earth") as status:
             push_cmd = ["docker", "push", image_name]
             result = subprocess.run(push_cmd, capture_output=True, text=True)
             if result.returncode != 0:
-                console.print(f"[bold red]Docker push failed![/bold red]\n{result.stderr}")
+                style_manager.console.print(f"[bold red]Docker push failed![/bold red]\n{result.stderr}")
                 return False, image_size
             
-        console.print(f"[bold green]Docker image pushed successfully![/bold green]")
+        style_manager.console.print(f"[bold green]Docker image pushed successfully![/bold green]")
         return True, image_size
     except Exception as e:
-        console.print(f"[bold red]An error occurred: {e}")
+        style_manager.console.print(f"[bold red]An error occurred: {e}")
         return False, None
 
 
@@ -131,7 +131,7 @@ def create_docker_container(image_name: str, public_key: str) -> tuple[str, int]
     status_cmd = ["docker", "ps", "--filter", f"name={container_name}", "--format", "{{.Status}}"]
     status = subprocess.run(status_cmd, capture_output=True, text=True)
     if status.returncode != 0:
-        console.print(f"[bold red]Docker container is not running![/bold red]")
+        style_manager.console.print(f"[bold red]Docker container is not running![/bold red]")
         raise Exception("Docker container is not running")
     return container_name, available_port
 
@@ -177,11 +177,11 @@ def clean_up_template_verify_docker_resources() -> None:
             for container_id in container_ids.splitlines():
                 remove_command = f"docker rm -f {container_id}"
                 subprocess.run(remove_command, shell=True)
-                console.print(f"Removed container with ID: {container_id}")
+                style_manager.console.print(f"Removed container with ID: {container_id}")
         else:
-            console.print(f"No containers found with '{CUSTOM_TEMPLATE_VERIFY_CONTAINER_PREFIX}' prefix.")
+            style_manager.console.print(f"No containers found with '{CUSTOM_TEMPLATE_VERIFY_CONTAINER_PREFIX}' prefix.")
     except Exception as e:
-        console.print(f"Error cleaning up containers: {e}")
+        style_manager.console.print(f"Error cleaning up containers: {e}")
 
 
 def verify_ssh_connection(port: int, private_key_str: str, username: str = "root", timeout: int = 30) -> bool:
@@ -212,7 +212,7 @@ def verify_ssh_connection(port: int, private_key_str: str, username: str = "root
         client.close()
         return output == "SSH connection successful"
     except Exception as e:
-        print(f"SSH connection failed: {e}")
+        style_manager.console.print(f"SSH connection failed: {e}")
         return False
 
 
@@ -221,33 +221,33 @@ def verify_docker_image_validity(image_name: str) -> bool:
     Verify the validity of a docker image.
     """
     try:
-        console.rule(f"[bold blue]Verifying docker image validity: [green]{image_name}")
+        style_manager.console.rule(f"[bold blue]Verifying docker image validity: [green]{image_name}")
         clean_up_template_verify_docker_resources()
 
         # Generate a new SSH key pair
         private_key, public_key = generate_ssh_key_pair()
 
         # Create a docker container from the image
-        with console.status("[bold cyan]Creating docker container...[/bold cyan]", spinner="earth"):
+        with style_manager.console.status("[bold cyan]Creating docker container...[/bold cyan]", spinner="earth") as status:
             container_name, port = create_docker_container(image_name, public_key)
-        console.print(f"[bold green]Docker container created successfully![/bold green]")
+        style_manager.console.print(f"[bold green]Docker container created successfully![/bold green]")
 
         # Install the openssh-server 
-        with console.status("[bold cyan]Installing openssh-server...[/bold cyan]", spinner="earth"):
+        with style_manager.console.status("[bold cyan]Installing openssh-server...[/bold cyan]", spinner="earth") as status:
             install_openssh_server(container_name, public_key)
-        console.print(f"[bold green]Openssh-server installed successfully![/bold green]")
+        style_manager.console.print(f"[bold green]Openssh-server installed successfully![/bold green]")
 
         # Verify the SSH connection
-        with console.status("[bold cyan]Verifying SSH connection...[/bold cyan]", spinner="earth"):
+        with style_manager.console.status("[bold cyan]Verifying SSH connection...[/bold cyan]", spinner="earth") as status:
             is_verified = verify_ssh_connection(port, private_key)
 
             if not is_verified:
-                console.print(f"[bold red]SSH connection failed![/bold red]")
+                style_manager.console.print(f"[bold red]SSH connection failed![/bold red]")
                 return False
-            console.print(f"[bold green]SSH connection verified successfully![/bold green]")
+            style_manager.console.print(f"[bold green]SSH connection verified successfully![/bold green]")
             return True
     except Exception as e:
-        console.print(f"[bold red]An error occurred: {e}")
+        style_manager.console.print(f"[bold red]An error occurred: {e}")
         return False    
     finally:
         # clean_up_template_verify_docker_resources()
