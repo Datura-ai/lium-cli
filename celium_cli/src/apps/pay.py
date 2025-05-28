@@ -33,7 +33,6 @@ class Arguments:
         "--wallet_path",
         "--wallet.path",
         help="Path where the wallets are located. For example: `/Users/btuser/.bittensor/wallets`.",
-        prompt=True,
     )
 
 
@@ -46,20 +45,22 @@ class PayApp(BaseApp):
         wallet_name: str = Arguments.wallet_name,
         wallet_path: str = Arguments.wallet_path,
         amount: float = typer.Option(
-            0.0, "--amount", help="The amount of USD to transfer", prompt=True
+            0.0, "--amount", help="The amount of USD to transfer", prompt="Amount in USD"
         ),
     ):
         cli_manager = CLIManager()
         customer_id = get_customer_id()
         app_id, to_wallet = get_tao_pay_info()
 
+        style_manager.console.print("Asking for wallet...", style="info")
         wallet = cli_manager.wallet_ask(
             wallet_name, wallet_path, wallet_hotkey=None, 
             ask_for=[WO.NAME, WO.PATH], validate=WV.WALLET
         )
+        ss58_address = wallet.coldkey.ss58_address
 
         # Get or create a client wallet
-        wallets = get_client_wallets(customer_id)
+        wallets = get_client_wallets(customer_id, ss58_address)
         if len(wallets) == 0:
             wallet_hash = create_client_wallet(wallet, app_id, customer_id)
         else:
@@ -78,6 +79,11 @@ class PayApp(BaseApp):
         table.add_row(str(amount), str(amount_tao), str(rate), to_wallet, self.cli_manager.config_app.config["network"])
         style_manager.console.print(table)
 
+        # Ask for confirmation before proceeding
+        if not typer.confirm("Do you want to proceed with this transfer?"):
+            style_manager.console.print("Transfer cancelled by user.", style="warning")
+            raise typer.Abort()
+
         # Create a potential transfer
         create_potential_transfer(wallet_hash, to_wallet, amount_tao, amount, rate, customer_id)
 
@@ -86,5 +92,11 @@ class PayApp(BaseApp):
             [self.cli_manager.config_app.config["network"]]
         )
         print('subtensor', subtensor)
-        wallet_transfer(wallet, subtensor, to_wallet, amount_tao)
+        style_manager.console.print("Initiating transfer...", style="info")
+        try:
+            wallet_transfer(wallet, subtensor, to_wallet, amount_tao)
+            style_manager.console.print(f"Successfully transferred {amount_tao} TAO to {to_wallet}.", style="success")
+        except Exception as e:
+            style_manager.console.print(f"Transfer failed: {e}", style="error")
+            raise typer.Abort()
         

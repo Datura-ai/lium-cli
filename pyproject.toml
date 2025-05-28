@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "celium-cli"
-version = "0.2.0"
+version = "0.2.1"
 description = "A custom CLI tool for Celium. Celium CLI provides tools for interacting with the Celium ecosystem from the command line."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -48,7 +48,7 @@ dependencies = [
 dev = ["pytest", "black", "wheel"]
 
 [project.scripts]
-celium-cli = "celium_cli.cli:main"
+clium = "celium_cli.cli:main"
 
 [tool.setuptools]
 package-dir = {"celium_cli" = "celium_cli"}
