@@ -1,6 +1,6 @@
 from functools import wraps
 from celium_cli.src.services.validator import ValidationError
-from celium_cli.src.utils import console
+from celium_cli.src.styles import style_manager
 
 
 def catch_validation_error(func):
@@ -9,7 +9,7 @@ def catch_validation_error(func):
         try:
             return func(*args, **kwargs)
         except ValidationError as e:
-            console.print(f"[bold red]Error: [/bold red] {str(e)}")
+            style_manager.console.print(f"[bold red]Error: [/bold red] {str(e)}")
         except Exception as e:
-            console.print_exception(show_locals=True)
+            style_manager.console.print_exception(show_locals=True)
     return wrapper

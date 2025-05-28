@@ -13,7 +13,7 @@ from async_substrate_interface.errors import (
 from bittensor_cli.src.bittensor.subtensor_interface import SubtensorInterface
 from bittensor_cli.src.commands import wallets
 import typer
-from celium_cli.src.utils import err_console, verbose_console
+from celium_cli.src.styles import style_manager
 from celium_cli.src.services.api import api_client, tao_pay_client
 
 
@@ -44,34 +44,36 @@ def run_command(cmd: Coroutine, exit_early: bool = True, subtensor: Optional[Sub
                 initiated = True
                 result = await cmd
             return result
-        except (ConnectionRefusedError, ssl.SSLError, InvalidHandshake):
-            err_console.print(f"Unable to connect to the chain: {subtensor}")
-            verbose_console.print(traceback.format_exc())
-        except (
-            ConnectionClosed,
-            SubstrateRequestException,
-            KeyboardInterrupt,
-            RuntimeError,
-        ) as e:
-            if isinstance(e, SubstrateRequestException):
-                err_console.print(str(e))
-            elif isinstance(e, RuntimeError):
-                pass  # Temporarily to handle loop bound issues
-            verbose_console.print(traceback.format_exc())
+        except (ConnectionRefusedError, ssl.SSLError, InvalidHandshake) as e:
+            style_manager.console.print(f"Unable to connect to the chain. Details: {e}", style="error")
+            style_manager.console.print(traceback.format_exc(), style="dim")
+        except (ConnectionClosed, SubstrateRequestException) as e:
+            style_manager.console.print(f"Substrate/Connection Error: {str(e)}", style="error")
+            style_manager.console.print(traceback.format_exc(), style="dim")
+        except KeyboardInterrupt:
+            style_manager.console.print("Operation cancelled by user.", style="warning")
+        except RuntimeError as e:
+            style_manager.console.print(f"Runtime error encountered: {e}", style="error")
+            style_manager.console.print(traceback.format_exc(), style="dim")
         except Exception as e:
-            err_console.print(f"An unknown error has occurred: {e}")
-            verbose_console.print(traceback.format_exc())
+            style_manager.console.print(f"An unknown error has occurred: {e}", style="error")
+            style_manager.console.print(traceback.format_exc(), style="dim")
         finally:
             if initiated is False:
-                asyncio.create_task(cmd).cancel()
+                task_to_cancel = asyncio.create_task(cmd)
+                task_to_cancel.cancel()
+                try:
+                    await task_to_cancel
+                except asyncio.CancelledError:
+                    pass
             if (
                 exit_early is True
-            ):  # temporarily to handle multiple run commands in one session
+            ):
                 try:
                     raise typer.Exit()
-                except Exception as e:  # ensures we always exit cleanly
+                except Exception as e:
                     if not isinstance(e, (typer.Exit, RuntimeError)):
-                        err_console.print(f"An unknown error has occurred: {e}")
+                        style_manager.console.print(f"Exiting - an unknown error occurred: {e}", style="error")
 
     return asyncio_runner()(_run())
 

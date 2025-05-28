@@ -8,7 +8,7 @@ from rich.table import Column, Table
 from rich import box
 from celium_cli.src.apps import BaseApp
 from celium_cli.src.const import EPILOG
-from celium_cli.src.utils import console
+from celium_cli.src.styles import style_manager
 from celium_cli.src.config import defaults
 if TYPE_CHECKING:
     from celium_cli.src.cli_manager import CLIManager
@@ -73,6 +73,9 @@ class ConfigApp(BaseApp):
         self.config_path = os.path.expanduser(defaults.config.path)
         self.app.command("set")(self.set_config)
         self.app.command("get")(self.get_config)
+        self.app.command("unset")(self.unset_config)
+        self.app.command("show")(self.show_config)
+        self.app.command("path")(self.config_path_command)
 
     def callback(self):
         # Load or create the config file
@@ -174,9 +177,9 @@ class ConfigApp(BaseApp):
 
             # Create numbering to choose from
             config_keys = list(args.keys())
-            console.print("Which config setting would you like to update?\n")
+            style_manager.console.print("Which config setting would you like to update?\n")
             for idx, key in enumerate(config_keys, start=1):
-                console.print(f"{idx}. {key}")
+                style_manager.console.print(f"{idx}. {key}")
 
             choice = IntPrompt.ask(
                 "\nEnter the [bold]number[/bold] of the config setting you want to update",
@@ -223,4 +226,57 @@ class ConfigApp(BaseApp):
             else:
                 table.add_row(str(key), str(value), "")
 
-        console.print(table)
+        style_manager.console.print(table)
+
+    def unset_config(self, key: str = typer.Argument(..., help="The configuration key to unset.")):
+        """
+        Removes a configuration value from the Celium CLI config file.
+        """
+        config_updated = False
+        if os.path.exists(self.config_path):
+            with open(self.config_path, "r") as f:
+                current_config = safe_load(f)
+            
+            if key in current_config:
+                del current_config[key]
+                with open(self.config_path, "w") as f:
+                    safe_dump(current_config, f)
+                # Update in-memory config as well
+                if key in self.config:
+                    del self.config[key] 
+                style_manager.console.print(f"[green]Configuration key '{key}' unset successfully.[/green]")
+                config_updated = True
+            else:
+                style_manager.console.print(f"[yellow]Configuration key '{key}' not found.[/yellow]")
+        else:
+            style_manager.console.print("[yellow]Configuration file does not exist.[/yellow]")
+
+        if config_updated:
+            # Reload config to ensure in-memory self.config is fresh
+            self.callback() 
+
+    def show_config(self):
+        """
+        Displays the entire content of the Celium CLI configuration file.
+        """
+        if os.path.exists(self.config_path):
+            with open(self.config_path, "r") as f:
+                content = f.read()
+            if content.strip():
+                style_manager.console.print("[bold magenta]Current Configuration:[/bold magenta]")
+                # Assuming YAML, for pretty printing:
+                try:
+                    parsed_yaml = safe_load(content)
+                    style_manager.console.print_json(data=parsed_yaml) # rich console can print json/yaml nicely
+                except Exception:
+                    style_manager.console.print(content) # Fallback to raw content
+            else:
+                style_manager.console.print("[yellow]Configuration file is empty.[/yellow]")
+        else:
+            style_manager.console.print("[yellow]Configuration file does not exist.[/yellow]")
+
+    def config_path_command(self):
+        """
+        Displays the path to the Celium CLI configuration file.
+        """
+        style_manager.console.print(f"Configuration file path: [blue]{self.config_path}[/blue]")
