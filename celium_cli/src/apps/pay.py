@@ -11,7 +11,7 @@ from celium_cli.src.apps import BaseApp
 from celium_cli.src.services.tao import get_tao_pay_info
 from celium_cli.src.services.user import get_customer_id
 from celium_cli.src.services.wallet import get_client_wallets, create_client_wallet, create_potential_transfer
-from celium_cli.src.utils import console
+from celium_cli.src.styles import style_manager
 from celium_cli.src.services.api import tao_pay_client
 from celium_cli.src.services.tao import wallet_transfer
 
@@ -74,7 +74,7 @@ class PayApp(BaseApp):
         table.add_column("To Wallet", style="bold magenta")
         table.add_column("Network", style="bold cyan")
         table.add_row(str(amount), str(amount_tao), str(rate), to_wallet, self.cli_manager.config_app.config["network"])
-        console.print(table)
+        style_manager.console.print(table)
 
         # Create a potential transfer
         create_potential_transfer(wallet_hash, to_wallet, amount_tao, amount, rate, customer_id)

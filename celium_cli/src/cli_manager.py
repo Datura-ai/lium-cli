@@ -12,10 +12,12 @@ from celium_cli.src.apps.config import ConfigApp
 from celium_cli.src.apps.pay import PayApp
 from celium_cli.src.apps.pod import PodApp
 from celium_cli.src.apps.template import TemplateApp
+from celium_cli.src.apps.theme import ThemeApp
+from celium_cli.src.apps.ssh import SSHApp
 from celium_cli.src.const import EPILOG
 from celium_cli.src.config import defaults
 from celium_cli.src.version import __version__
-from celium_cli.src.utils import console
+from celium_cli.src.styles import style_manager
 try:
     from git import Repo, GitError
 except ImportError:
@@ -49,7 +51,7 @@ def commands_callback(value: bool):
     """
     if value:
         cli = CLIManager()
-        console.print(cli.generate_command_tree())
+        style_manager.console.print(cli.generate_command_tree())
         raise typer.Exit()
 
 
@@ -58,6 +60,8 @@ class CLIManager:
     pod_app: PodApp
     pay_app: PayApp
     template_app: TemplateApp
+    theme_app: ThemeApp
+    ssh_app: SSHApp
 
     def __init__(self):
         # Initialize the CLI app
@@ -71,6 +75,8 @@ class CLIManager:
         self.pod_app = PodApp(self)
         self.template_app = TemplateApp(self)
         self.pay_app = PayApp(self)
+        self.theme_app = ThemeApp(self)
+        self.ssh_app = SSHApp(self)
 
         # config aliases
         self.app.add_typer(
@@ -113,6 +119,22 @@ class CLIManager:
 
         # pay aliases
         self.app.command("pay")(self.pay_app.pay)
+
+        # theme command (simple, no aliases for now)
+        self.app.add_typer(
+            self.theme_app.app,
+            name="theme",
+            short_help="Manage CLI themes (placeholder)",
+            no_args_is_help=True,
+        )
+
+        # ssh commands
+        self.app.add_typer(
+            self.ssh_app.app,
+            name="ssh",
+            short_help="SSH related commands (placeholder)",
+            no_args_is_help=True,
+        )
         
     def main_callback(
         self,
