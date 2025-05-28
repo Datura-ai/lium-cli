@@ -24,6 +24,7 @@ class Arguments:
         "--wallet_name",
         "--wallet.name",
         help="Name of the wallet.",
+        prompt=True,
     )
     wallet_path = typer.Option(
         None,
@@ -32,6 +33,7 @@ class Arguments:
         "--wallet_path",
         "--wallet.path",
         help="Path where the wallets are located. For example: `/Users/btuser/.bittensor/wallets`.",
+        prompt=True,
     )
 
 
@@ -44,7 +46,7 @@ class PayApp(BaseApp):
         wallet_name: str = Arguments.wallet_name,
         wallet_path: str = Arguments.wallet_path,
         amount: float = typer.Option(
-            0.0, "--amount", help="The amount of USD to transfer"
+            0.0, "--amount", help="The amount of USD to transfer", prompt=True
         ),
     ):
         cli_manager = CLIManager()
