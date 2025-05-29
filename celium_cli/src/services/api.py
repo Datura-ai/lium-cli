@@ -28,15 +28,15 @@ class APIClient:
     def get_auth_headers(self, require_auth: bool = True):
         return {"X-API-Key": self.api_key} if require_auth else {}
 
-    def get(self, endpoint: str, params: dict = None, require_auth: bool = True):
+    def get(self, endpoint: str, params: dict = None, require_auth: bool = True, auth_heads: None | dict = None):
         url = self.get_api_url(endpoint)
-        response = requests.get(url, headers=self.get_auth_headers(require_auth), params=params)
+        response = requests.get(url, headers=self.get_auth_headers(require_auth) if auth_heads is None else auth_heads, params=params)
         response.raise_for_status()
         return response.json()
 
-    def post(self, endpoint: str, data: dict = None, json: dict = None, require_auth: bool = True):
+    def post(self, endpoint: str, data: dict = None, json: dict = None, require_auth: bool = True, auth_heads: None | dict = None):
         url = self.get_api_url(endpoint)
-        response = requests.post(url, headers=self.get_auth_headers(require_auth), data=data, json=json)
+        response = requests.post(url, headers=self.get_auth_headers(require_auth) if auth_heads is None else auth_heads, data=data, json=json)
         response.raise_for_status()
         return response.json()
     

@@ -1,3 +1,5 @@
+# This file is intentionally left blank.
+
 from typing import TYPE_CHECKING
 import typer
 

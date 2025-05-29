@@ -79,9 +79,9 @@ def run_command(cmd: Coroutine, exit_early: bool = True, subtensor: Optional[Sub
 
 
 
-def get_tao_pay_info() -> tuple[str, str]:
+def get_tao_pay_info(jwt_token: str | None = None) -> tuple[str, str]:
     transfer_url = api_client.post(
-        "tao/create-transfer", json={"amount": 10}
+        "tao/create-transfer", json={"amount": 10}, auth_heads={"Authorization": f"Bearer {jwt_token}"} if jwt_token else None
     )["url"]
     # Extract app_id from transfer URL query parameters
     from urllib.parse import urlparse, parse_qs

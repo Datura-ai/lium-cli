@@ -14,6 +14,7 @@ from celium_cli.src.apps.pod import PodApp
 from celium_cli.src.apps.template import TemplateApp
 from celium_cli.src.apps.theme import ThemeApp
 from celium_cli.src.apps.ssh import SSHApp
+from celium_cli.src.apps.lium import LiumApp
 from celium_cli.src.const import EPILOG
 from celium_cli.src.config import defaults
 from celium_cli.src.version import __version__
@@ -62,6 +63,7 @@ class CLIManager:
     template_app: TemplateApp
     theme_app: ThemeApp
     ssh_app: SSHApp
+    lium_app: LiumApp
 
     def __init__(self):
         # Initialize the CLI app
@@ -77,6 +79,7 @@ class CLIManager:
         self.pay_app = PayApp(self)
         self.theme_app = ThemeApp(self)
         self.ssh_app = SSHApp(self)
+        self.lium_app = LiumApp(self)
 
         # config aliases
         self.app.add_typer(
@@ -120,6 +123,9 @@ class CLIManager:
         # pay aliases
         self.app.command("pay")(self.pay_app.pay)
 
+        # lium aliases
+        self.app.command("init")(self.lium_app.init)
+
         # theme command (simple, no aliases for now)
         self.app.add_typer(
             self.theme_app.app,
@@ -133,6 +139,14 @@ class CLIManager:
             self.ssh_app.app,
             name="ssh",
             short_help="SSH related commands (placeholder)",
+            no_args_is_help=True,
+        )
+
+        # lium commands
+        self.app.add_typer(
+            self.lium_app.app,
+            name="lium",
+            short_help="Lium related commands",
             no_args_is_help=True,
         )
         

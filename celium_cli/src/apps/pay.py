@@ -47,22 +47,31 @@ class PayApp(BaseApp):
         amount: float = typer.Option(
             0.0, "--amount", help="The amount of USD to transfer", prompt="Amount in USD"
         ),
+        jwt_token: str | None = None
     ):
         cli_manager = CLIManager()
-        customer_id = get_customer_id()
-        app_id, to_wallet = get_tao_pay_info()
+        app_id, to_wallet = get_tao_pay_info(jwt_token)
+        customer_id = get_customer_id(jwt_token)
+
+        if not customer_id:
+            style_manager.console.print("No customer ID found. Please sign up for a Celium account to continue.", style="error")
+            raise typer.Abort()
+        
+        if amount == 0 or amount is None:
+            amount = typer.prompt("Amount in USD", type=float)
 
         style_manager.console.print("Asking for wallet...", style="info")
         wallet = cli_manager.wallet_ask(
             wallet_name, wallet_path, wallet_hotkey=None, 
             ask_for=[WO.NAME, WO.PATH], validate=WV.WALLET
         )
-        ss58_address = wallet.coldkey.ss58_address
+        keypair = wallet.coldkey
+        ss58_address = keypair.ss58_address
 
         # Get or create a client wallet
         wallets = get_client_wallets(customer_id, ss58_address)
         if len(wallets) == 0:
-            wallet_hash = create_client_wallet(wallet, app_id, customer_id)
+            wallet_hash = create_client_wallet(keypair, app_id, customer_id)
         else:
             wallet_hash = wallets[0]["wallet_hash"]
         
@@ -91,7 +100,6 @@ class PayApp(BaseApp):
         subtensor = cli_manager.initialize_chain(
             [self.cli_manager.config_app.config["network"]]
         )
-        print('subtensor', subtensor)
         style_manager.console.print("Initiating transfer...", style="info")
         try:
             wallet_transfer(wallet, subtensor, to_wallet, amount_tao)
