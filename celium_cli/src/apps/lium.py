@@ -121,10 +121,11 @@ class LiumApp(BaseApp):
         try:
             new_api_key = user_service.get_or_create_api_key(jwt_token)
             if new_api_key:
-                self.cli_manager.config_app.set_config(api_key=new_api_key)
+                self.cli_manager.config_app._update_config("api_key", new_api_key)
                 style_manager.console.print("[green]✓ API key created and saved successfully![/green]")
                 style_manager.console.print("[bold green]Celium CLI is now initialized and ready to use.[/bold green]")
             else:
                 style_manager.console.print("[bold red]Failed to create API key. The server did not return an API key. Please try again or contact support.[/bold red]")
         except Exception as e:
+            raise e
             style_manager.console.print(f"[bold red]Error creating API key: {e}. Please try again or contact support.[/bold red]") 

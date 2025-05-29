@@ -21,8 +21,8 @@ def get_email_verified(token: str) -> bool:
     return response["email_verified"]
 
 
-def create_api_key(token: str) -> None:
-    response = api_client.post("keys", auth_heads={"Authorization": f"Bearer {token}"})
+def create_api_key(token: str, name: str = "first-api-key") -> None:
+    response = api_client.post("keys", json={"name": name}, auth_heads={"Authorization": f"Bearer {token}"})
     return response["key"]
 
 

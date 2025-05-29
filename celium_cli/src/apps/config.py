@@ -210,6 +210,11 @@ class ConfigApp(BaseApp):
         # Print latest configs after updating
         self.get_config()
 
+    def _update_config(self, key: str, val: str):
+        self.config[key] = val
+        with open(self.config_path, "w") as f:
+            safe_dump(self.config, f)
+
     def get_config(self):
         table = Table(
             Column("[bold white]Name", style="dark_orange"),
