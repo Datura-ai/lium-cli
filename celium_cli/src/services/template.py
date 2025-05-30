@@ -3,6 +3,7 @@ import uuid
 from rich.live import Live
 from celium_cli.src.services.api import api_client
 from celium_cli.src.styles import style_manager
+from rich.prompt import Prompt
 
 
 def create_template(docker_image: str | None, dockerfile: str | None = None) -> str:
@@ -35,6 +36,18 @@ def create_template(docker_image: str | None, dockerfile: str | None = None) -> 
         docker_image = f"{docker_username}/celium-template-{uuid.uuid4()}:latest"
         style_manager.console.print(f"[bold yellow]Warning:[/bold yellow] No [blue]Docker image[/blue] provided, generated new docker image: [green]{docker_image}[/green]")
         is_one_time_template = True
+    else:
+        # Verify if the docker image matches the Docker Hub credentials
+        if not docker_image.startswith(docker_username):
+            style_manager.console.print(f"[bold red]Error:[/bold red] Docker image '{docker_image}' does not match the Docker Hub credentials for user '{docker_username}'.")
+            docker_image = Prompt.ask(
+                f"  Please enter a valid Docker image name that starts with '{docker_username}'",
+                console=style_manager.console
+            )
+            if not docker_image.startswith(docker_username):
+                raise Exception(f"[bold red]Error:[/bold red] Provided Docker image '{docker_image}' still does not match the Docker Hub credentials for user '{docker_username}'.")
+        else:
+            style_manager.console.print(f"[bold green]Docker image matches the Docker Hub credentials: {docker_image}[/bold green]")
 
     if dockerfile:
         # Build and push the docker image

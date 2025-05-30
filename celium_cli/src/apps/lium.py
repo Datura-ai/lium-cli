@@ -1,3 +1,4 @@
+import os
 import typer
 from rich.prompt import Prompt, Confirm
 import time
@@ -7,6 +8,8 @@ from rich.spinner import Spinner
 from celium_cli.src.services import user as user_service
 from celium_cli.src.apps import BaseApp
 from celium_cli.src.styles import style_manager
+from celium_cli.src.services import docker_credential as docker_credential_service
+from celium_cli.src.services.api import api_client
 
 
 class LiumApp(BaseApp):
@@ -123,7 +126,38 @@ class LiumApp(BaseApp):
             if new_api_key:
                 self.cli_manager.config_app._update_config("api_key", new_api_key)
                 style_manager.console.print("[green]✓ API key created and saved successfully![/green]")
+
+                docker_credentials = docker_credential_service.list_credentials()
+                if len(docker_credentials) == 0:
+                    # Docker Hub Credentials
+                    style_manager.console.print("\n[bold]Docker Hub Configuration[/bold]")
+                    has_docker_account = Confirm.ask("Do you have your own Docker Hub account?", default=False, console=style_manager.console)
+                    if has_docker_account:
+                        docker_username = Prompt.ask("Enter your Docker Hub username", console=style_manager.console)
+                        docker_password = Prompt.ask("Enter your Docker Hub password", password=True, console=style_manager.console)
+                        docker_credential_service.create_docker_credential(docker_username, docker_password)
+                    else:
+                        style_manager.console.print("The CLI will use a shared Docker Hub account for operations.")
+                        docker_credential_service.get_docker_credential()
+
                 style_manager.console.print("[bold green]Celium CLI is now initialized and ready to use.[/bold green]")
+
+                # Add SSH keys if doesn't exist 
+                ssh_keys = api_client.get("ssh-keys/me")
+                if len(ssh_keys) == 0:
+                    ssh_key_path = Prompt.ask("Enter the path to your SSH public key file", default="~/.ssh/id_rsa.pub", console=style_manager.console)
+                    try:
+                        ssh_key_path = os.path.expanduser(ssh_key_path)
+                        with open(ssh_key_path, "r") as f:
+                            public_key_content = f.read().strip()
+                    except Exception as e:
+                        style_manager.console.print(f"[bold red]Error:[/bold red] Could not read SSH key file: {e}")
+                        return
+                    
+                    ssh_key = api_client.post("ssh-keys", json={
+                        "name": "celium-cli",
+                        "public_key": public_key_content
+                    })
             else:
                 style_manager.console.print("[bold red]Failed to create API key. The server did not return an API key. Please try again or contact support.[/bold red]")
         except Exception as e:
