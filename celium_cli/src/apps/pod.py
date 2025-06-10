@@ -900,18 +900,44 @@ class PodApp(BaseApp):
         except Exception as e:
             style_manager.console.print(f"[bold red]An unexpected error occurred: {type(e).__name__} - {e}[/bold red]")
 
-    def list_available_pods(self, gpu_type_filter: str = typer.Option(None, "--gpu-type", "-g", help="Filter directly by a GPU type (e.g., 'H100', '4090').")):
+    def list_available_pods(
+        self,
+        gpu_type_filter: str = typer.Option(None, "--gpu-type", "-g", help="Filter directly by a GPU type (e.g., 'H100', '4090')."),
+        lat: float = typer.Option(None, "--lat", help="Latitude for distance-based filtering"),
+        lon: float = typer.Option(None, "--lon", help="Longitude for distance-based filtering"),
+        max_distance_mile: float = typer.Option(None, "--max-distance", help="Maximum distance in miles from specified lat/lon")
+    ):
         """
         Lists all available executors (pods that can be rented), grouped by GPU type.
         Provides a summary and allows viewing details for a selected GPU type.
+        
+        Location-based filtering can be done using lat/lon coordinates and maximum distance.
+        If any of lat, lon, or max_distance_mile is provided, all three must be provided.
         """
         validate_for_api_key(self.cli_manager) # API key might be needed depending on API config
+
+        # Validate location parameters
+        if any(param is not None for param in [lat, lon, max_distance_mile]):
+            if not all(param is not None for param in [lat, lon, max_distance_mile]):
+                style_manager.console.print("[bold red]Error: When using location-based filtering, all of --lat, --lon, and --max-distance must be provided.[/bold red]")
+                raise typer.Exit(code=1)
+
         try:
             with style_manager.console.status("Fetching available executors...", spinner="dots") as status:
                 # Assuming "executors" endpoint lists all rentable instances
                 # Lium uses require_auth=False here, celium might differ.
                 # For now, let api_client use its default auth behavior.
-                executors = api_client.get("executors") 
+                # Prepare query parameters
+                query_params = {}
+                if all(param is not None for param in [lat, lon, max_distance_mile]):
+                    query_params.update({
+                        "lat": lat,
+                        "lon": lon,
+                        "max_distance_mile": max_distance_mile
+                    })
+
+                # Make API call with query parameters
+                executors = api_client.get("executors", params=query_params)
 
             if not executors:
                 style_manager.console.print("[yellow]No executors currently available.[/yellow]")
@@ -930,6 +956,11 @@ class PodApp(BaseApp):
                 else:
                     style_manager.console.print(f"[yellow]GPU type '{gpu_type_filter}' not found. Available types: {', '.join(sorted(grouped_by_gpu.keys()))}[/yellow]")
                     return # Exit if filter yields no results
+            elif lat is not None and lon is not None and max_distance_mile is not None:
+                # When location parameters are provided, show all executors in a single table
+                style_manager.console.print(f"\n[bold magenta]Available Executors within {max_distance_mile} miles of ({lat}, {lon}):[/bold magenta]")
+                self._show_gpu_type_details_table("All", executors)
+                return
             else:
                 # Show summary and prompt for selection
                 style_manager.console.print("\n[bold magenta]Available GPU Types Summary:[/bold magenta]")
@@ -1026,6 +1057,8 @@ class PodApp(BaseApp):
         detail_table.add_column("VRAM/GPU (GB)", style="magenta", justify="right")
         detail_table.add_column("RAM (GB)", style="blue", justify="right")
         detail_table.add_column("Location", style="white", min_width=10)
+        detail_table.add_column("Latitude", style="cyan", justify="right")
+        detail_table.add_column("Longitude", style="cyan", justify="right")
         detail_table.add_column("Down (Mbps)", style="cyan", justify="right")
         detail_table.add_column("Up (Mbps)", style="cyan", justify="right")
         detail_table.add_column("DinD Support", justify="center") # Removed style, will apply per cell
@@ -1059,6 +1092,11 @@ class PodApp(BaseApp):
                 ram_gb = f"{ram_total_kb / 1024 / 1024:.0f}"
 
             location = exec_data.get("location", {}).get("country", "N/A") # Example from lium
+            lat = exec_data.get("location", {}).get("lat")
+            lon = exec_data.get("location", {}).get("lon")
+            lat_display = f"{lat:.4f}" if isinstance(lat, (int, float)) else "N/A"
+            lon_display = f"{lon:.4f}" if isinstance(lon, (int, float)) else "N/A"
+
             network_download_speed_val = exec_data.get('specs', {}).get('network', {}).get('download_speed')
             network_upload_speed_val = exec_data.get('specs', {}).get('network', {}).get('upload_speed')
 
@@ -1075,6 +1113,8 @@ class PodApp(BaseApp):
                 vram_per_gpu_gb,
                 ram_gb,
                 location,
+                lat_display,
+                lon_display,
                 download_speed_display,
                 upload_speed_display,
                 dind_display
