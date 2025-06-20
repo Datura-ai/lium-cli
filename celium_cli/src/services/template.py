@@ -4,6 +4,7 @@ from rich.live import Live
 from celium_cli.src.services.api import api_client
 from celium_cli.src.styles import style_manager
 from rich.prompt import Prompt
+from rich.table import Table
 
 
 def create_template(docker_image: str | None, dockerfile: str | None = None) -> str:
@@ -119,3 +120,17 @@ def create_template(docker_image: str | None, dockerfile: str | None = None) -> 
 
     style_manager.console.print(f"[bold green]Template verified successfully:[/bold green] {template_id}")
     return template_id
+
+def get_default_docker_image(gpu_model: str, driver_version: str) -> str:
+    table = Table(title="Default Docker Image")
+    table.add_column("GPU Model", style="bold white")
+    table.add_column("Driver Version", style="bold white")
+    table.add_column("Default Docker Image", style="bold white")
+
+    default_docker_image = api_client.get(f"executors/default-docker-image?gpu_model={gpu_model}&driver_version={driver_version}")
+    docker_image = default_docker_image["docker_image"]
+    docker_image_tag = default_docker_image["docker_image_tag"]
+    table.add_row(gpu_model, driver_version, f"{docker_image}:{docker_image_tag}")
+    style_manager.console.print(table)
+
+    return f"{default_docker_image['docker_image']}:{default_docker_image['docker_image_tag']}"

@@ -2,7 +2,7 @@ import typer
 from celium_cli.src.apps import BaseApp, TemplateBaseArguments
 from celium_cli.src.decorator import catch_validation_error
 from celium_cli.src.services.docker_credential import get_docker_credential
-from celium_cli.src.services.template import create_template
+from celium_cli.src.services.template import create_template, get_default_docker_image
 from rich.prompt import Prompt, Confirm
 import random
 import string
@@ -16,6 +16,7 @@ class Arguments(TemplateBaseArguments):
 class TemplateApp(BaseApp):
     def run(self):
         self.app.command("create")(self.create_template)
+        self.app.command("default-docker-image")(self.get_default_docker_image)
 
     @catch_validation_error
     def create_template(
@@ -128,3 +129,11 @@ class TemplateApp(BaseApp):
         final_dockerfile = current_dockerfile_val if current_dockerfile_val else None
         
         create_template(final_docker_image, final_dockerfile)
+
+    @catch_validation_error
+    def get_default_docker_image(
+        self,
+        gpu_model: str = typer.Option(..., "--gpu-model", "-g", help="The GPU model to get the default docker image for"),
+        driver_version: str = typer.Option(..., "--driver-version", "-d", help="The driver version to get the default docker image for")
+    ):
+        get_default_docker_image(gpu_model, driver_version)
