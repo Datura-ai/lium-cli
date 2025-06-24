@@ -119,7 +119,11 @@ class Arguments(TemplateBaseArguments):
         "--yes", "-y",
         help="Skip confirmation prompts (e.g., for default template selection)."
     )
-    
+    use_default_docker_image: bool = typer.Option(
+        True,
+        "--use-default-docker-image",
+        help="Use the default docker image for the selected executor."
+    )
 
 class PodApp(BaseApp):
     def run(self):
@@ -137,7 +141,8 @@ class PodApp(BaseApp):
         ssh_key_path: str = Arguments.ssh_key_path,
         template_id: str = Arguments.template_id,
         pod_name: str = Arguments.pod_name,
-        skip_confirmation: bool = Arguments.skip_confirmation
+        skip_confirmation: bool = Arguments.skip_confirmation,
+        use_default_docker_image: bool = Arguments.use_default_docker_image
     ):
         """
         Run a pod on a machine.
@@ -184,10 +189,27 @@ class PodApp(BaseApp):
         if not template_id_to_use:
             # Check config for default template_id (adjust key as needed for celium config structure)
             # Assuming config is loaded into self.cli_manager.config_app.config
-            default_template_id_from_config = self.cli_manager.config_app.config.get("default_template_id")
+            # default_template_id_from_config = self.cli_manager.config_app.config.get("default_template_id")
+
+            if use_default_docker_image:
+                # Handle case where selected_executor might be None (from interactive selection)
+                all_executors = api_client.get("executors")
+                gpu_driver = ""
+                executor = next((ex for ex in all_executors if ex.get("id") == selected_executor_id), None)
+                if executor:
+                    machine_name = executor.get("machine_name")
+                    gpu_driver = executor.get("specs", {}).get("gpu", {}).get("driver", "")
+                
+                default_docker_image = self.cli_manager.template_app.get_default_docker_image(machine_name, gpu_driver)
+                style_manager.console.print(f"[cyan]Using Default Docker Image:[/cyan] {default_docker_image}")
+                
+                templates = api_client.get("templates")
+                default_template = next((t for t in templates if f"{t.get('docker_image')}:{t.get('docker_image_tag')}" == default_docker_image), None)
+                default_template_id_from_config = default_template.get("id") if default_template else None
+                style_manager.console.print(f"[cyan]Using Default Docker Image:[/cyan] {default_docker_image}")
 
             if default_template_id_from_config:
-                template_source_info = f"Using default template from config: '{default_template_id_from_config}'"
+                template_source_info = f"Using default template from config: '{default_template_id_from_config}' - '{default_template.get('docker_image')}:{default_template.get('docker_image_tag')}'"
                 if skip_confirmation:
                     template_id_to_use = default_template_id_from_config
                     style_manager.console.print(f"[cyan]{template_source_info}[/cyan]")

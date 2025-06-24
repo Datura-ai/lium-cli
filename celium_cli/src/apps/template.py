@@ -136,4 +136,4 @@ class TemplateApp(BaseApp):
         gpu_model: str = typer.Option(..., "--gpu-model", "-g", help="The GPU model to get the default docker image for"),
         driver_version: str = typer.Option(..., "--driver-version", "-d", help="The driver version to get the default docker image for")
     ):
-        get_default_docker_image(gpu_model, driver_version)
+        return get_default_docker_image(gpu_model, driver_version)
