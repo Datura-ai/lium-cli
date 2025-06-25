@@ -189,7 +189,6 @@ class PodApp(BaseApp):
         if not template_id_to_use:
             # Check config for default template_id (adjust key as needed for celium config structure)
             # Assuming config is loaded into self.cli_manager.config_app.config
-            # default_template_id_from_config = self.cli_manager.config_app.config.get("default_template_id")
 
             if use_default_docker_image:
                 # Handle case where selected_executor might be None (from interactive selection)
@@ -207,6 +206,8 @@ class PodApp(BaseApp):
                 default_template = next((t for t in templates if f"{t.get('docker_image')}:{t.get('docker_image_tag')}" == default_docker_image), None)
                 default_template_id_from_config = default_template.get("id") if default_template else None
                 style_manager.console.print(f"[cyan]Using Default Docker Image:[/cyan] {default_docker_image}")
+            else:
+                default_template_id_from_config = self.cli_manager.config_app.config.get("default_template_id")
 
             if default_template_id_from_config:
                 template_source_info = f"Using default template from config: '{default_template_id_from_config}' - '{default_template.get('docker_image')}:{default_template.get('docker_image_tag')}'"
