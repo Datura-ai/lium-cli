@@ -5,11 +5,14 @@
 [![PyPI version](https://badge.fury.io/py/lium-cli.svg)](https://badge.fury.io/py/lium-cli)
 [![Python Support](https://img.shields.io/pypi/pyversions/lium-cli.svg)](https://pypi.org/project/lium-cli/)
 [![Downloads](https://pepy.tech/badge/lium-cli)](https://pepy.tech/project/lium-cli)
+
 **A powerful command-line interface for managing GPU cloud computing resources on the Lium platform**
 
----
-
 ![Lium CLI Demo](lium-cli-demo.gif)
+
+</div>
+
+---
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
