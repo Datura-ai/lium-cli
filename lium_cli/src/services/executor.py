@@ -4,9 +4,9 @@ from rich.table import Table
 from rich.live import Live
 from rich.panel import Panel
 from rich.console import Group
-from celium_cli.src.services.api import api_client
-from celium_cli.src.styles import style_manager
-from celium_cli.src.utils import pretty_minutes, pretty_seconds
+from lium_cli.src.services.api import api_client
+from lium_cli.src.styles import style_manager
+from lium_cli.src.utils import pretty_minutes, pretty_seconds
 
 
 def get_executors_and_print_table(count: int, machine_name: str) -> list[dict]:
@@ -147,7 +147,7 @@ def rent_executor(executor_id: str, docker_image: str | None, template_id: str |
     final_pod_name = pod_name_override
     if not final_pod_name:
         # Default naming convention (can be made more sophisticated, e.g., using HUID part of executor)
-        final_pod_name = "CeliumPod-" + datetime.now().strftime("%Y%m%d-%H%M%S")
+        final_pod_name = "LiumPod-" + datetime.now().strftime("%Y%m%d-%H%M%S")
         style_manager.console.print(f"[cyan]No pod name specified, using default: {final_pod_name}[/cyan]")
 
     # Rent the executor with the selected SSH key and resolved template ID

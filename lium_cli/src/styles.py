@@ -8,8 +8,8 @@ from rich.theme import Theme
 ThemeName = Literal["default_dark", "default_light"]
 
 DEFAULT_THEME: ThemeName = "default_dark"
-CELIUM_CONFIG_DIR = Path(os.path.expanduser("~/.celium"))
-THEME_CONFIG_FILE = CELIUM_CONFIG_DIR / "theme.json"
+LIUM_CONFIG_DIR = Path(os.path.expanduser("~/.lium"))
+THEME_CONFIG_FILE = LIUM_CONFIG_DIR / "theme.json"
 
 # Define basic style keys that can be themed
 # Values are Rich style strings
@@ -72,7 +72,7 @@ class StyleManager:
         self.console = Console(theme=Theme(self.current_styles))
 
     def _load_theme_preference(self):
-        CELIUM_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+        LIUM_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
         if THEME_CONFIG_FILE.exists():
             try:
                 with open(THEME_CONFIG_FILE, "r") as f:
@@ -85,7 +85,7 @@ class StyleManager:
                 pass 
 
     def _save_theme_preference(self):
-        CELIUM_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+        LIUM_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
         try:
             with open(THEME_CONFIG_FILE, "w") as f:
                 json.dump({"theme": self._current_theme_name}, f)

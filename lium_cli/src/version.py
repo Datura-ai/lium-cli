@@ -19,5 +19,5 @@ def version_as_int(version):
     return version_as_int_
 
 
-__version__ = importlib.metadata.version("celium-cli")
+__version__ = importlib.metadata.version("lium-cli")
 __version_as_int__ = version_as_int(__version__)

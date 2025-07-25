@@ -8,17 +8,17 @@ import typer
 from rich.tree import Tree
 from yaml import safe_dump, safe_load
 
-from celium_cli.src.apps.config import ConfigApp
-from celium_cli.src.apps.pay import PayApp
-from celium_cli.src.apps.pod import PodApp
-from celium_cli.src.apps.template import TemplateApp
-from celium_cli.src.apps.theme import ThemeApp
-from celium_cli.src.apps.ssh import SSHApp
-from celium_cli.src.apps.lium import LiumApp
-from celium_cli.src.const import EPILOG
-from celium_cli.src.config import defaults
-from celium_cli.src.version import __version__
-from celium_cli.src.styles import style_manager
+from lium_cli.src.apps.config import ConfigApp
+from lium_cli.src.apps.pay import PayApp
+from lium_cli.src.apps.pod import PodApp
+from lium_cli.src.apps.template import TemplateApp
+from lium_cli.src.apps.theme import ThemeApp
+from lium_cli.src.apps.ssh import SSHApp
+from lium_cli.src.apps.lium import LiumApp
+from lium_cli.src.const import EPILOG
+from lium_cli.src.config import defaults
+from lium_cli.src.version import __version__
+from lium_cli.src.styles import style_manager
 try:
     from git import Repo, GitError
 except ImportError:
@@ -36,12 +36,12 @@ def version_callback(value: bool):
         try:
             repo = Repo(os.path.dirname(os.path.dirname(__file__)))
             version = (
-                f"Celium CLI version: {__version__}/"
+                f"Lium CLI version: {__version__}/"
                 f"{repo.active_branch.name}/"
                 f"{repo.commit()}"
             )
         except (TypeError, GitError):
-            version = f"Celium CLI version: {__version__}"
+            version = f"Lium CLI version: {__version__}"
         typer.echo(version)
         raise typer.Exit()
 
@@ -155,18 +155,18 @@ class CLIManager:
         version: Annotated[
             Optional[bool],
             typer.Option(
-                "--version", callback=version_callback, help="Show Celium CLI version"
+                "--version", callback=version_callback, help="Show Lium CLI version"
             ),
         ] = None,
         commands: Annotated[
             Optional[bool],
             typer.Option(
-                "--commands", callback=commands_callback, help="Show Celium CLI commands"
+                "--commands", callback=commands_callback, help="Show Lium CLI commands"
             ),
         ] = None,
     ):
         """
-        Command line interface (CLI) for Celium. Uses the values in the configuration file. These values can be
+        Command line interface (CLI) for Lium. Uses the values in the configuration file. These values can be
             overriden by passing them explicitly in the command line.
         """
         self.config_app.callback()
@@ -215,7 +215,7 @@ class CLIManager:
             return tree
 
         groups_and_commands = traverse_group(self.app)
-        root = Tree("[bold magenta]Celium CLI Commands[/]")  # Root node
+        root = Tree("[bold magenta]Lium CLI Commands[/]")  # Root node
         build_rich_tree(groups_and_commands, root)
         return root
 

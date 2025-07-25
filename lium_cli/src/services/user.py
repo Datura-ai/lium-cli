@@ -1,5 +1,5 @@
 import requests
-from celium_cli.src.services.api import api_client
+from lium_cli.src.services.api import api_client
 
 
 def get_customer_id(jwt_token: str | None = None) -> str:

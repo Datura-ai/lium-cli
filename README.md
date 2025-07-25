@@ -1,364 +1,444 @@
 <div align="center">
 
-# Lium CLI 
-[![Discord Chat](https://img.shields.io/discord/308323056592486420.svg)](https://discord.com/channels/799672011265015819/1291754566957928469)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
+# 🚀 Lium CLI
 
-**A powerful command-line interface for managing GPU cloud computing resources on the Celium platform**
-
----
-
-</div>
-
-## Table of Contents
-
-- [Overview](#overview)
-- [Installation](#installation)
-  - [Install from PyPI](#install-from-pypi)
-  - [Install from source](#install-from-source)
-- [Quick Start](#quick-start)
-- [Commands](#commands)
-  - [Initialization](#initialization)
-  - [Pod Management](#pod-management)
-  - [Template Management](#template-management)
-  - [Configuration](#configuration)
-  - [Payment](#payment)
-  - [Theme Management](#theme-management)
-- [Examples](#examples)
-- [Configuration](#configuration-1)
-- [Support](#support)
+[![PyPI version](https://badge.fury.io/py/lium-cli.svg)](https://badge.fury.io/py/lium-cli)
+[![Python Support](https://img.shields.io/pypi/pyversions/lium-cli.svg)](https://pypi.org/project/lium-cli/)
+[![Downloads](https://pepy.tech/badge/lium-cli)](https://pepy.tech/project/lium-cli)
+**A powerful command-line interface for managing GPU cloud computing resources on the Lium platform**
 
 ---
 
-## Overview
+![Lium CLI Demo](lium-cli-demo.gif)
 
-Lium CLI (formerly Celium CLI) is a comprehensive command-line tool for interacting with the Celium GPU cloud computing platform. It provides developers and researchers with powerful tools to manage GPU resources, deploy containerized applications, and handle payments seamlessly.
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**
 
-### Key Features
+- [🚀 Lium CLI](#-lium-cli)
+  - [🌟 Overview](#-overview)
+  - [⚡ Quick Start](#-quick-start)
+  - [🎯 Features](#-features)
+  - [📦 Installation](#-installation)
+    - [Via pip (Recommended)](#via-pip-recommended)
+    - [From Source](#from-source)
+    - [Development Setup](#development-setup)
+  - [🏁 Getting Started](#-getting-started)
+  - [📚 Commands](#-commands)
+    - [🆔 Lium Commands](#-lium-commands)
+    - [🐳 Pod Management](#-pod-management)
+    - [📋 Template Management](#-template-management)
+    - [💳 Payment & Wallet Management](#-payment--wallet-management)
+    - [⚙️ Configuration](#️-configuration)
+    - [🎨 Theme Management](#-theme-management)
+    - [🔗 SSH Access](#-ssh-access)
+  - [⚙️ Configuration](#️-configuration-1)
+  - [💡 Examples](#-examples)
+  - [🤝 Contributing](#-contributing)
+  - [📄 License](#-license)
 
-- **🚀 Easy Setup**: One-command initialization with guided setup
-- **🖥️ GPU Management**: Deploy and manage pods across various GPU types (H100, RTX 4090, A100, etc.)
-- **🐳 Docker Integration**: Built-in Docker Hub support and template management
-- **💳 Payment Processing**: Seamless TAO token payments via Bittensor integration
-- **🎨 Rich Interface**: Beautiful, colorized CLI output with progress indicators
-- **⚡ Fast Operations**: Optimized for quick deployments and management
-- **🔧 Template System**: Create and manage reusable deployment templates
-- **🔐 SSH Integration**: Automatic SSH key management and secure connections
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-## Installation
+## 🌟 Overview
 
-### Install from PyPI
+Lium CLI is a comprehensive command-line tool for interacting with the Lium GPU cloud computing platform. It provides developers and researchers with powerful tools to manage GPU resources, deploy containerized applications, and handle payments seamlessly.
+
+### Key Benefits:
+- **🚀 Lightning Fast**: Deploy GPU workloads in seconds
+- **💰 Cost Effective**: Pay only for what you use with TAO token integration
+- **🔧 Developer Friendly**: Intuitive CLI commands with rich output formatting
+- **🐳 Docker Native**: First-class support for containerized applications
+- **🔒 Secure**: Built-in authentication and encrypted communications
+- **🎨 Customizable**: Multiple themes and extensive configuration options
+
+---
+
+## ⚡ Quick Start
 
 ```bash
-pip install -U celium-cli
-```
+# Install Lium CLI
+pip install -U lium-cli
 
-### Install from source
-
-1. **Create and activate a virtual environment**
-```bash
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-2. **Clone the repository**
-```bash
-git clone https://github.com/Datura-ai/celium-cli.git
-cd celium-cli
-```
-
-3. **Install the package**
-```bash
-pip3 install .
-```
-
-## Quick Start
-
-1. **Initialize your Celium CLI**
-```bash
+# Initialize and authenticate
 lium init
-```
-This will guide you through:
-- Creating a Celium account (or logging in)
-- Email verification
-- API key generation
-- Docker Hub setup
-- SSH key configuration
 
-2. **List available GPU resources**
-```bash
-lium pod ls
-```
-
-3. **Deploy your first pod**
-```bash
-lium pod run --docker-image nvidia/cuda:latest
-```
-
-4. **Check your running pods**
-```bash
-lium pod ps
-```
-
-## Commands
-
-### Initialization
-
-#### `lium init`
-Complete setup and initialization process for first-time users.
-
-**Features:**
-- Account creation or login
-- Email verification with optional payment
-- API key generation
-- Docker Hub configuration
-- SSH key management
-
-```bash
-lium init
-```
-
-### Pod Management
-
-#### `lium pod run` (alias: `lium p run`)
-Deploy a new pod on the Celium platform.
-
-**Options:**
-- `--machine TEXT`: Specify machine by name
-- `--docker-image TEXT`: Use existing Docker image
-- `--dockerfile TEXT`: Build from Dockerfile
-- `--pod-name TEXT`: Custom pod name
-- `--template`: Use template-based deployment
-
-**Examples:**
-```bash
-# Deploy with specific image
-lium pod run --docker-image nvidia/cuda:latest
-
-# Deploy with custom machine and pod name
-lium pod run --machine 8xH100 --docker-image pytorch/pytorch:latest --pod-name ml-training
-
-# Interactive deployment
-lium pod run
-```
-
-#### `lium pod ps` (alias: `lium p ps`)
-List all active pods with detailed information.
-
-**Features:**
-- Pod status with color coding
-- GPU specifications
-- Uptime and cost tracking
-- Human-readable identifiers (HUID)
-
-```bash
-lium pod ps
-```
-
-#### `lium pod ls` (alias: `lium p ls`)
-List available executors/machines.
-
-**Options:**
-- `--gpu-type TEXT`: Filter by GPU type (H100, RTX4090, A100, etc.)
-
-**Examples:**
-```bash
-# List all available machines
+# List available machines
 lium pod ls
 
-# Filter by GPU type
-lium pod ls --gpu-type H100
+# Deploy your first pod
+git clone https://github.com/Datura-ai/lium-cli.git
+cd lium-cli
+lium pod run --machine 8XA100 --dockerfile examples/pytorch/Dockerfile
 ```
 
-#### `lium pod rm` (alias: `lium p rm`)
-Terminate one or more pods.
+---
 
-**Options:**
-- `--all`: Terminate all pods
-- `--yes, -y`: Skip confirmation prompts
+## 🎯 Features
 
-**Examples:**
+### 🆔 **Lium Account Management**
+1. **Initialize your Lium CLI**
+   - Account creation and login
+   - API key management
+   - Configuration setup
+   - Creating a Lium account (or logging in)
+   - Setting up API credentials
+   - Configuring default preferences
+
+### 🐳 **Advanced Pod Management**
+- **Deploy Pods**: Launch GPU instances with custom Docker containers
+- **Monitor Resources**: Real-time status monitoring and resource tracking
+- **Flexible Deployment**: Support for Dockerfiles, pre-built images, and interactive environments
+- **Auto-scaling**: Dynamic resource allocation based on workload demands
+
+### 💳 **Integrated Payment System**
+- **TAO Token Integration**: Native support for Bittensor network payments
+- **Wallet Management**: Create and manage multiple payment wallets
+- **Cost Tracking**: Transparent pricing and usage monitoring
+- **Automated Billing**: Seamless payment processing for resource usage
+
+### ⚙️ **Rich Configuration Management**
+- **Flexible Settings**: Comprehensive configuration options
+- **Profile Management**: Multiple configuration profiles
+- **Environment Variables**: Support for environment-based configuration
+- **Secure Storage**: Encrypted credential storage
+
+---
+
+## 📦 Installation
+
+### Via pip (Recommended)
+
 ```bash
-# Terminate specific pod
-lium pod rm swift-hawk-a2
-
-# Terminate all pods
-lium pod rm --all --yes
+pip install -U lium-cli
 ```
 
-### Template Management
+### From Source
 
-#### `lium template create` (alias: `lium t create`)
-Create reusable deployment templates.
+```bash
+git clone https://github.com/Datura-ai/lium-cli.git
+cd lium-cli
+pip install -e .
+```
+
+### Development Setup
+
+For contributing to the project:
+
+```bash
+git clone https://github.com/Datura-ai/lium-cli.git
+cd lium-cli
+pip install -e ".[dev]"
+```
+
+---
+
+## 🏁 Getting Started
+
+Deploy a new pod on the Lium platform.
+
+**Syntax:**
+```bash
+lium pod run [OPTIONS]
+```
 
 **Options:**
-- `--dockerfile TEXT`: Build from Dockerfile
-- `--docker-image TEXT`: Use existing Docker image
+- `--machine TEXT`: Machine type to rent (e.g., "8XA100", "4XA6000") [required]
+- `--dockerfile TEXT`: Path to Dockerfile for building custom image
+- `--docker-image TEXT`: Pre-built Docker image to use
+- `--template-id TEXT`: UUID of saved template to use
+- `--ports TEXT`: Ports to expose (format: "external:internal" or just "port")
+- `--volume TEXT`: Volumes to mount (format: "host_path:container_path")
+- `--env TEXT`: Environment variables (format: "KEY=value")
+- `--name TEXT`: Custom name for the pod
+- `--no-follow`: Don't follow pod logs after creation
+- `--interactive / --no-interactive`: Enable interactive mode for shell access
 
 **Examples:**
+
 ```bash
-# Create template from Dockerfile
-lium template create --dockerfile ./Dockerfile --docker-image myrepo/myapp:latest
+# Deploy with a Dockerfile
+lium pod run --machine 8XA100 --dockerfile ./Dockerfile
+
+# Deploy with pre-built image
+lium pod run --machine 4XA6000 --docker-image nvidia/cuda:11.8-runtime-ubuntu20.04
+
+# Deploy with custom configuration
+lium pod run \
+  --machine 8XA100 \
+  --docker-image pytorch/pytorch:latest \
+  --ports 8080:80 \
+  --env "MODEL_NAME=bert-base" \
+  --volume "/data:/workspace/data" \
+  --name "my-training-job"
+
+# Interactive deployment with shell access
+lium pod run --machine 2XA100 --docker-image ubuntu:22.04 --interactive
+```
+
+**Interactive Mode Features:**
+- Real-time logs and status updates
+- Direct shell access to running containers
+- Port forwarding for web applications
+- File transfer capabilities
+
+**Advanced Usage:**
+
+```bash
+# Use saved template
+lium pod run --machine 8XA100 --template-id abc123def456
+
+# Multiple port mappings
+lium pod run --machine 4XA6000 --docker-image jupyter/tensorflow-notebook \
+  --ports 8888:8888 --ports 6006:6006
+
+# Multiple environment variables
+lium pod run --machine 2XA100 --docker-image python:3.9 \
+  --env "API_KEY=your_key" --env "DEBUG=true" --env "WORKERS=4"
+```
+
+The `run` command automatically handles:
+- Docker image building (if Dockerfile provided)
+- Resource allocation and scheduling
+- Network configuration and port mapping
+- Volume mounting and data persistence
+- Environment variable injection
+- Payment processing and billing
+
+---
+
+## 📚 Commands
+
+### 🆔 Lium Commands
+
+Initialize and manage your Lium account:
+
+```bash
+# Initialize Lium CLI (create account or login)
+lium init
+
+# Check initialization status
+lium status
+```
+
+### 🐳 Pod Management
+
+Manage your GPU pods:
+
+```bash
+# List all running pods
+lium pod ls
+
+# Show detailed pod information
+lium pod show <pod-id>
+
+# Stop a running pod
+lium pod stop <pod-id>
+
+# Get pod logs
+lium pod logs <pod-id>
+
+# Connect to pod via SSH
+lium pod ssh <pod-id>
+```
+
+### 📋 Template Management
+
+Save and reuse deployment configurations:
+
+```bash
+# Create a template from Dockerfile
+lium template create --dockerfile Dockerfile --name "my-template"
 
 # Create template from existing image
-lium template create --docker-image nginx:latest
+lium template create --docker-image pytorch/pytorch:latest --name "pytorch-base"
 
-# Interactive template creation
-lium template create
+# List saved templates
+lium template ls
+
+# Use template for deployment
+lium pod run --machine 8XA100 --template-id <template-uuid>
 ```
 
-### Configuration
+### 💳 Payment & Wallet Management
 
-#### `lium config` (aliases: `lium c`, `lium conf`)
-Manage CLI configuration settings.
+Manage TAO tokens and payments:
 
-**Subcommands:**
-- `set`: Set configuration values
-- `get`: Display current configuration
-- `unset`: Remove configuration values
-- `show`: Display entire configuration file
-- `path`: Show configuration file path
-
-**Configuration Keys:**
-- `docker_username`: Docker Hub username
-- `docker_password`: Docker Hub password
-- `server_url`: Celium server URL
-- `tao_pay_url`: Tao Pay server URL
-- `api_key`: API key for Celium services
-- `network`: Network to use (default: finney)
-
-**Examples:**
 ```bash
-# Set configuration values
-lium config set --docker-username myuser --api-key abc123
+# Check TAO balance
+lium pay balance
 
+# Create new wallet
+lium pay wallet create
+
+# Transfer TAO tokens
+lium pay transfer --amount 10.5 --destination <wallet-address>
+
+# View payment history
+lium pay history
+```
+
+### ⚙️ Configuration
+
+Manage CLI configuration:
+
+```bash
 # View current configuration
 lium config get
 
-# Remove a configuration value
-lium config unset docker_password
+# Set configuration values
+lium config set --api-key <your-api-key>
+lium config set --docker-username <username> --docker-password <password>
 
-# Show configuration file location
-lium config path
+# Reset configuration
+lium config reset
 ```
 
-### Payment
+### 🎨 Theme Management
 
-#### `lium pay`
-Transfer TAO tokens for Celium services.
+Customize CLI appearance:
 
-**Options:**
-- `--wallet-name TEXT`: Bittensor wallet name
-- `--amount FLOAT`: Amount to transfer
-
-**Features:**
-- USD to TAO conversion
-- Wallet integration
-- Transfer confirmation
-- Customer account linking
-
-**Examples:**
 ```bash
-# Transfer with specific wallet and amount
-lium pay --wallet-name my-wallet --amount 50.0
-
-# Interactive payment
-lium pay
-```
-
-### Theme Management
-
-#### `lium theme`
-Manage CLI display themes.
-
-**Subcommands:**
-- `set`: Set display theme
-- `list`: List available themes
-- `current`: Show current theme
-
-**Examples:**
-```bash
-# Set theme
-lium theme set dark
-
 # List available themes
 lium theme list
 
-# Show current theme
-lium theme current
+# Set theme
+lium theme set dark
+
+# Preview theme
+lium theme preview monokai
 ```
 
-## Examples
+### 🔗 SSH Access
 
-### Complete Workflow Example
+Direct SSH access to pods:
 
 ```bash
-# 1. Initialize CLI
-lium init
+# SSH into running pod
+lium ssh <pod-id>
 
-# 2. Create a template for your application
-lium template create --dockerfile ./Dockerfile --docker-image myapp:latest
+# Execute command on pod
+lium ssh <pod-id> --command "nvidia-smi"
 
-# 3. Deploy your application
-lium pod run --template myapp:latest --pod-name production-app
-
-# 4. Check deployment status
-lium pod ps
-
-# 5. Add funds if needed
-lium pay --amount 25.0
-
-# 6. Scale up with more pods
-lium pod run --machine 4xRTX4090 --docker-image myapp:latest --pod-name worker-1
-lium pod run --machine 4xRTX4090 --docker-image myapp:latest --pod-name worker-2
-
-# 7. Monitor all pods
-lium pod ps
-
-# 8. Clean up when done
-lium pod rm --all
+# File transfer via SCP
+lium ssh <pod-id> --upload local_file.txt:/remote/path/
+lium ssh <pod-id> --download /remote/file.txt:./local_path/
 ```
-
-### GPU-Specific Deployments
-
-```bash
-# Deploy on high-end GPUs for training
-lium pod run --machine 8xH100 --docker-image pytorch/pytorch:latest --pod-name training-job
-
-# Deploy on cost-effective GPUs for inference
-lium pod run --machine 4xRTX4090 --docker-image tensorflow/tensorflow:latest --pod-name inference-server
-
-# List available GPU types
-lium pod ls --gpu-type H100
-```
-
-## Configuration
-
-The CLI stores configuration in `~/.celium/config.yaml`. Key settings include:
-
-```yaml
-api_key: "your-api-key"
-server_url: "https://celiumcompute.ai"
-tao_pay_url: "https://pay-api.celiumcompute.ai"
-network: "finney"
-docker_username: "your-docker-username"
-docker_password: "your-docker-password"
-```
-
-### Global Options
-
-- `--version`: Show version information
-- `--commands`: Display command tree
-- `--help`: Show help information
-
-## Support
-
-- **[GitHub Issues](https://github.com/Datura-ai/celium-cli/issues)** — Bug reports and feature requests
-- **[Discord](https://discord.com/channels/799672011265015819/1291754566957928469)** — Community support and discussion
-- **[Documentation](https://docs.celium.ai)** — Comprehensive guides and API reference
 
 ---
 
-<div align="center">
-<strong>Happy GPU Computing! 🚀</strong>
-</div>
+## ⚙️ Configuration
+
+The CLI stores configuration in `~/.lium/config.yaml`. Key settings include:
+
+- `api_key`: Your Lium API key
+- `docker_username`/`docker_password`: Docker Hub credentials
+- `server_url`: "https://liumcompute.ai"
+- `tao_pay_url`: "https://pay-api.liumcompute.ai"
+- `network`: Bittensor network ("finney" or "testnet")
+
+**Manual Configuration:**
+```yaml
+api_key: "your-api-key-here"
+docker_username: "your-docker-username" 
+docker_password: "your-docker-password"
+server_url: "https://liumcompute.ai"
+tao_pay_url: "https://pay-api.liumcompute.ai"
+network: "finney"
+```
+
+---
+
+## 💡 Examples
+
+Transfer TAO tokens for Lium services.
+
+**Basic Transfer:**
+```bash
+lium pay transfer --amount 5.0 --destination 5GK8...
+```
+
+**Advanced Examples:**
+
+```bash
+# Transfer with memo
+lium pay transfer --amount 10.5 --destination 5GK8... --memo "Payment for GPU hours"
+
+# Check balance before transfer
+lium pay balance
+lium pay transfer --amount 2.0 --destination 5GK8...
+
+# View transaction history
+lium pay history --limit 10
+```
+
+**Multi-step Workflow:**
+```bash
+# 1. Check available machines and pricing
+lium pod ls
+
+# 2. Check your TAO balance
+lium pay balance
+
+# 3. Deploy workload
+lium pod run --machine 8XA100 --docker-image pytorch/pytorch:latest
+
+# 4. Monitor usage and costs
+lium pod show <pod-id>
+lium pay history
+```
+
+**Integration with CI/CD:**
+```bash
+#!/bin/bash
+# Deploy script for automated workflows
+
+# Set configuration via environment variables
+export LIUM_API_KEY="your-api-key"
+export LIUM_DOCKER_USERNAME="your-username"
+export LIUM_DOCKER_PASSWORD="your-password"
+
+# Deploy and capture pod ID
+POD_ID=$(lium pod run --machine 4XA6000 --dockerfile Dockerfile --format json | jq -r '.pod_id')
+
+# Wait for completion
+lium pod wait $POD_ID --timeout 3600
+
+# Download results
+lium ssh $POD_ID --download /workspace/results:./results/
+
+# Cleanup
+lium pod stop $POD_ID
+```
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Here's how to get started:
+
+1. **Fork the Repository**
+2. **Create a Feature Branch**: `git checkout -b feature/amazing-feature`
+3. **Commit Changes**: `git commit -m 'Add amazing feature'`
+4. **Push to Branch**: `git push origin feature/amazing-feature`
+5. **Open a Pull Request**
+
+**Development Guidelines:**
+- Follow PEP 8 style guidelines
+- Add tests for new functionality
+- Update documentation as needed
+- Ensure all tests pass before submitting
+
+**Useful Links:**
+- **[GitHub Issues](https://github.com/Datura-ai/lium-cli/issues)** — Bug reports and feature requests
+- **[Discussions](https://github.com/Datura-ai/lium-cli/discussions)** — Community discussions
+- **[Documentation](https://docs.lium.ai)** — Comprehensive guides and API reference
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+**Happy Computing with Lium! 🚀✨**

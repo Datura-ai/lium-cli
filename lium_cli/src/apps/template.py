@@ -1,12 +1,12 @@
 import typer
-from celium_cli.src.apps import BaseApp, TemplateBaseArguments
-from celium_cli.src.decorator import catch_validation_error
-from celium_cli.src.services.docker_credential import get_docker_credential
-from celium_cli.src.services.template import create_template
+from lium_cli.src.apps import BaseApp, TemplateBaseArguments
+from lium_cli.src.decorator import catch_validation_error
+from lium_cli.src.services.docker_credential import get_docker_credential
+from lium_cli.src.services.template import create_template
 from rich.prompt import Prompt, Confirm
 import random
 import string
-from celium_cli.src.styles import style_manager
+from lium_cli.src.styles import style_manager
 
 
 class Arguments(TemplateBaseArguments):
@@ -31,10 +31,10 @@ class TemplateApp(BaseApp):
         or using an existing image from Docker Hub.
 
         [bold]USAGE[/bold]: 
-            [green]$[/green] celium template create --dockerfile Dockerfile --docker-image yourrepo/yourimage:tag
-            [green]$[/green] celium template create --docker-image yourrepo/yourimage:tag (uses existing image from DockerHub)
-            [green]$[/green] celium template create --dockerfile Dockerfile (builds and uses a temporary local image)
-            [green]$[/green] celium template create (interactive prompt)
+            [green]$[/green] lium template create --dockerfile Dockerfile --docker-image yourrepo/yourimage:tag
+            [green]$[/green] lium template create --docker-image yourrepo/yourimage:tag (uses existing image from DockerHub)
+            [green]$[/green] lium template create --dockerfile Dockerfile (builds and uses a temporary local image)
+            [green]$[/green] lium template create (interactive prompt)
         """
 
         # Check if running in interactive mode (no direct dockerfile or docker_image args)

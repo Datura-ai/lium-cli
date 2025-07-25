@@ -5,11 +5,11 @@ import time
 from rich.live import Live
 from rich.spinner import Spinner
 
-from celium_cli.src.services import user as user_service
-from celium_cli.src.apps import BaseApp
-from celium_cli.src.styles import style_manager
-from celium_cli.src.services import docker_credential as docker_credential_service
-from celium_cli.src.services.api import api_client
+from lium_cli.src.services import user as user_service
+from lium_cli.src.apps import BaseApp
+from lium_cli.src.styles import style_manager
+from lium_cli.src.services import docker_credential as docker_credential_service
+from lium_cli.src.services.api import api_client
 
 
 class LiumApp(BaseApp):
@@ -17,8 +17,8 @@ class LiumApp(BaseApp):
         self.app.command("init")(self.init)
 
     def init(self):
-        """Initialize Celium and set up API key."""
-        style_manager.console.print("[bold magenta]Welcome to Celium CLI Initialization![/bold magenta]")
+        """Initialize Lium and set up API key."""
+        style_manager.console.print("[bold magenta]Welcome to Lium CLI Initialization![/bold magenta]")
 
         # Step 1: Check if API key is set
         api_key = self.cli_manager.config_app.config.get('api_key')
@@ -28,14 +28,14 @@ class LiumApp(BaseApp):
         else:
 
             # Step 2: Ask if user has an account
-            has_account = Confirm.ask("Do you already have a Celium account?", default=True, console=style_manager.console)
+            has_account = Confirm.ask("Do you already have a Lium account?", default=True, console=style_manager.console)
 
             jwt_token = None
             email_verified = False
             user_email = ""
 
             if not has_account:
-                style_manager.console.print("\n[bold]Let's create a new Celium account for you.[/bold]")
+                style_manager.console.print("\n[bold]Let's create a new Lium account for you.[/bold]")
                 name = Prompt.ask("Enter your full name", console=style_manager.console)
                 user_email = Prompt.ask("Enter your email address", console=style_manager.console)
                 password = Prompt.ask("Create a password", password=True, console=style_manager.console)
@@ -55,7 +55,7 @@ class LiumApp(BaseApp):
                     style_manager.console.print(f"[bold red]Account creation failed: {e}. Please try again.[/bold red]")
                     return
             else:
-                style_manager.console.print("\n[bold]Please log in to your Celium account.[/bold]")
+                style_manager.console.print("\n[bold]Please log in to your Lium account.[/bold]")
                 user_email = Prompt.ask("Enter your email address", console=style_manager.console)
                 password = Prompt.ask("Enter your password", password=True, console=style_manager.console)
                 try:
@@ -77,7 +77,7 @@ class LiumApp(BaseApp):
             # Step 4, 5, 6: Verify email if not already verified
             if not email_verified:
                 style_manager.console.print("\n[bold yellow]Your email address needs to be verified.[/bold yellow]")
-                style_manager.console.print("Email verification is essential for account security and full access to Celium features.")
+                style_manager.console.print("Email verification is essential for account security and full access to Lium features.")
                 
                 fund_to_verify = Confirm.ask("Would you like to make a small payment to instantly verify your email and add initial funds to your account?", default=True, console=style_manager.console)
                 if fund_to_verify:
@@ -91,14 +91,14 @@ class LiumApp(BaseApp):
                         raise e
                         style_manager.console.print(f"[bold red]Payment process error: {e}. Please try verifying your email manually.[/bold red]")
                 else:
-                    style_manager.console.print("No problem. Please check your inbox for an email from Celium with a verification link.")
+                    style_manager.console.print("No problem. Please check your inbox for an email from Lium with a verification link.")
                     style_manager.console.print("Once verified, run [cyan]lium init[/cyan] again.")
                     return # User chose to verify manually and exit for now
 
                 # Polling loop if still not verified (e.g. after payment or if user chose non-payment path that didn't exit)
                 if not email_verified: 
                     style_manager.console.print("We will now check for email verification periodically.")
-                    style_manager.console.print("If you haven't received it, please check your spam folder for an email from Celium.")
+                    style_manager.console.print("If you haven't received it, please check your spam folder for an email from Lium.")
                     max_retries = 30  # Poll for 5 minutes (30 * 10 seconds)
                     retries = 0
                     with Live(Spinner("dots", text="Waiting for email verification..."), console=style_manager.console, refresh_per_second=10) as live:
@@ -160,8 +160,8 @@ class LiumApp(BaseApp):
                 return
             
             api_client.post("ssh-keys", json={
-                "name": "celium-cli",
+                "name": "lium-cli",
                 "public_key": public_key_content
             })
 
-        style_manager.console.print("[bold green]Celium CLI is now initialized and ready to use.[/bold green]")
+        style_manager.console.print("[bold green]Lium CLI is now initialized and ready to use.[/bold green]")

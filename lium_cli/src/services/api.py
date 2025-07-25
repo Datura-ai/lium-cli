@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING
 import requests
 
 if TYPE_CHECKING:
-    from celium_cli.src.cli_manager import CLIManager
+    from lium_cli.src.cli_manager import CLIManager
 
 
 class APIClient:

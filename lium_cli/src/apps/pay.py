@@ -7,13 +7,13 @@ from bittensor_cli.src import (
     WalletValidationTypes as WV,
 )
 from rich.table import Table
-from celium_cli.src.apps import BaseApp
-from celium_cli.src.services.tao import get_tao_pay_info
-from celium_cli.src.services.user import get_customer_id
-from celium_cli.src.services.wallet import get_client_wallets, create_client_wallet, create_potential_transfer
-from celium_cli.src.styles import style_manager
-from celium_cli.src.services.api import tao_pay_client
-from celium_cli.src.services.tao import wallet_transfer
+from lium_cli.src.apps import BaseApp
+from lium_cli.src.services.tao import get_tao_pay_info
+from lium_cli.src.services.user import get_customer_id
+from lium_cli.src.services.wallet import get_client_wallets, create_client_wallet, create_potential_transfer
+from lium_cli.src.styles import style_manager
+from lium_cli.src.services.api import tao_pay_client
+from lium_cli.src.services.tao import wallet_transfer
 
 
 class Arguments:
@@ -54,7 +54,7 @@ class PayApp(BaseApp):
         customer_id = get_customer_id(jwt_token)
 
         if not customer_id:
-            style_manager.console.print("No customer ID found. Please sign up for a Celium account to continue.", style="error")
+            style_manager.console.print("No customer ID found. Please sign up for a Lium account to continue.", style="error")
             raise typer.Abort()
         
         if amount == 0 or amount is None:

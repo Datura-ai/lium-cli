@@ -7,8 +7,8 @@ from rich.text import Text
 # --- CONSOLE REMOVED --- 
 # The global `console` instance previously defined here has been removed.
 # Modules that need a console for printing should now import the 
-# theme-aware `console` instance from `celium_cli.src.styles`.
-# Example: from celium_cli.src.styles import console
+# theme-aware `console` instance from `lium_cli.src.styles`.
+# Example: from lium_cli.src.styles import console
 # --- END CONSOLE REMOVED ---
 
 # Existing utility functions like pretty_seconds, pretty_minutes, find_machine_from_keyword should remain.
@@ -41,7 +41,7 @@ def find_machine_from_keyword(machine_keyword: str) -> str | None:
     # For it to work, MACHINE_PRICES must be resolvable in its scope.
     # This change does not address that, only the console removal.
     try:
-        from celium_cli.src.const import MACHINE_PRICES 
+        from lium_cli.src.const import MACHINE_PRICES 
         machines = list(MACHINE_PRICES.keys())
         return next((machine for machine in machines if machine_keyword.lower() in machine.lower()), None)
     except ImportError:

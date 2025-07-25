@@ -1,10 +1,10 @@
 import typer
 from typing import TYPE_CHECKING, List
-from celium_cli.src.apps import BaseApp
-from celium_cli.src.styles import style_manager, ThemeName, THEMES
+from lium_cli.src.apps import BaseApp
+from lium_cli.src.styles import style_manager, ThemeName, THEMES
 
 if TYPE_CHECKING:
-    from celium_cli.src.cli_manager import CLIManager
+    from lium_cli.src.cli_manager import CLIManager
 
 class ThemeApp(BaseApp):
     def run(self):

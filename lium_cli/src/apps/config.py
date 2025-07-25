@@ -6,12 +6,12 @@ from yaml import safe_dump, safe_load
 from rich.prompt import Confirm, Prompt, IntPrompt
 from rich.table import Column, Table
 from rich import box
-from celium_cli.src.apps import BaseApp
-from celium_cli.src.const import EPILOG
-from celium_cli.src.styles import style_manager
-from celium_cli.src.config import defaults
+from lium_cli.src.apps import BaseApp
+from lium_cli.src.const import EPILOG
+from lium_cli.src.styles import style_manager
+from lium_cli.src.config import defaults
 if TYPE_CHECKING:
-    from celium_cli.src.cli_manager import CLIManager
+    from lium_cli.src.cli_manager import CLIManager
 
 
 class Arguments: 
@@ -64,8 +64,8 @@ class ConfigApp(BaseApp):
         self.config = {
             "docker_username": None,
             "docker_password": None,
-            "server_url": "https://celiumcompute.ai",
-            "tao_pay_url": "https://pay-api.celiumcompute.ai",
+            "server_url": "https://liumcompute.ai",
+            "tao_pay_url": "https://pay-api.liumcompute.ai",
             "api_key": None,
             "network": "finney",
         }
@@ -153,14 +153,14 @@ class ConfigApp(BaseApp):
 
         USAGE
         Interactive mode:
-            [green]$[/green] celium-cli config set
+            [green]$[/green] lium-cli config set
 
         Set specific values:
-            [green]$[/green] celium-cli config set --docker-username <username> --docker-password <password>
+            [green]$[/green] lium-cli config set --docker-username <username> --docker-password <password>
 
         [bold]NOTE[/bold]:
-        - Changes are saved to ~/.celium/celium.yaml
-        - Use '[green]$[/green] celium config get' to view current settings
+        - Changes are saved to ~/.lium/lium.yaml
+        - Use '[green]$[/green] lium config get' to view current settings
         """
         args = {
             "docker_username": docker_username,

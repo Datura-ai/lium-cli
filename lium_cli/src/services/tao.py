@@ -13,8 +13,8 @@ from async_substrate_interface.errors import (
 from bittensor_cli.src.bittensor.subtensor_interface import SubtensorInterface
 from bittensor_cli.src.commands import wallets
 import typer
-from celium_cli.src.styles import style_manager
-from celium_cli.src.services.api import api_client, tao_pay_client
+from lium_cli.src.styles import style_manager
+from lium_cli.src.services.api import api_client, tao_pay_client
 
 
 def asyncio_runner():

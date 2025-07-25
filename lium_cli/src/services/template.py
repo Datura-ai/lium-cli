@@ -1,8 +1,8 @@
 import time
 import uuid
 from rich.live import Live
-from celium_cli.src.services.api import api_client
-from celium_cli.src.styles import style_manager
+from lium_cli.src.services.api import api_client
+from lium_cli.src.styles import style_manager
 from rich.prompt import Prompt
 
 
@@ -17,11 +17,11 @@ def create_template(docker_image: str | None, dockerfile: str | None = None) -> 
     Returns:
         The id of the template.
     """
-    from celium_cli.src.services.docker import (
+    from lium_cli.src.services.docker import (
         build_and_push_docker_image_from_dockerfile,
         verify_docker_image_validity,
     )
-    from celium_cli.src.services.docker_credential import get_docker_credential
+    from lium_cli.src.services.docker_credential import get_docker_credential
 
     is_one_time_template = False
     image_size = None # built image size in bytes
@@ -33,7 +33,7 @@ def create_template(docker_image: str | None, dockerfile: str | None = None) -> 
         raise Exception("No [blue]Docker image[/blue] or [blue]Dockerfile[/blue] provided.")
 
     if not docker_image:
-        docker_image = f"{docker_username}/celium-template-{uuid.uuid4()}:latest"
+        docker_image = f"{docker_username}/lium-template-{uuid.uuid4()}:latest"
         style_manager.console.print(f"[bold yellow]Warning:[/bold yellow] No [blue]Docker image[/blue] provided, generated new docker image: [green]{docker_image}[/green]")
         is_one_time_template = True
     else:

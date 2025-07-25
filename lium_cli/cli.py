@@ -1,5 +1,5 @@
-from celium_cli.src.cli_manager import CLIManager
-from celium_cli.src.services.api import api_client, tao_pay_client
+from lium_cli.src.cli_manager import CLIManager
+from lium_cli.src.services.api import api_client, tao_pay_client
 
 
 def main():

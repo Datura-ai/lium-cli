@@ -5,10 +5,10 @@ import time
 import uuid
 import paramiko
 import io
-from celium_cli.src.styles import style_manager
+from lium_cli.src.styles import style_manager
 
 
-CUSTOM_TEMPLATE_VERIFY_CONTAINER_PREFIX = "celium-cli-test-container"
+CUSTOM_TEMPLATE_VERIFY_CONTAINER_PREFIX = "lium-cli-test-container"
 
 
 def find_free_port():

@@ -1,6 +1,6 @@
 from functools import wraps
-from celium_cli.src.services.validator import ValidationError
-from celium_cli.src.styles import style_manager
+from lium_cli.src.services.validator import ValidationError
+from lium_cli.src.styles import style_manager
 
 
 def catch_validation_error(func):

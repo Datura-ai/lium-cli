@@ -1,5 +1,5 @@
-from celium_cli.src.services.api import api_client
-from celium_cli.src.styles import style_manager
+from lium_cli.src.services.api import api_client
+from lium_cli.src.styles import style_manager
 
 
 def get_docker_credential() -> tuple[str, str, str]:

@@ -6,8 +6,8 @@ from bittensor_cli.src import (
     WalletOptions as WO,
     WalletValidationTypes as WV,
 )
-from celium_cli.src.services.api import tao_pay_client
-from celium_cli.src.styles import style_manager
+from lium_cli.src.services.api import tao_pay_client
+from lium_cli.src.styles import style_manager
 
 
 def get_client_wallets(customer_id: str, coldkey_ss58_address: str) -> list[str]:

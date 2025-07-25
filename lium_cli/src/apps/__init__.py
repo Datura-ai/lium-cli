@@ -3,10 +3,10 @@
 from typing import TYPE_CHECKING
 import typer
 
-from celium_cli.src.const import EPILOG
+from lium_cli.src.const import EPILOG
 
 if TYPE_CHECKING:
-    from celium_cli.src.cli_manager import CLIManager
+    from lium_cli.src.cli_manager import CLIManager
 
 
 class TemplateBaseArguments:

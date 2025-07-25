@@ -1,12 +1,12 @@
 import typer
-from celium_cli.src.apps import BaseApp, TemplateBaseArguments
-from celium_cli.src.decorator import catch_validation_error
-from celium_cli.src.services.executor import get_executors_and_print_table, rent_executor
-from celium_cli.src.services.template import create_template
-from celium_cli.src.services.validator import validate_for_api_key, validate_for_docker_build, validate_machine_name
-from celium_cli.src.styles import style_manager
-from celium_cli.src.utils import pretty_minutes
-from celium_cli.src.services.api import api_client
+from lium_cli.src.apps import BaseApp, TemplateBaseArguments
+from lium_cli.src.decorator import catch_validation_error
+from lium_cli.src.services.executor import get_executors_and_print_table, rent_executor
+from lium_cli.src.services.template import create_template
+from lium_cli.src.services.validator import validate_for_api_key, validate_for_docker_build, validate_machine_name
+from lium_cli.src.styles import style_manager
+from lium_cli.src.utils import pretty_minutes
+from lium_cli.src.services.api import api_client
 from rich.table import Table, Column
 from rich import box
 from datetime import datetime, timezone, timedelta
@@ -142,14 +142,14 @@ class PodApp(BaseApp):
         """
         Run a pod on a machine.
 
-        This command allows you to run a pod on the celium platform.
+        This command allows you to run a pod on the lium platform.
         It offers multiple ways to specify the pod's software: by direct Docker image/file, 
         by existing template ID, or via interactive template selection.
 
         [bold]USAGE[/bold]: 
-            [green]$[/green] celium pod run --machine 8XA100 --template-id <template_uuid>
-            [green]$[/green] celium pod run --machine 8XA100 --docker-image user/image:tag
-            [green]$[/green] celium pod run --machine 8XA100 --dockerfile ./Dockerfile 
+            [green]$[/green] lium pod run --machine 8XA100 --template-id <template_uuid>
+            [green]$[/green] lium pod run --machine 8XA100 --docker-image user/image:tag
+            [green]$[/green] lium pod run --machine 8XA100 --dockerfile ./Dockerfile 
         """
         validate_for_api_key(self.cli_manager)
         
@@ -158,7 +158,7 @@ class PodApp(BaseApp):
 
         if machine:
             count, machine_name_validated = validate_machine_name(machine)
-            style_manager.console.print(f"[cyan]Fetching executors matching criteria: '{machine}'... For a detailed overview, try 'celium pod ls'.[/cyan]")
+            style_manager.console.print(f"[cyan]Fetching executors matching criteria: '{machine}'... For a detailed overview, try 'lium pod ls'.[/cyan]")
             executors = get_executors_and_print_table(count, machine_name_validated)
             if len(executors) == 0:
                 style_manager.console.print("[bold yellow]Warning:[/bold yellow] No executors found for the specified machine criteria. Please try a different machine type or check availability.[/bold yellow]")
@@ -182,7 +182,7 @@ class PodApp(BaseApp):
 
         # 1. Determine Template ID
         if not template_id_to_use:
-            # Check config for default template_id (adjust key as needed for celium config structure)
+            # Check config for default template_id (adjust key as needed for lium config structure)
             # Assuming config is loaded into self.cli_manager.config_app.config
             default_template_id_from_config = self.cli_manager.config_app.config.get("default_template_id")
 
@@ -264,7 +264,7 @@ class PodApp(BaseApp):
                 raise typer.Exit(code=1)
         
         # At this point, final_template_id_for_rent should be set if a template is to be used by ID.
-        # If it's None, rent_executor might try to find a template by docker_image name (older celium-cli behavior).
+        # If it's None, rent_executor might try to find a template by docker_image name (older lium-cli behavior).
 
         # 3. Determine Pod Name
         actual_pod_name = pod_name
@@ -341,7 +341,7 @@ class PodApp(BaseApp):
         if skip_prompts:
             # If --yes, and we are in interactive mode (meaning no explicit ID and no default config was accepted),
             # we could pick the first template, or require explicit choice. Lium prompts for first one.
-            # For celium, let's require a choice if we reach full interactive mode.
+            # For lium, let's require a choice if we reach full interactive mode.
             # However, this part of the function might not be hit if skip_prompts is true and a default_template_id was set & auto-accepted.
             # If truly interactive and --yes, it's ambiguous. Let's assume --yes means don't show this interactive list.
             # This function should ideally not be called with skip_prompts=True if other options were available.
@@ -886,7 +886,7 @@ class PodApp(BaseApp):
                     style_manager.console.print(f"  - {detail}")
             
             if success_count > 0 or failure_count > 0:
-                style_manager.console.print("\nUse [blue]celium pod ps[/blue] to verify status.")
+                style_manager.console.print("\nUse [blue]lium pod ps[/blue] to verify status.")
 
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == 401:
@@ -925,7 +925,7 @@ class PodApp(BaseApp):
         try:
             with style_manager.console.status("Fetching available executors...", spinner="dots") as status:
                 # Assuming "executors" endpoint lists all rentable instances
-                # Lium uses require_auth=False here, celium might differ.
+                # Lium uses require_auth=False here, lium might differ.
                 # For now, let api_client use its default auth behavior.
                 # Prepare query parameters
                 query_params = {}

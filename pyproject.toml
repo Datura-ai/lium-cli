@@ -1,16 +1,16 @@
 [build-system]
-requires = ["setuptools>=70.0.0", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
-name = "celium-cli"
-version = "0.2.2"
-description = "A custom CLI tool for Celium. Celium CLI provides tools for interacting with the Celium ecosystem from the command line."
+name = "lium-cli"
+version = "0.1.0"
+description = "A custom CLI tool for Lium. Lium CLI provides tools for interacting with the Lium ecosystem from the command line."
 readme = "README.md"
 requires-python = ">=3.9"
 license = "MIT"
 authors = [
-  {name = "Celium", email = "support@celium.ai"}
+    {name = "Lium", email = "support@lium.ai"}
 ]
 classifiers = [
   "Development Status :: 4 - Beta",
@@ -48,13 +48,12 @@ dependencies = [
 dev = ["pytest", "black", "wheel"]
 
 [project.scripts]
-lium = "celium_cli.cli:main"
+lium = "lium_cli.cli:main"
 
-[tool.setuptools]
-package-dir = {"celium_cli" = "celium_cli"}
+[tool.hatch.metadata]
+package-dir = {"lium_cli" = "lium_cli"}
 
 [project.urls]
-# more details can be found here
-homepage = "https://github.com/Datura-ai/celium-cli"
-repository = "https://github.com/Datura-ai/celium-cli"
-issues = "https://github.com/Datura-ai/celium-cli/issues"
+Homepage = "https://github.com/Datura-ai/lium-cli"
+Repository = "https://github.com/Datura-ai/lium-cli"
+Issues = "https://github.com/Datura-ai/lium-cli/issues"
