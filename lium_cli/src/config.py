@@ -6,8 +6,8 @@ class Defaults:
             "docker_username": None,
             "docker_password": None,
             "api_key": None,
-            "server_url": "https://liumcompute.ai",
-            "tao_pay_url": "https://pay-api.liumcompute.ai",
+            "server_url": "https://lium.io",
+            "tao_pay_url": "https://pay-api.lium.io",
             "network": "finney",
         }
 

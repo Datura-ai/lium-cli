@@ -335,8 +335,8 @@ The CLI stores configuration in `~/.lium/config.yaml`. Key settings include:
 
 - `api_key`: Your Lium API key
 - `docker_username`/`docker_password`: Docker Hub credentials
-- `server_url`: "https://liumcompute.ai"
-- `tao_pay_url`: "https://pay-api.liumcompute.ai"
+- `server_url`: "https://lium.io"
+- `tao_pay_url`: "https://pay-api.lium.io"
 - `network`: Bittensor network ("finney" or "testnet")
 
 **Manual Configuration:**
@@ -344,8 +344,8 @@ The CLI stores configuration in `~/.lium/config.yaml`. Key settings include:
 api_key: "your-api-key-here"
 docker_username: "your-docker-username" 
 docker_password: "your-docker-password"
-server_url: "https://liumcompute.ai"
-tao_pay_url: "https://pay-api.liumcompute.ai"
+server_url: "https://lium.io"
+tao_pay_url: "https://pay-api.lium.io"
 network: "finney"
 ```
 
