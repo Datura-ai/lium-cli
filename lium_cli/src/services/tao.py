@@ -101,7 +101,5 @@ def wallet_transfer(wallet, subtensor, destination, amount):
         destination=destination,
         amount=amount,
         transfer_all=False,
-        era=3, 
         prompt=True,
-        json_output=False,
     ), subtensor=subtensor)
