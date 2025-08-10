@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "lium-cli"
-version = "0.1.1"
+version = "0.2.0"
 description = "A custom CLI tool for Lium. Lium CLI provides tools for interacting with the Lium ecosystem from the command line."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -24,7 +24,7 @@ classifiers = [
 ]
 dependencies = [
     "typer>=0.12,<0.16",
-    "rich>=13.7,<15.0",
+    "rich>=14.1.0,<15.0",
     "pycryptodome>=3.0.0,<4.0.0",
     "PyYAML~=6.0.1",
     "aiohttp~=3.10.2",
@@ -40,18 +40,20 @@ dependencies = [
     "Jinja2",
     "pywry>=0.6.2",
     "async-property==0.2.2",
-    "bittensor-cli==9.1.0",
-    "paramiko==3.5.0",
+    "bittensor-cli>=9.1.0",
+    "paramiko>=3.5.1",
+    "lium-sdk>=0.2.0",
 ]
 
 [project.optional-dependencies]
 dev = ["pytest", "black", "wheel"]
 
 [project.scripts]
-lium = "lium_cli.cli:main"
+lium = "cli.cli:main"
 
 [tool.hatch.metadata]
 package-dir = {"lium_cli" = "lium_cli"}
+
 
 [project.urls]
 Homepage = "https://github.com/Datura-ai/lium-cli"
