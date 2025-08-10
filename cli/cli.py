@@ -1,7 +1,6 @@
 """Main CLI entry point for Lium."""
 import click
-import tomllib
-from pathlib import Path
+from importlib.metadata import version, PackageNotFoundError
 from .commands.init import init_command
 from .commands.ls import ls_command
 from .commands.templates import templates_command
@@ -15,13 +14,10 @@ from .plugins import load_plugins
 
 
 def get_version():
-    """Get version from pyproject.toml."""
+    """Get version from package metadata."""
     try:
-        pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
-        with open(pyproject_path, "rb") as f:
-            data = tomllib.load(f)
-            return data["project"]["version"]
-    except Exception:
+        return version("lium-cli")
+    except PackageNotFoundError:
         return "unknown"
 
 
