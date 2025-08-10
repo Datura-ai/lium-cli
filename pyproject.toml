@@ -42,7 +42,7 @@ dependencies = [
     "async-property==0.2.2",
     "bittensor-cli>=9.1.0",
     "paramiko>=3.5.1",
-    "lium-sdk",
+    "lium-sdk>=0.2.0",
 ]
 
 [project.optional-dependencies]
@@ -54,8 +54,6 @@ lium = "cli.cli:main"
 [tool.hatch.metadata]
 package-dir = {"lium_cli" = "lium_cli"}
 
-[tool.uv.sources]
-lium-sdk = { git = "https://github.com/Datura-ai/lium-sdk.git", rev = "lium-sdk" }
 
 [project.urls]
 Homepage = "https://github.com/Datura-ai/lium-cli"
