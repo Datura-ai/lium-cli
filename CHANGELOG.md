@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2] - 2025-01-10
+
+### Added
+- `--version` option to display CLI version (reads from pyproject.toml)
+
+### Changed
+- Version is now dynamically read from pyproject.toml for single source of truth
+
+### Removed
+- Deleted unused `lium_cli/` folder - project now uses `cli/` exclusively
+
 ## [0.2.1] - 2025-01-10
 
 ### Fixed
