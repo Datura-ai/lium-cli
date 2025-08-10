@@ -1,29 +1,19 @@
-"""List templates command using Lium SDK (tight table design)."""
-from __future__ import annotations
+"""List templates command."""
 
 import os
 import sys
-from typing import List, Optional, Dict, Any
+from typing import List, Optional
 
 import click
 from rich.table import Table
 from rich.text import Text
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
 from lium_sdk import Lium, Template
 from ..utils import console, handle_errors, loading_status
 
 
-def _mid_ellipsize(s: str, width: int = 20) -> str:
-    """Middle-ellipsize strings that are too long."""
-    if not s:
-        return "—"
-    if len(s) <= width:
-        return s
-    keep = width - 1
-    left = keep // 2
-    right = keep - left
-    return f"{s[:left]}…{s[-right:]}"
 
 
 def _status_icon(status: Optional[str]) -> str:
@@ -57,27 +47,25 @@ def show_templates(templates: List[Template], numbered: bool = False) -> None:
 
     # Add columns with fixed or ratio widths
     if numbered:
-        table.add_column("#", justify="right", width=3, no_wrap=True)
+        table.add_column("", justify="right", width=3, no_wrap=True, style="dim")
     
     table.add_column("Name", justify="left", ratio=3, min_width=20, overflow="fold")
     table.add_column("Image", justify="left", ratio=4, min_width=25, overflow="fold")
-    table.add_column("Tag", justify="left", width=12, no_wrap=True)
+    table.add_column("Tag", justify="left", ratio=3, min_width=20, overflow="fold")
     table.add_column("Type", justify="left", width=10, no_wrap=True)
-    table.add_column("S", justify="center", width=3, no_wrap=True)
-    table.add_column("Id", justify="left", ratio=2, min_width=15, overflow="fold")
+    table.add_column("Status", justify="center", width=6, no_wrap=True)
 
     for i, t in enumerate(templates, 1):
         row = [
             f"[cyan]{t.name or '—'}[/]",
             f"[blue]{t.docker_image or '—'}[/]",
             t.docker_image_tag or "latest",
-            t.category or "—",
+            t.category.upper() if t.category else "—",
             _status_icon(t.status),
-            f"[dim]{_mid_ellipsize(t.huid or '', 20)}[/]",
         ]
 
         if numbered:
-            row.insert(0, f"[dim]{i}[/]")
+            row.insert(0, str(i))
 
         table.add_row(*row)
     
