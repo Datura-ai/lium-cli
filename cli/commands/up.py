@@ -4,7 +4,6 @@ import sys
 from typing import Optional
 
 import click
-from rich.panel import Panel
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from lium_sdk import Lium, ExecutorInfo, Template
@@ -65,7 +64,7 @@ def select_template(filter: Optional[str] = None) -> Template:
 
     # Choose one
     choice = Prompt.ask(
-        "[cyan]Select template by number or ID or any word to filter templates[/cyan]",
+        "Select template by number or ID or any word to filter templates",
         default="1"
     )
     if not choice.isnumeric():
@@ -73,27 +72,25 @@ def select_template(filter: Optional[str] = None) -> Template:
 
     # Check if it's a number (template selection)
     chosen_template = templates[int(choice) - 1]
-    console.print(f"[green]Selected: {chosen_template.huid}[/green]")
+    # Use markup=False to prevent Rich from interpreting version numbers as color codes
+    from rich.text import Text
+    text = Text(f"Selected: {chosen_template.docker_image}:{chosen_template.docker_image_tag}", style="dim")
+    console.print(text, markup=False, highlight=False)
     return chosen_template
 
 
 
 def show_pod_created(pod_info: dict) -> None:
     """Display created pod info."""
-    info = [
-        f"[green]✓ Pod created successfully![/green]",
-        f"[cyan]Name:[/cyan] {pod_info.get('name', 'N/A')}",
-        f"[cyan]ID:[/cyan] {pod_info.get('huid', pod_info.get('id', 'N/A'))}",
-        f"[cyan]Status:[/cyan] {pod_info.get('status', 'N/A')}"
-    ]
-    if "ssh" in pod_info:
-        info.append(f"[cyan]SSH:[/cyan] {pod_info['ssh']}")
-
+    pod_id = pod_info.get('huid', pod_info.get('id', pod_info.get('name', 'N/A')))
+    console.print(f"[green]✓[/green] Pod '{pod_id}' created")
     
     if pod_info.get('ssh_cmd'):
-        info.append(f"[cyan]SSH:[/cyan] {pod_info['ssh_cmd']}")
+        console.print(f"SSH: {pod_info['ssh_cmd']}")
+    elif "ssh" in pod_info:
+        console.print(f"SSH: {pod_info['ssh']}")
     
-    console.print(Panel("\n".join(info), title="Pod Created", border_style="green"))
+    console.print("[dim]Use 'lium ps' to check status[/dim]")
 
 
 @click.command("up")
@@ -102,8 +99,9 @@ def show_pod_created(pod_info: dict) -> None:
 @click.option("--template_id", "-t", help="Template ID")
 @click.option("--wait", "-w", is_flag=True, help="Wait for pod to be ready")
 @click.option("--timeout", default=300, help="Wait timeout in seconds (default: 300)")
+@click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt")
 @handle_errors
-def up_command(executor_id: Optional[str], name: Optional[str], template_id: Optional[str], wait: bool, timeout: int):
+def up_command(executor_id: Optional[str], name: Optional[str], template_id: Optional[str], wait: bool, timeout: int, yes: bool):
     """Create a new GPU pod on an executor.
     
     EXECUTOR_ID: Executor UUID or HUID (from 'lium ls'). If not provided, 
@@ -139,9 +137,18 @@ def up_command(executor_id: Optional[str], name: Optional[str], template_id: Opt
 
     # set name.
     if not name:
-        name = f"pod-{executor.gpu_type[:8]}-{template.name[:10]}"
+        # Use executor HUID as base name, similar to parent lium
+        name = executor.huid
 
-    with loading_status(f"Creating pod on {executor.huid}", "Pod created"):
+    # Show confirmation
+    if not yes:
+        from rich.prompt import Confirm
+        confirm_msg = f"Acquire pod on {executor.huid} ({executor.gpu_count}×{executor.gpu_type}) at ${executor.price_per_hour:.2f}/h?"
+        if not Confirm.ask(confirm_msg, default=False):
+            console.print("[yellow]Cancelled[/yellow]")
+            sys.exit(0)
+    
+    with loading_status(f"Creating pod {name}", ""):
         pod_info = lium.up(executor_id=executor.id, pod_name=name, template_id=template.id)
 
     # Wait for pod to be ready if requested
