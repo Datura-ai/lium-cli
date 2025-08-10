@@ -1,21 +1,22 @@
-"""List executors command using Lium SDK (btcli-style, long-by-default, fixed-width numerics)."""
-from __future__ import annotations
+"""List executors command."""
 
 import os
 import sys
-from typing import List, Optional, Callable, Any, Dict
+from typing import Any, Callable, Dict, List, Optional
 
 import click
 from rich.table import Table
 from rich.text import Text
 
-# Project imports (keep your relative path trick)
+# Add parent directory to path for lium_sdk import
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from lium_sdk import Lium, ExecutorInfo  # type: ignore
-from ..utils import console, handle_errors, loading_status, calculate_pareto_frontier, store_executor_selection  # type: ignore
+
+from lium_sdk import ExecutorInfo, Lium
+from ..utils import (calculate_pareto_frontier, console, handle_errors,
+                     loading_status, store_executor_selection)
 
 
-# ───────────────────────────── helpers ───────────────────────────── #
+# Helper Functions
 
 def _mid_ellipsize(s: str, width: int = 28) -> str:
     if not s:
@@ -28,9 +29,9 @@ def _mid_ellipsize(s: str, width: int = 28) -> str:
     return f"{s[:left]}…{s[-right:]}"
 
 
-def _cfg(exe: "ExecutorInfo") -> str:
-    # 8×H100 (typographic ×)
-    return f"{getattr(exe, 'gpu_count', '?')}×{getattr(exe, 'gpu_type', 'GPU')}"
+def _cfg(exe: ExecutorInfo) -> str:
+    """Format GPU configuration string."""
+    return f"{exe.gpu_count}×{exe.gpu_type}"
 
 
 def _country_name(loc: Optional[Dict]) -> str:
@@ -44,101 +45,84 @@ def _country_name(loc: Optional[Dict]) -> str:
 
 
 def _money(v: Optional[float]) -> str:
-    if v is None:
-        return "—"
-    # fixed width so decimals line up nicely
-    return f"{v:>6.2f}"
+    """Format money value with fixed width."""
+    return f"{v:>6.2f}" if v is not None else "—"
 
 
 def _intish(x: Any) -> Optional[int]:
+    """Convert to int safely."""
     try:
         return int(float(x))
-    except Exception:
+    except (TypeError, ValueError):
         return None
 
 
 def _maybe_int(x: Any) -> str:
+    """Convert to int string or dash."""
     v = _intish(x)
-    return f"{v}" if v is not None else "—"
+    return str(v) if v is not None else "—"
 
 
 def _maybe_gi_from_capacity(capacity: Any) -> str:
-    """details[*].capacity appears to be MiB => Gi."""
+    """Convert MiB to GiB."""
     v = _intish(capacity)
-    if v is None:
-        return "—"
-    gi = round(v / 1024)  # assume MiB -> Gi
-    return f"{gi}"
+    return str(round(v / 1024)) if v else "—"
 
 
 def _maybe_gi_from_big_number(n: Any) -> str:
-    """
-    Heuristically convert big numbers (likely KiB) to Gi.
-    RAM/hard_disk totals in sample look like KiB-scale ints.
-    """
+    """Convert KiB to GiB."""
     v = _intish(n)
     if v is None:
         return "—"
-    if v < 8192:  # already Gi-ish
-        return f"{v}"
-    gi = round(v / (1024 * 1024))
-    return f"{gi}"
+    if v < 8192:  # Already GiB
+        return str(v)
+    return str(round(v / (1024 * 1024)))
 
 
 def _first_gpu_detail(specs: Optional[Dict]) -> Dict:
+    """Get first GPU detail from specs."""
     if not specs:
         return {}
-    gpu = specs.get("gpu") or {}
-    details = gpu.get("details") or []
+    gpu = specs.get("gpu", {})
+    details = gpu.get("details", [])
     return details[0] if details else {}
 
 
 def _specs_row(specs: Optional[Dict]) -> Dict[str, str]:
-    """
-    Extract long-view fields from specs:
-    VRAM (MiB→Gi), RAM (KiB→Gi), Disk (KiB→Gi), PCIe/mem/tflops from details[0],
-    and Net ↑/Net ↓ from specs.network.
-    """
+    """Extract display fields from specs."""
+    if not specs:
+        return {k: "—" for k in ["VRAM", "RAM", "Disk", "PCIe", "Mem", "TFLOPs", "NetUp", "NetDn"]}
+    
     d = _first_gpu_detail(specs)
-    vram = _maybe_gi_from_capacity(d.get("capacity"))
-
-    ram_total = None
-    disk_total = None
-    net_up = None
-    net_down = None
-    if specs:
-        ram_total = (specs.get("ram") or {}).get("total")
-        disk_total = (specs.get("hard_disk") or {}).get("total")
-        net = specs.get("network") or {}
-        net_up = net.get("upload_speed")
-        net_down = net.get("download_speed")
-
+    ram = specs.get("ram", {})
+    disk = specs.get("hard_disk", {})
+    net = specs.get("network", {})
+    
     return {
-        "VRAM": vram,
-        "RAM": _maybe_gi_from_big_number(ram_total),
-        "Disk": _maybe_gi_from_big_number(disk_total),
+        "VRAM": _maybe_gi_from_capacity(d.get("capacity")),
+        "RAM": _maybe_gi_from_big_number(ram.get("total")),
+        "Disk": _maybe_gi_from_big_number(disk.get("total")),
         "PCIe": _maybe_int(d.get("pcie_speed")),
         "Mem": _maybe_int(d.get("memory_speed")),
         "TFLOPs": _maybe_int(d.get("graphics_speed")),
-        "NetUp": _maybe_int(net_up),
-        "NetDn": _maybe_int(net_down),
+        "NetUp": _maybe_int(net.get("upload_speed")),
+        "NetDn": _maybe_int(net.get("download_speed")),
     }
 
 
 def _sort_key_factory(name: str) -> Callable[[ExecutorInfo], Any]:
-    def cc(e: ExecutorInfo) -> str:
-        return _country_name(getattr(e, "location", None))
+    """Get sort key function by name."""
     mapping = {
-        "price_gpu": lambda e: getattr(e, "price_per_gpu_hour", None) or 0.0,
-        "price_total": lambda e: getattr(e, "price_per_hour", None) or 0.0,
-        "loc": cc,
-        "id": lambda e: getattr(e, "huid", "") or "",
-        "gpu": lambda e: (getattr(e, "gpu_type", "") or "", getattr(e, "gpu_count", 0) or 0),
+        "price_gpu": lambda e: e.price_per_gpu_hour or 0.0,
+        "price_total": lambda e: e.price_per_hour or 0.0,
+        "loc": lambda e: _country_name(e.location),
+        "id": lambda e: e.huid,
+        "gpu": lambda e: (e.gpu_type, e.gpu_count),
     }
     return mapping.get(name, mapping["price_gpu"])
 
 
-# ───────────────────────────── columns ───────────────────────────── #
+# Table Configuration
 
 def _add_long_columns(t: Table) -> None:
     """
@@ -166,7 +150,7 @@ def _add_long_columns(t: Table) -> None:
     t.add_column("Location", justify="left", ratio=4, min_width=10, overflow="fold")
 
 
-# ───────────────────────────── rendering ───────────────────────────── #
+# Display Functions
 
 def show_executors(
     executors: List[ExecutorInfo],
@@ -226,22 +210,17 @@ def show_executors(
     _add_long_columns(table)
 
     for idx, (exe, is_pareto) in enumerate(zip(executors, pareto_flags), 1):
-        loc = getattr(exe, "location", None)
-        specs = getattr(exe, "specs", None)
-        s = _specs_row(specs)
+        s = _specs_row(exe.specs)
         
-        # Add star for Pareto-optimal executors
-        huid = _mid_ellipsize(getattr(exe, 'huid', '') or '')
-        if is_pareto:
-            huid_display = f"[green]★[/green] [cyan]{huid}[/]"
-        else:
-            huid_display = f"  [cyan]{huid}[/]"
+        # Format HUID with Pareto star
+        huid = _mid_ellipsize(exe.huid)
+        huid_display = f"[green]★[/green] [cyan]{huid}[/]" if is_pareto else f"  [cyan]{huid}[/]"
 
-        row = [
+        table.add_row(
             str(idx),
             huid_display,
             _cfg(exe),
-            f"[green]{_money(getattr(exe, 'price_per_gpu_hour', None))}[/]",
+            f"[green]{_money(exe.price_per_gpu_hour)}[/]",
             s["VRAM"],
             s["RAM"],
             s["Disk"],
@@ -250,14 +229,13 @@ def show_executors(
             s["TFLOPs"],
             s["NetUp"],
             s["NetDn"],
-            _country_name(loc),
-        ]
-        table.add_row(*row)
+            _country_name(exe.location),
+        )
 
     console.print(table)
 
 
-# ───────────────────────────── command ───────────────────────────── #
+# Command Definition
 
 @click.command("ls")
 @click.argument("gpu_type", required=False)
@@ -271,13 +249,12 @@ def show_executors(
 @click.option("--limit", type=int, default=None, help="Limit number of rows shown.")
 @handle_errors
 def ls_command(gpu_type: Optional[str], sort_by: str, limit: Optional[int]):
-    """
-    List available GPU executors (long view by default).
+    """List available GPU executors.
 
     Examples:
-      lium ls                 # Long, full-bleed list
+      lium ls                 # List all executors
       lium ls H100            # Filter by GPU type
-      lium ls --sort loc      # Sort by location name
+      lium ls --sort loc      # Sort by location
       lium ls --limit 20      # Show first 20 rows
     """
     with loading_status("Loading executors", "Executors loaded"):
@@ -287,4 +264,3 @@ def ls_command(gpu_type: Optional[str], sort_by: str, limit: Optional[int]):
     
     # Store the selection for index-based access in up command
     store_executor_selection(executors)
-

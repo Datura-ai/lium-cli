@@ -1,16 +1,16 @@
-"""List active pods command using Lium SDK (tight table design)."""
-from __future__ import annotations
+"""List active pods command."""
 
 import os
 import sys
-from typing import List, Optional
 from datetime import datetime, timezone
+from typing import List, Optional
 
 import click
 from rich.table import Table
 from rich.text import Text
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
 from lium_sdk import Lium, PodInfo
 from ..utils import console, handle_errors, loading_status
 
@@ -18,15 +18,26 @@ from ..utils import console, handle_errors, loading_status
 def _status_style(status: str) -> str:
     """Get color style for status."""
     status_upper = status.upper()
-    if status_upper in ["RUNNING"]:
+    if status_upper == "RUNNING":
         return "green"
-    elif status_upper in ["FAILED", "STOPPED"]:
+    elif status_upper in ("FAILED", "STOPPED"):
         return "red"
-    elif status_upper in ["PENDING", "STOP_PENDING", "START_PENDING"]:
+    elif status_upper in ("PENDING", "STOP_PENDING", "START_PENDING"):
         return "yellow"
-    elif status_upper in ["DELETING"]:
-        return "dim"
     return "dim"
+
+
+def _parse_timestamp(timestamp: str) -> Optional[datetime]:
+    """Parse ISO format timestamp."""
+    try:
+        if timestamp.endswith('Z'):
+            return datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+        elif '+' not in timestamp and '-' not in timestamp[10:]:
+            return datetime.fromisoformat(timestamp).replace(tzinfo=timezone.utc)
+        else:
+            return datetime.fromisoformat(timestamp)
+    except (ValueError, AttributeError):
+        return None
 
 
 def _format_uptime(created_at: str) -> str:
@@ -34,29 +45,21 @@ def _format_uptime(created_at: str) -> str:
     if not created_at:
         return "—"
     
-    try:
-        # Parse ISO format timestamp
-        if created_at.endswith('Z'):
-            dt_created = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
-        elif '+' not in created_at and '-' not in created_at[10:]:
-            dt_created = datetime.fromisoformat(created_at).replace(tzinfo=timezone.utc)
-        else:
-            dt_created = datetime.fromisoformat(created_at)
-        
-        now_utc = datetime.now(timezone.utc)
-        duration = now_utc - dt_created
-        hours = duration.total_seconds() / 3600
-        
-        if hours < 1:
-            mins = duration.total_seconds() / 60
-            return f"{mins:.0f}m"
-        elif hours < 24:
-            return f"{hours:.1f}h"
-        else:
-            days = hours / 24
-            return f"{days:.1f}d"
-    except:
+    dt_created = _parse_timestamp(created_at)
+    if not dt_created:
         return "—"
+    
+    duration = datetime.now(timezone.utc) - dt_created
+    hours = duration.total_seconds() / 3600
+    
+    if hours < 1:
+        mins = duration.total_seconds() / 60
+        return f"{mins:.0f}m"
+    elif hours < 24:
+        return f"{hours:.1f}h"
+    else:
+        days = hours / 24
+        return f"{days:.1f}d"
 
 
 def _format_cost(created_at: str, price_per_hour: Optional[float]) -> str:
@@ -64,30 +67,19 @@ def _format_cost(created_at: str, price_per_hour: Optional[float]) -> str:
     if not created_at or price_per_hour is None:
         return "—"
     
-    try:
-        if created_at.endswith('Z'):
-            dt_created = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
-        elif '+' not in created_at and '-' not in created_at[10:]:
-            dt_created = datetime.fromisoformat(created_at).replace(tzinfo=timezone.utc)
-        else:
-            dt_created = datetime.fromisoformat(created_at)
-        
-        now_utc = datetime.now(timezone.utc)
-        duration = now_utc - dt_created
-        hours = duration.total_seconds() / 3600
-        cost = hours * price_per_hour
-        return f"${cost:.2f}"
-    except:
+    dt_created = _parse_timestamp(created_at)
+    if not dt_created:
         return "—"
+    
+    duration = datetime.now(timezone.utc) - dt_created
+    hours = duration.total_seconds() / 3600
+    cost = hours * price_per_hour
+    return f"${cost:.2f}"
 
 
 def _format_ssh_command(ssh_cmd: Optional[str]) -> str:
     """Format SSH command for display."""
-    if not ssh_cmd:
-        return "—"
-    
-    # Return the full SSH command, styled as code
-    return ssh_cmd
+    return ssh_cmd if ssh_cmd else "—"
 
 
 def show_pods(pods: List[PodInfo]) -> None:
@@ -117,28 +109,22 @@ def show_pods(pods: List[PodInfo]) -> None:
     table.add_column("Spent", justify="right", width=10, no_wrap=True)
     table.add_column("Uptime", justify="right", width=9, no_wrap=True)
     table.add_column("SSH", justify="left", ratio=6, min_width=30, overflow="fold")
-
     
-    for i, pod in enumerate(pods, 1):
-        # Get executor info (now it's an ExecutorInfo object)
+    for pod in pods:
         executor = pod.executor
-        
         if executor:
-            # Use ExecutorInfo properties directly
             config = f"{executor.gpu_count}×{executor.gpu_type}" if executor.gpu_count > 1 else executor.gpu_type
             price_str = f"${executor.price_per_hour:.2f}"
             price_per_hour = executor.price_per_hour
         else:
-            # Fallback if no executor info
             config = "—"
             price_str = "—"
             price_per_hour = None
         
-        # Status with color (uppercase)
         status_color = _status_style(pod.status)
         status_text = f"[{status_color}]{pod.status.upper()}[/]"
         
-        row = [
+        table.add_row(
             f"[cyan]{pod.huid}[/]",
             status_text,
             config,
@@ -146,9 +132,7 @@ def show_pods(pods: List[PodInfo]) -> None:
             _format_cost(pod.created_at, price_per_hour),
             _format_uptime(pod.created_at),
             f"[blue]{_format_ssh_command(pod.ssh_cmd)}[/]",
-        ]
-        
-        table.add_row(*row)
+        )
     
     console.print(table)
 

@@ -1,84 +1,75 @@
-"""Create pod command using Lium SDK."""
+"""Create pod command."""
+
 import os
 import sys
 from typing import Optional
 
 import click
+from rich.prompt import Confirm, Prompt
+from rich.text import Text
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from lium_sdk import Lium, ExecutorInfo, Template
-from ..utils import console, handle_errors, loading_status, resolve_executor_indices
+
+from lium_sdk import ExecutorInfo, Lium, Template
+from ..utils import (console, handle_errors, loading_status,
+                     resolve_executor_indices)
 
 
 def select_executor() -> Optional[ExecutorInfo]:
-    """Interactive executor selection - reuse ls() + choose."""
-    from rich.prompt import Prompt
+    """Interactive executor selection."""
     from .ls import show_executors
     
     console.print("[yellow]Select executor:[/yellow]")
     
     lium = Lium()
-    search_text = None
-
     with loading_status("Loading Executors", "Executors loaded"):
-        executors = lium.ls(gpu_type=search_text)
+        executors = lium.ls()
 
     if not executors:
-        console.print(f"[red]No executors available{' for ' + search_text if search_text else ''}[/red]")
+        console.print("[red]No executors available[/red]")
         return None
 
-    # Reuse show_executors from ls command with numbers
-    show_executors(executors, numbered=True)
+    show_executors(executors, limit=20)
 
-    # Choose one
     choice = Prompt.ask(
-        "[cyan]Select executor by number or executor[/cyan]",
+        "[cyan]Select executor by number[/cyan]",
         choices=[str(i) for i in range(1, len(executors) + 1)],
         default="1"
     )
 
-    # Check if it's a number (executor selection)
     chosen_executor = executors[int(choice) - 1]
     console.print(f"[green]Selected: {chosen_executor.huid}[/green]")
     return chosen_executor
 
 
-def select_template(filter: Optional[str] = None) -> Template:
-    """request user to select a template interactively."""
-    from rich.prompt import Prompt
+def select_template(filter_text: Optional[str] = None) -> Optional[Template]:
+    """Interactive template selection."""
     from .templates import show_templates
 
     console.print("[yellow]Select template:[/yellow]")
 
     lium = Lium()
-
     with loading_status("Loading Templates", "Templates loaded"):
-        templates = lium.templates(filter)
+        templates = lium.templates(filter_text)
 
     if not templates:
         console.print("[red]No templates available[/red]")
         return None
 
-    # Show templates with numbers
     show_templates(templates, numbered=True)
 
-    # Choose one
     choice = Prompt.ask(
-        "Select template by number or ID or any word to filter templates",
+        "Select template by number or enter text to filter",
         default="1"
     )
+    
     if not choice.isnumeric():
         return select_template(choice)
 
-    # Check if it's a number (template selection)
     chosen_template = templates[int(choice) - 1]
-    # Use markup=False to prevent Rich from interpreting version numbers as color codes
-    from rich.text import Text
     text = Text(f"Selected: {chosen_template.docker_image}:{chosen_template.docker_image_tag}", style="dim")
     console.print(text, markup=False, highlight=False)
     return chosen_template
-
-
 
 def show_pod_created(pod_info: dict) -> None:
     """Display created pod info."""
@@ -116,10 +107,9 @@ def up_command(executor_id: Optional[str], name: Optional[str], template_id: Opt
     """
     lium = Lium()
 
-    # Check if executor_id is a number (index from previous ls)
+    # Resolve executor ID if it's an index
     executor = None
     if executor_id and executor_id.isdigit():
-        # Try to resolve as index
         resolved_ids, error_msg = resolve_executor_indices([executor_id])
         if error_msg:
             console.print(f"[red]{error_msg}[/red]")
@@ -128,39 +118,36 @@ def up_command(executor_id: Optional[str], name: Optional[str], template_id: Opt
         if resolved_ids:
             executor_id = resolved_ids[0]
     
-    # get or select executor
+    # Get or select executor
     if executor_id:
         with loading_status("Loading executor", "Executor loaded"):
             executor = lium.get_executor(executor_id)
     if not executor:
         executor = select_executor()
+        if not executor:
+            return
 
-    # Get template or auto-select
+    # Get or select template
     template = None
     if template_id:
         template = lium.get_template(template_id)
     if not template:
         template = select_template()
+        if not template:
+            return
 
-
-    if not executor or not template:
-        console.print("[red]No executor or template selected[/red]")
-        sys.exit(1)
-
-    # set name.
+    # Use executor HUID as default name
     if not name:
-        # Use executor HUID as base name, similar to parent lium
         name = executor.huid
 
-    # Show confirmation
+    # Confirm creation
     if not yes:
-        from rich.prompt import Confirm
         confirm_msg = f"Acquire pod on {executor.huid} ({executor.gpu_count}×{executor.gpu_type}) at ${executor.price_per_hour:.2f}/h?"
         if not Confirm.ask(confirm_msg, default=False):
             console.print("[yellow]Cancelled[/yellow]")
-            sys.exit(0)
+            return
     
-    with loading_status(f"Creating pod {name}", ""):
+    with loading_status(f"Creating pod {name}", "Pod created"):
         pod_info = lium.up(executor_id=executor.id, pod_name=name, template_id=template.id)
 
     # Wait for pod to be ready if requested
@@ -178,7 +165,3 @@ def up_command(executor_id: Optional[str], name: Optional[str], template_id: Opt
             show_pod_created(pod_info)
     else:
         show_pod_created(pod_info)
-
-
-if __name__ == "__main__":
-    select_template()
