@@ -7,7 +7,7 @@ import click
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from lium_sdk import Lium, ExecutorInfo, Template
-from ..utils import console, handle_errors, loading_status
+from ..utils import console, handle_errors, loading_status, resolve_executor_indices
 
 
 def select_executor() -> Optional[ExecutorInfo]:
@@ -104,19 +104,31 @@ def show_pod_created(pod_info: dict) -> None:
 def up_command(executor_id: Optional[str], name: Optional[str], template_id: Optional[str], wait: bool, timeout: int, yes: bool):
     """Create a new GPU pod on an executor.
     
-    EXECUTOR_ID: Executor UUID or HUID (from 'lium ls'). If not provided, 
-    shows interactive selection.
+    EXECUTOR_ID: Executor UUID, HUID, or index from last 'lium ls'. 
+    If not provided, shows interactive selection.
     
     Examples:
       lium up                       # Interactive executor selection
       lium up cosmic-hawk-f2        # Create pod on specific executor
+      lium up 1                     # Create pod on executor #1 from last ls
       lium up -w cosmic-hawk-f2     # Create and wait for pod to be ready
       lium up --name my-pod         # Create with custom name
     """
     lium = Lium()
 
-    # get or select executor
+    # Check if executor_id is a number (index from previous ls)
     executor = None
+    if executor_id and executor_id.isdigit():
+        # Try to resolve as index
+        resolved_ids, error_msg = resolve_executor_indices([executor_id])
+        if error_msg:
+            console.print(f"[red]{error_msg}[/red]")
+            if not resolved_ids:
+                return
+        if resolved_ids:
+            executor_id = resolved_ids[0]
+    
+    # get or select executor
     if executor_id:
         with loading_status("Loading executor", "Executor loaded"):
             executor = lium.get_executor(executor_id)

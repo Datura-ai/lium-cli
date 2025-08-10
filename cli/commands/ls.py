@@ -12,7 +12,7 @@ from rich.text import Text
 # Project imports (keep your relative path trick)
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from lium_sdk import Lium, ExecutorInfo  # type: ignore
-from ..utils import console, handle_errors, loading_status, calculate_pareto_frontier  # type: ignore
+from ..utils import console, handle_errors, loading_status, calculate_pareto_frontier, store_executor_selection  # type: ignore
 
 
 # ───────────────────────────── helpers ───────────────────────────── #
@@ -145,6 +145,8 @@ def _add_long_columns(t: Table) -> None:
     Use fixed widths for all numeric columns to avoid airy gaps.
     Only Id and Location get ratios to absorb extra width.
     """
+    # Index column for selection
+    t.add_column("", justify="right", width=3, no_wrap=True, style="dim")
     # absorb width on the left with Id
     t.add_column("Id", justify="left", ratio=8, min_width=24, overflow="fold")
     t.add_column("Config", justify="left", width=12, no_wrap=True)          # e.g., 8×H100
@@ -223,7 +225,7 @@ def show_executors(
     )
     _add_long_columns(table)
 
-    for exe, is_pareto in zip(executors, pareto_flags):
+    for idx, (exe, is_pareto) in enumerate(zip(executors, pareto_flags), 1):
         loc = getattr(exe, "location", None)
         specs = getattr(exe, "specs", None)
         s = _specs_row(specs)
@@ -236,6 +238,7 @@ def show_executors(
             huid_display = f"  [cyan]{huid}[/]"
 
         row = [
+            str(idx),
             huid_display,
             _cfg(exe),
             f"[green]{_money(getattr(exe, 'price_per_gpu_hour', None))}[/]",
@@ -281,4 +284,7 @@ def ls_command(gpu_type: Optional[str], sort_by: str, limit: Optional[int]):
         executors = Lium().ls(gpu_type=gpu_type)
 
     show_executors(executors, sort_by=sort_by, limit=limit)
+    
+    # Store the selection for index-based access in up command
+    store_executor_selection(executors)
 

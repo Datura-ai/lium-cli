@@ -1,7 +1,10 @@
 """CLI utilities and decorators."""
 from functools import wraps
 from contextlib import contextmanager
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional
+import json
+from pathlib import Path
+from datetime import datetime
 from rich.console import Console
 from rich.status import Status
 from lium_sdk import LiumError, ExecutorInfo
@@ -110,3 +113,79 @@ def calculate_pareto_frontier(executors: List[ExecutorInfo]) -> List[bool]:
         is_pareto.append(not dominated)
     
     return is_pareto
+
+
+def get_config_dir() -> Path:
+    """Get the configuration directory for lium-cli."""
+    config_dir = Path.home() / ".lium"
+    config_dir.mkdir(exist_ok=True)
+    return config_dir
+
+
+def store_executor_selection(executors: List[ExecutorInfo]) -> None:
+    """Store the last executor selection for index-based selection."""
+    selection_data = {
+        'timestamp': datetime.now().isoformat(),
+        'executors': []
+    }
+    
+    for executor in executors:
+        selection_data['executors'].append({
+            'id': executor.id,
+            'huid': executor.huid,
+            'gpu_type': executor.gpu_type,
+            'gpu_count': executor.gpu_count,
+            'price_per_hour': executor.price_per_hour,
+            'location': executor.location.get('country', 'Unknown') if executor.location else 'Unknown'
+        })
+    
+    # Store in config directory
+    config_file = get_config_dir() / "last_selection.json"
+    with open(config_file, 'w') as f:
+        json.dump(selection_data, f, indent=2)
+
+
+def get_last_executor_selection() -> Optional[Dict[str, Any]]:
+    """Retrieve the last executor selection."""
+    config_file = get_config_dir() / "last_selection.json"
+    if config_file.exists():
+        try:
+            with open(config_file, 'r') as f:
+                return json.load(f)
+        except (json.JSONDecodeError, IOError):
+            return None
+    return None
+
+
+def resolve_executor_indices(indices: List[str]) -> Tuple[List[str], Optional[str]]:
+    """
+    Resolve executor indices from the last selection.
+    Returns (resolved_executor_ids, error_message)
+    """
+    last_selection = get_last_executor_selection()
+    if not last_selection:
+        return [], "No previous executor selection found. Please run 'lium ls' first."
+    
+    executors = last_selection.get('executors', [])
+    if not executors:
+        return [], "No executors in last selection."
+    
+    resolved_ids = []
+    failed_resolutions = []
+    
+    for index_str in indices:
+        try:
+            index = int(index_str)
+            if 1 <= index <= len(executors):
+                executor_data = executors[index - 1]
+                resolved_ids.append(executor_data['id'])
+            else:
+                failed_resolutions.append(f"{index_str} (index out of range 1-{len(executors)})")
+        except ValueError:
+            failed_resolutions.append(f"{index_str} (not a valid index)")
+    
+    error_msg = None
+    if failed_resolutions:
+        error_msg = f"Could not resolve indices: {', '.join(failed_resolutions)}"
+    
+    return resolved_ids, error_msg
