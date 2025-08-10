@@ -3,6 +3,7 @@ import click
 from .commands.ls import ls_command
 from .commands.templates import templates_command
 from .commands.up import up_command
+from .commands.ps import ps_command
 from .commands.compose import compose_command
 from .plugins import load_plugins
 
@@ -23,6 +24,7 @@ def cli(ctx):
 cli.add_command(ls_command)
 cli.add_command(templates_command)
 cli.add_command(up_command)
+cli.add_command(ps_command)
 
 # Add compose placeholder (will be overridden if plugin is installed)
 cli.add_command(compose_command)
