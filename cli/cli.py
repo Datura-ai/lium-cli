@@ -5,6 +5,7 @@ from .commands.templates import templates_command
 from .commands.up import up_command
 from .commands.ps import ps_command
 from .commands.exec import exec_command
+from .commands.ssh import ssh_command
 from .commands.compose import compose_command
 from .plugins import load_plugins
 
@@ -27,6 +28,7 @@ cli.add_command(templates_command)
 cli.add_command(up_command)
 cli.add_command(ps_command)
 cli.add_command(exec_command)
+cli.add_command(ssh_command)
 
 # Add compose placeholder (will be overridden if plugin is installed)
 cli.add_command(compose_command)
