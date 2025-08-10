@@ -1,5 +1,6 @@
 """Main CLI entry point for Lium."""
 import click
+from .commands.init import init_command
 from .commands.ls import ls_command
 from .commands.templates import templates_command
 from .commands.up import up_command
@@ -24,6 +25,7 @@ def cli(ctx):
 
 
 # Register core commands
+cli.add_command(init_command)
 cli.add_command(ls_command)
 cli.add_command(templates_command)
 cli.add_command(up_command)
