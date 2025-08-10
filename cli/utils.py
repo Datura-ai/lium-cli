@@ -34,6 +34,14 @@ def handle_errors(func):
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
+        except ValueError as e:
+            # Check if it's the API key error from SDK
+            if "No API key found" in str(e):
+                console.print("[red]No API key configured[/red]")
+                console.print("[yellow]Please run 'lium init' to set up your API key[/yellow]")
+                console.print("[dim]Or set LIUM_API_KEY environment variable[/dim]")
+            else:
+                console.print(f"[red]Error: {e}[/red]")
         except LiumError as e:
             console.print(f"[red]Error: {e}[/red]")
         except Exception as e:
