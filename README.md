@@ -44,6 +44,7 @@ lium rm <pod-name>
 - `lium ssh <POD>` - SSH into a pod
 - `lium exec <POD> <COMMAND>` - Execute command on pod
 - `lium scp <POD> <LOCAL_FILE> [REMOTE_PATH]` - Copy files to pods
+- `lium rsync <POD> <LOCAL_DIR> [REMOTE_PAT H]` - Sync directories to pods
 - `lium rm <POD>` - Remove/stop a pod
 - `lium templates [SEARCH]` - List available Docker templates
 
@@ -66,6 +67,12 @@ lium scp my-pod ./script.py                    # Copy to /root/script.py
 lium scp 1 ./data.csv /root/data/             # Copy to specific directory
 lium scp all ./config.json                    # Copy to all pods
 lium scp 1,2,3 ./model.py /root/models/       # Copy to multiple pods
+
+# Sync directories to pods
+lium rsync my-pod ./project                    # Sync to /root/project
+lium rsync 1 ./data /root/datasets/           # Sync to specific directory
+lium rsync all ./models                       # Sync to all pods
+lium rsync 1,2,3 ./code /root/workspace/      # Sync to multiple pods
 
 # Remove multiple pods
 lium rm my-pod-1 my-pod-2
