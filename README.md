@@ -44,9 +44,10 @@ lium rm <pod-name>
 - `lium ssh <POD>` - SSH into a pod
 - `lium exec <POD> <COMMAND>` - Execute command on pod
 - `lium scp <POD> <LOCAL_FILE> [REMOTE_PATH]` - Copy files to pods
-- `lium rsync <POD> <LOCAL_DIR> [REMOTE_PAT H]` - Sync directories to pods
+- `lium rsync <POD> <LOCAL_DIR> [REMOTE_PATH]` - Sync directories to pods
 - `lium rm <POD>` - Remove/stop a pod
 - `lium templates [SEARCH]` - List available Docker templates
+- `lium image <IMAGE_NAME> <PATH>` - Build and deploy Docker image as template
 
 ### Command Examples
 
@@ -77,6 +78,12 @@ lium rsync 1,2,3 ./code /root/workspace/      # Sync to multiple pods
 # Remove multiple pods
 lium rm my-pod-1 my-pod-2
 lium rm all  # Remove all pods
+
+# Build and deploy Docker images
+lium image my-app .                                   # Build from current directory
+lium image my-model ./models                          # Build from models directory  
+lium image web-server ./app --ports 22,8080          # Custom ports
+lium image my-app . --ports 22,8000 --start-command "/start.sh"  # With start command
 ```
 
 ## Features
@@ -86,6 +93,8 @@ lium rm all  # Remove all pods
 - **Full-Width Tables**: Clean, readable terminal output
 - **Cost Tracking**: See spending and hourly rates in `ps`
 - **Interactive Setup**: `init` command for easy onboarding
+- **Docker Integration**: Build and deploy custom Docker images as templates
+- **Cross-Platform Builds**: Automatic `linux/amd64` builds for server compatibility
 
 ## Configuration
 

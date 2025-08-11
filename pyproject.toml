@@ -42,7 +42,8 @@ dependencies = [
     "async-property==0.2.2",
     "bittensor-cli>=9.1.0",
     "paramiko>=3.5.1",
-    "lium-sdk>=0.2.0",
+    "docker>=7.1.0",
+    "lium-sdk==0.2.1",
 ]
 
 [project.optional-dependencies]
