@@ -158,10 +158,10 @@ def show_executors(
     sort_by: str = "price_gpu",
     limit: Optional[int] = None,
     show_pareto: bool = True,
-) -> None:
+) -> List[ExecutorInfo]:
     if not executors:
         console.print("[yellow]No executors available.[/yellow]")
-        return
+        return []
 
     # Calculate Pareto frontier before sorting/limiting
     pareto_flags = calculate_pareto_frontier(executors) if show_pareto else [False] * len(executors)
@@ -233,6 +233,7 @@ def show_executors(
         )
 
     console.print(table)
+    return [exe for exe, _ in executors_with_pareto]  # Return sorted executors
 
 
 # Command Definition

@@ -29,15 +29,15 @@ def select_executor() -> Optional[ExecutorInfo]:
         console.print("[red]No executors available[/red]")
         return None
 
-    show_executors(executors, limit=20)
+    showed_executors = show_executors(executors, limit=20)
 
     choice = Prompt.ask(
         "[cyan]Select executor by number[/cyan]",
-        choices=[str(i) for i in range(1, len(executors) + 1)],
+        choices=[str(i) for i in range(1, len(showed_executors) + 1)],
         default="1"
     )
 
-    chosen_executor = executors[int(choice) - 1]
+    chosen_executor = showed_executors[int(choice) - 1]
     console.print(f"[green]Selected: {chosen_executor.huid}[/green]")
     return chosen_executor
 
