@@ -11,34 +11,7 @@ from rich.text import Text
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from lium_sdk import Lium, PodInfo
-from ..utils import console, handle_errors, loading_status
-
-
-def _parse_targets(targets: str, all_pods: List[PodInfo]) -> List[PodInfo]:
-    """Parse target specification and return matching pods."""
-    if targets.lower() == "all":
-        return all_pods
-    
-    selected = []
-    for target in targets.split(","):
-        target = target.strip()
-        
-        # Try as index (1-based from ps output)
-        try:
-            idx = int(target) - 1
-            if 0 <= idx < len(all_pods):
-                selected.append(all_pods[idx])
-                continue
-        except ValueError:
-            pass
-        
-        # Try as pod ID/name/huid
-        for pod in all_pods:
-            if target in (pod.id, pod.name, pod.huid):
-                selected.append(pod)
-                break
-    
-    return selected
+from ..utils import console, handle_errors, loading_status, parse_targets
 
 
 def _format_output(pod: PodInfo, result: dict, show_header: bool = True) -> None:
@@ -117,7 +90,7 @@ def exec_command(targets: str, command: Optional[str], script: Optional[str], en
     with loading_status("Loading pods", ""):
         all_pods = lium.ps()
     
-    selected_pods = _parse_targets(targets, all_pods)
+    selected_pods = parse_targets(targets, all_pods)
     
     if not selected_pods:
         console.print(f"[red]No pods match targets: {targets}[/red]")

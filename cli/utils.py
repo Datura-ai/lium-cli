@@ -7,7 +7,7 @@ from pathlib import Path
 from datetime import datetime
 from rich.console import Console
 from rich.status import Status
-from lium_sdk import LiumError, ExecutorInfo
+from lium_sdk import LiumError, ExecutorInfo, PodInfo
 
 console = Console()
 
@@ -197,3 +197,30 @@ def resolve_executor_indices(indices: List[str]) -> Tuple[List[str], Optional[st
         error_msg = f"Could not resolve indices: {', '.join(failed_resolutions)}"
     
     return resolved_ids, error_msg
+
+
+def parse_targets(targets: str, all_pods: List[PodInfo]) -> List[PodInfo]:
+    """Parse target specification and return matching pods."""
+    if targets.lower() == "all":
+        return all_pods
+    
+    selected = []
+    for target in targets.split(","):
+        target = target.strip()
+        
+        # Try as index (1-based from ps output)
+        try:
+            idx = int(target) - 1
+            if 0 <= idx < len(all_pods):
+                selected.append(all_pods[idx])
+                continue
+        except ValueError:
+            pass
+        
+        # Try as pod ID/name/huid
+        for pod in all_pods:
+            if target in (pod.id, pod.name, pod.huid):
+                selected.append(pod)
+                break
+    
+    return selected
