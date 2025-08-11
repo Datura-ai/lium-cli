@@ -18,12 +18,12 @@ def _show_theme_preview(console: ThemedConsole, current_theme: str, resolved_the
     console.info("  ℹ Info messages")
     console.dim("  Dimmed/muted text")
     
-    # Show pod status colors
+    # Show pod status colors  
     console.print(f"  Pod statuses: ", end="")
     running_color = console.pod_status_color("RUNNING")
     stopped_color = console.pod_status_color("STOPPED") 
     pending_color = console.pod_status_color("PENDING")
-    console.print(f"[{running_color}]RUNNING[/] [{stopped_color}]STOPPED[/] [{pending_color}]PENDING[/]")
+    console.info(f"[{running_color}]RUNNING[/] [{stopped_color}]STOPPED[/] [{pending_color}]PENDING[/]")
 
 
 @click.command("theme")

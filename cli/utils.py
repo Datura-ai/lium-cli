@@ -123,15 +123,10 @@ def calculate_pareto_frontier(executors: List[ExecutorInfo]) -> List[bool]:
     return is_pareto
 
 
-def get_config_dir() -> Path:
-    """Get the configuration directory for lium-cli."""
-    config_dir = Path.home() / ".lium"
-    config_dir.mkdir(exist_ok=True)
-    return config_dir
-
-
 def store_executor_selection(executors: List[ExecutorInfo]) -> None:
     """Store the last executor selection for index-based selection."""
+    from .config import config
+    
     selection_data = {
         'timestamp': datetime.now().isoformat(),
         'executors': []
@@ -148,14 +143,16 @@ def store_executor_selection(executors: List[ExecutorInfo]) -> None:
         })
     
     # Store in config directory
-    config_file = get_config_dir() / "last_selection.json"
+    config_file = config.config_dir / "last_selection.json"
     with open(config_file, 'w') as f:
         json.dump(selection_data, f, indent=2)
 
 
 def get_last_executor_selection() -> Optional[Dict[str, Any]]:
     """Retrieve the last executor selection."""
-    config_file = get_config_dir() / "last_selection.json"
+    from .config import config
+    
+    config_file = config.config_dir / "last_selection.json"
     if config_file.exists():
         try:
             with open(config_file, 'r') as f:

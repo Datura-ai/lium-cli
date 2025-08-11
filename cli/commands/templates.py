@@ -33,7 +33,7 @@ def show_templates(templates: List[Template], numbered: bool = False) -> None:
         return
 
     # Title
-    console.print(Text("Templates", style="bold"), end="")
+    console.info(Text("Templates", style="bold"), end="")
     console.dim(f"  ({len(templates)} shown)")
 
     table = Table(
@@ -57,8 +57,8 @@ def show_templates(templates: List[Template], numbered: bool = False) -> None:
 
     for i, t in enumerate(templates, 1):
         row = [
-            console.get_styled(t.name or '—', 'info'),
-            f"[blue]{t.docker_image or '—'}[/]",
+            t.name or '—',
+            console.get_styled(f"{t.docker_image or '—'}", 'id'),
             t.docker_image_tag or "latest",
             t.category.upper() if t.category else "—",
             _status_icon(t.status),
@@ -69,7 +69,7 @@ def show_templates(templates: List[Template], numbered: bool = False) -> None:
 
         table.add_row(*row)
     
-    console.print(table)
+    console.info(table)
 
 
 @click.command("templates")

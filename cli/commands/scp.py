@@ -66,7 +66,7 @@ def scp_command(targets: str, local_path: str, remote_path: Optional[str], yes: 
     console.info(f"File to copy: {local_file}")
     console.info(f"Target pods ({len(selected_pods)}):")
     for pod in selected_pods:
-        console.print(f"  - {console.get_styled(pod.huid, 'pod_id')} ({pod.status}) → {remote_path}")
+        console.info(f"  - {console.get_styled(pod.huid, 'pod_id')} ({pod.status}) → {remote_path}")
     
     # Confirm unless -y flag
     if not yes:
@@ -80,7 +80,7 @@ def scp_command(targets: str, local_path: str, remote_path: Optional[str], yes: 
     success_count = 0
     failed_pods = []
     
-    console.print()
+    console.info("")
     for pod in selected_pods:
         try:
             console.dim(f"Copying to {pod.huid}...", end="")
@@ -93,7 +93,7 @@ def scp_command(targets: str, local_path: str, remote_path: Optional[str], yes: 
             failed_pods.append(pod.huid)
     
     # Summary
-    console.print()
+    console.info("")
     if len(selected_pods) == 1:
         if success_count == 1:
             console.success("File copied successfully")

@@ -2,10 +2,13 @@
 
 import json
 import os
-import configparser
+import platform
+import subprocess
 from pathlib import Path
 from typing import Dict, Any
 from rich.console import Console as RichConsole
+
+from .config import config
 
 
 class ThemedConsole(RichConsole):
@@ -14,7 +17,7 @@ class ThemedConsole(RichConsole):
     def __init__(self):
         super().__init__()
         self.themes = self._load_themes()
-        self.current_theme_name = self._get_theme_from_config()
+        self.current_theme_name = config.get('ui.theme', 'auto')
         self.theme = self._resolve_theme()
     
     def _load_themes(self) -> Dict[str, Dict[str, str]]:
@@ -30,18 +33,6 @@ class ThemedConsole(RichConsole):
                 "light": {"success": "green", "error": "red", "warning": "yellow", "info": "blue", "dim": "dim"}
             }
     
-    def _get_theme_from_config(self) -> str:
-        """Get theme from config, default to auto."""
-        config_file = Path.home() / ".lium" / "config.ini"
-        if not config_file.exists():
-            return "auto"
-        
-        config = configparser.ConfigParser()
-        try:
-            config.read(config_file)
-            return config.get('ui', 'theme', fallback='auto')
-        except (configparser.Error, KeyError):
-            return "auto"
     
     def _resolve_theme(self) -> Dict[str, str]:
         """Resolve theme name to actual theme dict."""
@@ -52,9 +43,6 @@ class ThemedConsole(RichConsole):
     
     def _is_dark_terminal(self) -> bool:
         """Detect if terminal has dark background."""
-        import platform
-        import subprocess
-        
         # Try macOS system theme detection first
         if platform.system() == 'Darwin':
             try:
@@ -92,52 +80,40 @@ class ThemedConsole(RichConsole):
         # Default to light for better safety (less eye strain if wrong)
         return False
     
-    def _colorized_print(self, text: str, style_key: str) -> None:
+    def _colorized_print(self, text, style_key: str, **kwargs) -> None:
         """Print text with color from current theme."""
-        styled_text = self.get_styled(text, style_key)
-        self.print(styled_text)
+        if isinstance(text, str):
+            styled_text = self.get_styled(text, style_key)
+            self.print(styled_text, **kwargs)
+        else:
+            # For Rich objects (Table, Text, etc), print directly
+            self.print(text, **kwargs)
     
-    def _save_theme_to_config(self, theme_name: str) -> None:
-        """Save theme to config file."""
-        config_dir = Path.home() / ".lium"
-        config_dir.mkdir(exist_ok=True)
-        config_file = config_dir / "config.ini"
-        
-        config = configparser.ConfigParser()
-        if config_file.exists():
-            config.read(config_file)
-        
-        if not config.has_section('ui'):
-            config.add_section('ui')
-        config.set('ui', 'theme', theme_name)
-        
-        with open(config_file, 'w') as f:
-            config.write(f)
     
     # Semantic color methods
-    def success(self, text: str) -> None:
+    def success(self, text, **kwargs) -> None:
         """Print success message."""
-        self._colorized_print(text, 'success')
+        self._colorized_print(text, 'success', **kwargs)
     
-    def error(self, text: str) -> None:
+    def error(self, text, **kwargs) -> None:
         """Print error message."""
-        self._colorized_print(text, 'error')
+        self._colorized_print(text, 'error', **kwargs)
     
-    def warning(self, text: str) -> None:
+    def warning(self, text, **kwargs) -> None:
         """Print warning message."""
-        self._colorized_print(text, 'warning')
+        self._colorized_print(text, 'warning', **kwargs)
     
-    def info(self, text: str) -> None:
+    def info(self, text, **kwargs) -> None:
         """Print info message."""
-        self._colorized_print(text, 'info')
+        self._colorized_print(text, 'info', **kwargs)
     
-    def pending(self, text: str) -> None:
+    def pending(self, text, **kwargs) -> None:
         """Print pending status message."""
-        self._colorized_print(text, 'pending')
+        self._colorized_print(text, 'pending', **kwargs)
     
-    def dim(self, text: str) -> None:
+    def dim(self, text, **kwargs) -> None:
         """Print dimmed text."""
-        self._colorized_print(text, 'dim')
+        self._colorized_print(text, 'dim', **kwargs)
     
     def pod_status_color(self, status: str) -> str:
         """Get color for pod status."""
@@ -156,7 +132,7 @@ class ThemedConsole(RichConsole):
         
         self.current_theme_name = theme_name
         self.theme = self._resolve_theme()
-        self._save_theme_to_config(theme_name)
+        config.set('ui.theme', theme_name)
     
     def get_current_theme_name(self) -> str:
         """Get current theme name."""

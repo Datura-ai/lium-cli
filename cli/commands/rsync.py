@@ -52,7 +52,7 @@ def rsync_command(targets: str, local_path: str, remote_path: Optional[str], yes
     console.info(f"{sync_type.title()} to sync: {local_dir}")
     console.info(f"Target pods ({len(selected_pods)}):")
     for pod in selected_pods:
-        console.print(f"  - {console.get_styled(pod.huid, 'pod_id')} ({pod.status}) → {remote_path}")
+        console.info(f"  - {console.get_styled(pod.huid, 'pod_id')} ({pod.status}) → {remote_path}")
 
     # Simple confirmation
     if not yes:

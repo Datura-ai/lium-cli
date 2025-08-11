@@ -13,6 +13,7 @@ from .commands.scp import scp_command
 from .commands.rsync import rsync_command
 from .commands.theme import theme_command
 from .commands.compose import compose_command
+from .commands.config import config_command
 from .plugins import load_plugins
 
 
@@ -49,6 +50,7 @@ cli.add_command(rm_command)
 cli.add_command(scp_command)
 cli.add_command(rsync_command)
 cli.add_command(theme_command)
+cli.add_command(config_command)
 
 # Add compose placeholder (will be overridden if plugin is installed)
 cli.add_command(compose_command)

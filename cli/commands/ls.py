@@ -193,7 +193,7 @@ def show_executors(
     pareto_count = sum(pareto_flags)
 
     # Title
-    console.print(Text("Executors", style="bold"), end="")
+    console.info(Text("Executors", style="bold"), end="")
     if show_pareto and pareto_count > 0:
         console.dim(f"  ({len(executors)} shown, ★ {pareto_count} optimal)")
     else:
@@ -214,7 +214,7 @@ def show_executors(
         
         # Format HUID with Pareto star
         huid = _mid_ellipsize(exe.huid)
-        huid_display = f"{console.get_styled('★', 'success')} {console.get_styled(huid, 'pod_id')}" if is_pareto else f"  {console.get_styled(huid, 'pod_id')}"
+        huid_display = f"{console.get_styled('★', 'success')} {console.get_styled(huid, 'id')}" if is_pareto else f"  {console.get_styled(huid, 'pod_id')}"
 
         table.add_row(
             str(idx),
@@ -232,7 +232,7 @@ def show_executors(
             _country_name(exe.location),
         )
 
-    console.print(table)
+    console.info(table)
     return [exe for exe, _ in executors_with_pareto]  # Return sorted executors
 
 

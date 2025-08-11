@@ -50,7 +50,7 @@ def ssh_command(target: str):
             console.dim("\nAvailable pods:")
             for i, p in enumerate(all_pods, 1):
                 status_color = console.pod_status_color(p.status)
-                console.print(f"  {i}. [{status_color}]{p.huid}[/{status_color}] ({p.status})")
+                console.info(f"  {i}. [{status_color}]{p.huid}[/{status_color}] ({p.status})")
         return
     
     # Check if pod is running

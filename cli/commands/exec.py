@@ -21,9 +21,9 @@ def _format_output(pod: PodInfo, result: dict, show_header: bool = True) -> None
     
     if result.get("success"):
         if result.get("stdout"):
-            console.print(result["stdout"], end="")
+            print(result["stdout"], end="")
         if result.get("stderr"):
-            console.print(f"[{console.theme.get('warning', 'yellow')}]{result['stderr']}[/]", end="")
+            print(f"[{console.theme.get('warning', 'yellow')}]{result['stderr']}[/]", end="")
     else:
         if result.get("error"):
             console.error(f"Error: {result['error']}")
@@ -99,7 +99,7 @@ def exec_command(targets: str, command: Optional[str], script: Optional[str], en
     # Show what we're executing
     if len(selected_pods) == 1:
         pod = selected_pods[0]
-        console.print(f"Executing on {console.get_styled(pod.huid, 'pod_id')}")
+        console.info(f"Executing on {console.get_styled(pod.huid, 'pod_id')}")
     else:
         console.info(f"Executing on {len(selected_pods)} pods")
     

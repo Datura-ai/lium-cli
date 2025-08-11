@@ -68,7 +68,7 @@ def select_template(filter_text: Optional[str] = None) -> Optional[Template]:
 
     chosen_template = templates[int(choice) - 1]
     text = Text(f"Selected: {chosen_template.docker_image}:{chosen_template.docker_image_tag}", style="dim")
-    console.print(text, markup=False, highlight=False)
+    console.dim(text, markup=False, highlight=False)
     return chosen_template
 
 def show_pod_created(pod_info: dict) -> None:
@@ -77,9 +77,9 @@ def show_pod_created(pod_info: dict) -> None:
     console.success(f"✓ Pod '{pod_id}' created")
     
     if pod_info.get('ssh_cmd'):
-        console.print(f"SSH: {pod_info['ssh_cmd']}")
+        console.info(f"SSH: {pod_info['ssh_cmd']}")
     elif "ssh" in pod_info:
-        console.print(f"SSH: {pod_info['ssh']}")
+        console.info(f"SSH: {pod_info['ssh']}")
     
     console.dim("Use 'lium ps' to check status")
 

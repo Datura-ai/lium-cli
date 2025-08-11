@@ -79,7 +79,7 @@ def show_pods(pods: List[PodInfo]) -> None:
         return
     
     # Title
-    console.print(Text("Pods", style="bold"), end="")
+    console.info(Text("Pods", style="bold"), end="")
     console.dim(f"  ({len(pods)} active)")
     
     table = Table(
@@ -124,7 +124,7 @@ def show_pods(pods: List[PodInfo]) -> None:
             console.get_styled(_format_ssh_command(pod.ssh_cmd), 'info'),
         )
     
-    console.print(table)
+    console.info(table)
 
 
 @click.command("ps")

@@ -86,7 +86,7 @@ def rm_command(targets: Optional[str], all: bool, yes: bool):
         price_info = ""
         if pod.executor and pod.executor.price_per_hour:
             price_info = f" (${pod.executor.price_per_hour:.2f}/h)"
-        console.print(f"  {pod.huid} - {pod.status}{price_info}")
+        console.info(f"  {pod.huid} - {pod.status}{price_info}")
     
     if total_cost > 0:
         console.dim(f"\nTotal spent: ${total_cost:.2f}")
