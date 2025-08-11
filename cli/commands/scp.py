@@ -40,7 +40,7 @@ def scp_command(targets: str, local_path: str, remote_path: Optional[str], yes: 
     # Validate local file
     local_file = Path(local_path).expanduser().resolve()
     if not local_file.is_file():
-        console.print(f"[red]Error: '{local_path}' is not a file[/red]")
+        console.error(f"Error: '{local_path}' is not a file")
         return
     
     # Get pods and resolve targets
@@ -49,13 +49,13 @@ def scp_command(targets: str, local_path: str, remote_path: Optional[str], yes: 
         all_pods = lium.ps()
     
     if not all_pods:
-        console.print("[yellow]No active pods[/yellow]")
+        console.warning("No active pods")
         return
     
     selected_pods = parse_targets(targets, all_pods)
     
     if not selected_pods:
-        console.print(f"[red]No pods match targets: {targets}[/red]")
+        console.error(f"No pods match targets: {targets}")
         return
     
     # Determine remote path
@@ -63,17 +63,17 @@ def scp_command(targets: str, local_path: str, remote_path: Optional[str], yes: 
         remote_path = f"/root/{local_file.name}"
     
     # Show what we're about to copy
-    console.print(f"[cyan]File to copy:[/cyan] {local_file}")
-    console.print(f"[cyan]Target pods ({len(selected_pods)}):[/cyan]")
+    console.info(f"File to copy: {local_file}")
+    console.info(f"Target pods ({len(selected_pods)}):")
     for pod in selected_pods:
-        console.print(f"  - [cyan]{pod.huid}[/cyan] ({pod.status}) → {remote_path}")
+        console.print(f"  - {console.get_styled(pod.huid, 'pod_id')} ({pod.status}) → {remote_path}")
     
     # Confirm unless -y flag
     if not yes:
         pods_text = f"{len(selected_pods)} pod{'s' if len(selected_pods) > 1 else ''}"
         confirm_msg = f"\nCopy '{local_file.name}' to {remote_path} on {pods_text}?"
         if not Confirm.ask(confirm_msg, default=True):
-            console.print("[yellow]Cancelled[/yellow]")
+            console.warning("Cancelled")
             return
     
     # Copy to pods
@@ -83,27 +83,27 @@ def scp_command(targets: str, local_path: str, remote_path: Optional[str], yes: 
     console.print()
     for pod in selected_pods:
         try:
-            console.print(f"[dim]Copying to {pod.huid}...[/dim]", end="")
+            console.dim(f"Copying to {pod.huid}...", end="")
             lium.scp(pod, str(local_file), remote_path)
-            console.print(f" [green]✓[/green]")
+            console.success(" ✓")
             success_count += 1
         except Exception as e:
-            console.print(f" [red]✗[/red]")
-            console.print(f"[red]  Error: {e}[/red]")
+            console.error(" ✗")
+            console.error(f"  Error: {e}")
             failed_pods.append(pod.huid)
     
     # Summary
     console.print()
     if len(selected_pods) == 1:
         if success_count == 1:
-            console.print("[green]File copied successfully[/green]")
+            console.success("File copied successfully")
         else:
-            console.print("[red]Failed to copy file[/red]")
+            console.error("Failed to copy file")
     else:
-        console.print(f"[dim]Copied to {success_count}/{len(selected_pods)} pods[/dim]")
+        console.dim(f"Copied to {success_count}/{len(selected_pods)} pods")
         
         if failed_pods:
-            console.print(f"[red]Failed pods: {', '.join(failed_pods)}[/red]")
+            console.error(f"Failed pods: {', '.join(failed_pods)}")
         
         if success_count == len(selected_pods):
-            console.print("[green]All copies successful[/green]")
+            console.success("All copies successful")

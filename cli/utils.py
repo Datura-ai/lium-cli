@@ -5,24 +5,24 @@ from typing import List, Dict, Any, Tuple, Optional
 import json
 from pathlib import Path
 from datetime import datetime
-from rich.console import Console
 from rich.status import Status
 from lium_sdk import LiumError, ExecutorInfo, PodInfo
+from .themed_console import ThemedConsole
 
-console = Console()
+console = ThemedConsole()
 
 
 @contextmanager
 def loading_status(message: str, success_message: str = ""):
     """Universal context manager to show loading status."""
-    status = Status(f"[cyan]{message}...[/cyan]", console=console)
+    status = Status(f"{console.get_styled(message + '...', 'info')}", console=console)
     status.start()
     try:
         yield
         if success_message:
-            console.print(f"[green]✓[/green] {success_message}")
+            console.success(f"✓ {success_message}")
     except Exception as e:
-        console.print(f"[red]✗ Failed: {e}[/red]")
+        console.error(f"✗ Failed: {e}")
         raise
     finally:
         status.stop()
@@ -37,15 +37,15 @@ def handle_errors(func):
         except ValueError as e:
             # Check if it's the API key error from SDK
             if "No API key found" in str(e):
-                console.print("[red]No API key configured[/red]")
-                console.print("[yellow]Please run 'lium init' to set up your API key[/yellow]")
-                console.print("[dim]Or set LIUM_API_KEY environment variable[/dim]")
+                console.error("No API key configured")
+                console.warning("Please run 'lium init' to set up your API key")
+                console.dim("Or set LIUM_API_KEY environment variable")
             else:
-                console.print(f"[red]Error: {e}[/red]")
+                console.error(f"Error: {e}")
         except LiumError as e:
-            console.print(f"[red]Error: {e}[/red]")
+            console.error(f"Error: {e}")
         except Exception as e:
-            console.print(f"[red]Unexpected error: {e}[/red]")
+            console.error(f"Unexpected error: {e}")
     return wrapper
 
 

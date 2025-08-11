@@ -19,14 +19,14 @@ def select_executor() -> Optional[ExecutorInfo]:
     """Interactive executor selection."""
     from .ls import show_executors
     
-    console.print("[yellow]Select executor:[/yellow]")
+    console.warning("Select executor:")
     
     lium = Lium()
     with loading_status("Loading Executors", "Executors loaded"):
         executors = lium.ls()
 
     if not executors:
-        console.print("[red]No executors available[/red]")
+        console.error("No executors available")
         return None
 
     showed_executors = show_executors(executors, limit=20)
@@ -38,7 +38,7 @@ def select_executor() -> Optional[ExecutorInfo]:
     )
 
     chosen_executor = showed_executors[int(choice) - 1]
-    console.print(f"[green]Selected: {chosen_executor.huid}[/green]")
+    console.success(f"Selected: {chosen_executor.huid}")
     return chosen_executor
 
 
@@ -46,14 +46,14 @@ def select_template(filter_text: Optional[str] = None) -> Optional[Template]:
     """Interactive template selection."""
     from .templates import show_templates
 
-    console.print("[yellow]Select template:[/yellow]")
+    console.warning("Select template:")
 
     lium = Lium()
     with loading_status("Loading Templates", "Templates loaded"):
         templates = lium.templates(filter_text)
 
     if not templates:
-        console.print("[red]No templates available[/red]")
+        console.error("No templates available")
         return None
 
     show_templates(templates, numbered=True)
@@ -74,14 +74,14 @@ def select_template(filter_text: Optional[str] = None) -> Optional[Template]:
 def show_pod_created(pod_info: dict) -> None:
     """Display created pod info."""
     pod_id = pod_info.get('huid', pod_info.get('id', pod_info.get('name', 'N/A')))
-    console.print(f"[green]✓[/green] Pod '{pod_id}' created")
+    console.success(f"✓ Pod '{pod_id}' created")
     
     if pod_info.get('ssh_cmd'):
         console.print(f"SSH: {pod_info['ssh_cmd']}")
     elif "ssh" in pod_info:
         console.print(f"SSH: {pod_info['ssh']}")
     
-    console.print("[dim]Use 'lium ps' to check status[/dim]")
+    console.dim("Use 'lium ps' to check status")
 
 
 @click.command("up")
@@ -112,7 +112,7 @@ def up_command(executor_id: Optional[str], name: Optional[str], template_id: Opt
     if executor_id and executor_id.isdigit():
         resolved_ids, error_msg = resolve_executor_indices([executor_id])
         if error_msg:
-            console.print(f"[red]{error_msg}[/red]")
+            console.error(f"{error_msg}")
             if not resolved_ids:
                 return
         if resolved_ids:
@@ -144,7 +144,7 @@ def up_command(executor_id: Optional[str], name: Optional[str], template_id: Opt
     if not yes:
         confirm_msg = f"Acquire pod on {executor.huid} ({executor.gpu_count}×{executor.gpu_type}) at ${executor.price_per_hour:.2f}/h?"
         if not Confirm.ask(confirm_msg, default=False):
-            console.print("[yellow]Cancelled[/yellow]")
+            console.warning("Cancelled")
             return
     
     with loading_status(f"Creating pod {name}", "Pod created"):
@@ -152,7 +152,7 @@ def up_command(executor_id: Optional[str], name: Optional[str], template_id: Opt
 
     # Wait for pod to be ready if requested
     if wait:
-        console.print(f"[dim]Pod created. Waiting for pod to be ready (timeout: {timeout}s)...[/dim]")
+        console.dim(f"Pod created. Waiting for pod to be ready (timeout: {timeout}s)...")
         
         with console.status("[bold green]Waiting for pod..."):
             pod_id = pod_info.get('id') or pod_info.get('name', '')
@@ -161,7 +161,7 @@ def up_command(executor_id: Optional[str], name: Optional[str], template_id: Opt
         if pod:
             show_pod_created({"huid": pod.huid, "name": pod.name, "status": pod.status, "ssh_cmd": pod.ssh_cmd})
         else:
-            console.print(f"[yellow]⚠ Pod not ready after {timeout}s timeout[/yellow]")
+            console.warning(f"⚠ Pod not ready after {timeout}s timeout")
             show_pod_created(pod_info)
     else:
         show_pod_created(pod_info)

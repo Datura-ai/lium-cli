@@ -44,7 +44,7 @@ def setup_api_key(config: ConfigParser) -> None:
     if config.has_section('api') and config.get('api', 'api_key', fallback=None):
         current_key = config.get('api', 'api_key')
         masked_key = current_key[:8] + '...' + current_key[-4:] if len(current_key) > 12 else '***'
-        console.print(f"[green]✓[/green] API key already configured: {masked_key}")
+        console.success(f"✓ API key already configured: {masked_key}")
         
         if Prompt.ask("[yellow]Update API key?[/yellow]", choices=["y", "n"], default="n") == "n":
             return
@@ -55,14 +55,14 @@ def setup_api_key(config: ConfigParser) -> None:
     )
     
     if not api_key:
-        console.print("[red]No API key provided[/red]")
+        console.error("No API key provided")
         return
     
     # Save to config
     if not config.has_section('api'):
         config.add_section('api')
     config.set('api', 'api_key', api_key)
-    console.print(f"[green]✓[/green] API key saved")
+    console.success(f"✓ API key saved")
 
 
 def setup_ssh_key(config: ConfigParser) -> None:
@@ -77,17 +77,17 @@ def setup_ssh_key(config: ConfigParser) -> None:
             available_keys.append(key_path)
     
     if not available_keys:
-        console.print("[yellow]⚠[/yellow] No SSH keys found in ~/.ssh/")
-        console.print("[dim]You may need to generate one with: ssh-keygen -t ed25519[/dim]")
+        console.warning("⚠ No SSH keys found in ~/.ssh/")
+        console.dim("You may need to generate one with: ssh-keygen -t ed25519")
         return
     
     # Auto-select if only one
     if len(available_keys) == 1:
         selected_key = available_keys[0]
-        console.print(f"[green]✓[/green] Using SSH key: {selected_key}")
+        console.success(f"✓ Using SSH key: {selected_key}")
     else:
         # Let user choose
-        console.print("[cyan]Multiple SSH keys found:[/cyan]")
+        console.info("Multiple SSH keys found:")
         for i, key in enumerate(available_keys, 1):
             console.print(f"  {i}. {key}")
         
@@ -102,16 +102,16 @@ def setup_ssh_key(config: ConfigParser) -> None:
     if not config.has_section('ssh'):
         config.add_section('ssh')
     config.set('ssh', 'key_path', str(selected_key))
-    console.print(f"[green]✓[/green] SSH key configured")
+    console.success(f"✓ SSH key configured")
 
 
 def show_config(config: ConfigParser) -> None:
     """Display current configuration."""
-    console.print("\n[bold]Current Configuration:[/bold]")
-    console.print(f"[dim]Location: ~/.lium/config.ini[/dim]\n")
+    console.info("\nCurrent Configuration:")
+    console.dim(f"Location: ~/.lium/config.ini\n")
     
     for section in config.sections():
-        console.print(f"[yellow][{section}][/yellow]")
+        console.warning(f"[{section}]")
         for key, value in config.items(section):
             # Mask API key
             if key == 'api_key' and value:
@@ -132,7 +132,7 @@ def init_command():
     Example:
       lium init    # Interactive setup wizard
     """
-    console.print("[bold]Lium CLI Setup[/bold]\n")
+    console.info("Lium CLI Setup\n")
     
     # Ensure config directory exists
     ensure_config_dir()
@@ -152,5 +152,5 @@ def init_command():
     # Show final config
     show_config(config)
     
-    console.print("[green]✓[/green] Lium CLI initialized successfully!")
-    console.print("[dim]You can now use 'lium ls' to list available executors[/dim]")
+    console.success("✓ Lium CLI initialized successfully!")
+    console.dim("You can now use 'lium ls' to list available executors")

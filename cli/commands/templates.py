@@ -19,22 +19,22 @@ from ..utils import console, handle_errors, loading_status
 def _status_icon(status: Optional[str]) -> str:
     """Convert status to icon."""
     if status == 'VERIFY_SUCCESS':
-        return "[green]✓[/]"
+        return console.get_styled("✓", 'success')
     elif status == 'VERIFY_FAILED':
-        return "[red]✗[/]"
+        return console.get_styled("✗", 'error')
     else:
-        return "[dim]?[/]"
+        return console.get_styled("?", 'dim')
 
 
 def show_templates(templates: List[Template], numbered: bool = False) -> None:
     """Display templates in a tight, well-engineered table."""
     if not templates:
-        console.print("[yellow]No templates available.[/yellow]")
+        console.warning("No templates available.")
         return
 
     # Title
     console.print(Text("Templates", style="bold"), end="")
-    console.print(f"  [dim]({len(templates)} shown)[/dim]")
+    console.dim(f"  ({len(templates)} shown)")
 
     table = Table(
         show_header=True,
@@ -57,7 +57,7 @@ def show_templates(templates: List[Template], numbered: bool = False) -> None:
 
     for i, t in enumerate(templates, 1):
         row = [
-            f"[cyan]{t.name or '—'}[/]",
+            console.get_styled(t.name or '—', 'info'),
             f"[blue]{t.docker_image or '—'}[/]",
             t.docker_image_tag or "latest",
             t.category.upper() if t.category else "—",

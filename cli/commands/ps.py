@@ -15,16 +15,6 @@ from lium_sdk import Lium, PodInfo
 from ..utils import console, handle_errors, loading_status
 
 
-def _status_style(status: str) -> str:
-    """Get color style for status."""
-    status_upper = status.upper()
-    if status_upper == "RUNNING":
-        return "green"
-    elif status_upper in ("FAILED", "STOPPED"):
-        return "red"
-    elif status_upper in ("PENDING", "STOP_PENDING", "START_PENDING"):
-        return "yellow"
-    return "dim"
 
 
 def _parse_timestamp(timestamp: str) -> Optional[datetime]:
@@ -85,12 +75,12 @@ def _format_ssh_command(ssh_cmd: Optional[str]) -> str:
 def show_pods(pods: List[PodInfo]) -> None:
     """Display pods in a tight, well-engineered table."""
     if not pods:
-        console.print("[yellow]No active pods[/yellow]")
+        console.warning("No active pods")
         return
     
     # Title
     console.print(Text("Pods", style="bold"), end="")
-    console.print(f"  [dim]({len(pods)} active)[/dim]")
+    console.dim(f"  ({len(pods)} active)")
     
     table = Table(
         show_header=True,
@@ -121,17 +111,17 @@ def show_pods(pods: List[PodInfo]) -> None:
             price_str = "—"
             price_per_hour = None
         
-        status_color = _status_style(pod.status)
+        status_color = console.pod_status_color(pod.status)
         status_text = f"[{status_color}]{pod.status.upper()}[/]"
         
         table.add_row(
-            f"[cyan]{pod.huid}[/]",
+            console.get_styled(pod.huid, 'pod_id'),
             status_text,
             config,
             price_str,
             _format_cost(pod.created_at, price_per_hour),
             _format_uptime(pod.created_at),
-            f"[blue]{_format_ssh_command(pod.ssh_cmd)}[/]",
+            console.get_styled(_format_ssh_command(pod.ssh_cmd), 'info'),
         )
     
     console.print(table)
@@ -158,6 +148,6 @@ def ps_command(pod_id: Optional[str]):
         if pod:
             show_pods([pod])
         else:
-            console.print(f"[red]Pod '{pod_id}' not found[/red]")
+            console.error(f"Pod '{pod_id}' not found")
     else:
         show_pods(pods)

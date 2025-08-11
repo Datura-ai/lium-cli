@@ -37,7 +37,7 @@ def rm_command(targets: Optional[str], all: bool, yes: bool):
     """
     # Validate inputs
     if not targets and not all:
-        console.print("[red]Error: Specify pod targets or use --all[/red]")
+        console.error("Error: Specify pod targets or use --all")
         return
     
     # Get all pods
@@ -46,7 +46,7 @@ def rm_command(targets: Optional[str], all: bool, yes: bool):
         all_pods = lium.ps()
     
     if not all_pods:
-        console.print("[yellow]No active pods[/yellow]")
+        console.warning("No active pods")
         return
     
     # Determine which pods to remove
@@ -58,7 +58,7 @@ def rm_command(targets: Optional[str], all: bool, yes: bool):
         selected_pods = []
     
     if not selected_pods:
-        console.print(f"[red]No pods match targets: {targets}[/red]")
+        console.error(f"No pods match targets: {targets}")
         return
     
     # Calculate total cost
@@ -81,7 +81,7 @@ def rm_command(targets: Optional[str], all: bool, yes: bool):
                 pass
     
     # Show what will be removed
-    console.print(f"\n[bold]Pods to remove:[/bold]")
+    console.info(f"\nPods to remove:")
     for pod in selected_pods:
         price_info = ""
         if pod.executor and pod.executor.price_per_hour:
@@ -89,13 +89,13 @@ def rm_command(targets: Optional[str], all: bool, yes: bool):
         console.print(f"  {pod.huid} - {pod.status}{price_info}")
     
     if total_cost > 0:
-        console.print(f"\n[dim]Total spent: ${total_cost:.2f}[/dim]")
+        console.dim(f"\nTotal spent: ${total_cost:.2f}")
     
     # Confirm unless -y flag
     if not yes:
         confirm_msg = f"\nRemove {len(selected_pods)} pod{'s' if len(selected_pods) > 1 else ''}?"
         if not Confirm.ask(confirm_msg, default=False):
-            console.print("[yellow]Cancelled[/yellow]")
+            console.warning("Cancelled")
             return
     
     # Remove pods
@@ -105,15 +105,15 @@ def rm_command(targets: Optional[str], all: bool, yes: bool):
     for pod in selected_pods:
         try:
             lium.rm(pod)
-            console.print(f"[green]✓[/green] Removed {pod.huid}")
+            console.success(f"✓ Removed {pod.huid}")
             success_count += 1
         except Exception as e:
-            console.print(f"[red]✗[/red] Failed to remove {pod.huid}: {e}")
+            console.error(f"✗ Failed to remove {pod.huid}: {e}")
             failed_pods.append(pod.huid)
     
     # Summary
     if len(selected_pods) > 1:
-        console.print(f"\n[dim]Removed {success_count}/{len(selected_pods)} pods[/dim]")
+        console.dim(f"\nRemoved {success_count}/{len(selected_pods)} pods")
     
     if failed_pods:
-        console.print(f"[red]Failed: {', '.join(failed_pods)}[/red]")
+        console.error(f"Failed: {', '.join(failed_pods)}")

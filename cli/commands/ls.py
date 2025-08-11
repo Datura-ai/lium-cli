@@ -160,7 +160,7 @@ def show_executors(
     show_pareto: bool = True,
 ) -> List[ExecutorInfo]:
     if not executors:
-        console.print("[yellow]No executors available.[/yellow]")
+        console.warning("No executors available.")
         return []
 
     # Calculate Pareto frontier before sorting/limiting
@@ -195,9 +195,9 @@ def show_executors(
     # Title
     console.print(Text("Executors", style="bold"), end="")
     if show_pareto and pareto_count > 0:
-        console.print(f"  [dim]({len(executors)} shown, [green]★ {pareto_count} optimal[/green])[/dim]")
+        console.dim(f"  ({len(executors)} shown, ★ {pareto_count} optimal)")
     else:
-        console.print(f"  [dim]({len(executors)} shown)[/dim]")
+        console.dim(f"  ({len(executors)} shown)")
 
     table = Table(
         show_header=True,
@@ -214,13 +214,13 @@ def show_executors(
         
         # Format HUID with Pareto star
         huid = _mid_ellipsize(exe.huid)
-        huid_display = f"[green]★[/green] [cyan]{huid}[/]" if is_pareto else f"  [cyan]{huid}[/]"
+        huid_display = f"{console.get_styled('★', 'success')} {console.get_styled(huid, 'pod_id')}" if is_pareto else f"  {console.get_styled(huid, 'pod_id')}"
 
         table.add_row(
             str(idx),
             huid_display,
             _cfg(exe),
-            f"[green]{_money(exe.price_per_gpu_hour)}[/]",
+            console.get_styled(_money(exe.price_per_gpu_hour), 'success'),
             s["VRAM"],
             s["RAM"],
             s["Disk"],
