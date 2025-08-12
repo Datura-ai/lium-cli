@@ -48,6 +48,7 @@ lium rm <pod-name>
 - `lium rm <POD>` - Remove/stop a pod
 - `lium templates [SEARCH]` - List available Docker templates
 - `lium image <IMAGE_NAME> <PATH>` - Build and deploy Docker image as template
+- `lium fund` - Fund account with TAO from Bittensor wallet
 
 ### Command Examples
 
@@ -84,6 +85,11 @@ lium image my-app .                                   # Build from current direc
 lium image my-model ./models                          # Build from models directory  
 lium image web-server ./app --ports 22,8080          # Custom ports
 lium image my-app . --ports 22,8000 --start-command "/start.sh"  # With start command
+
+# Fund account with TAO
+lium fund                           # Interactive mode
+lium fund -w default -a 1.5        # Fund with specific wallet and amount
+lium fund -w mywal -a 0.5 -y       # Skip confirmation
 ```
 
 ## Features
