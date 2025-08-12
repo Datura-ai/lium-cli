@@ -174,11 +174,11 @@ class ConfigManager:
         
         return api_key
     
-    def get_or_ask(self, key: str, prompt_text: str, password: bool = False) -> str:
+    def get_or_ask(self, key: str, prompt_text: str, password: bool = False, default: Optional[str] = None) -> str:
         """Get config value or ask user if not set."""
         value = self.get(key)
         if not value:
-            value = Prompt.ask(prompt_text, password=password)
+            value = Prompt.ask(prompt_text, password=password, default=default)
             if value:
                 self.set(key, value)
         return value
