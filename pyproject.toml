@@ -43,7 +43,7 @@ dependencies = [
     "bittensor-cli>=9.1.0",
     "paramiko>=3.5.1",
     "docker>=7.1.0",
-    "lium-sdk==0.2.1",
+    "lium-sdk==0.2.2",
 ]
 
 [project.optional-dependencies]
