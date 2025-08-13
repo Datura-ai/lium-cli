@@ -105,5 +105,4 @@ def init_command():
     # Show final config
     show_config()
     
-    console.success("✓ Lium CLI initialized successfully!")
     console.dim("You can now use 'lium ls' to list available executors")
