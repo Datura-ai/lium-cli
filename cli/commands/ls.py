@@ -264,7 +264,7 @@ def ls_command(gpu_type: Optional[str], sort_by: str, limit: Optional[int]):
     with loading_status("Loading executors", "Executors loaded"):
         executors = Lium().ls(gpu_type=gpu_type)
 
-    show_executors(executors, sort_by=sort_by, limit=limit)
+    showed_executors = show_executors(executors, sort_by=sort_by, limit=limit)
     
     # Store the selection for index-based access in up command
-    store_executor_selection(executors)
+    store_executor_selection(showed_executors)

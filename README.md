@@ -32,6 +32,7 @@ lium ssh <pod-name>
 # Stop a pod
 lium rm <pod-name>
 ```
+ ![quick start demo](https://vhs.charm.sh/vhs-1PbVchM8viEmMg8seSsGl7.gif)
 
 ## Commands
 

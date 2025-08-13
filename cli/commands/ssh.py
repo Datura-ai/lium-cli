@@ -75,6 +75,8 @@ def ssh_command(target: str):
         # Fallback to using the raw ssh_cmd if SDK method fails
         ssh_cmd = pod.ssh_cmd
         console.dim(f"Connecting to {pod.huid} (using default SSH)...")
+
+    ssh_cmd += " -o StrictHostKeyChecking=no"
     
     # Execute SSH command interactively
     try:
