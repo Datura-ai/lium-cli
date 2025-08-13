@@ -121,7 +121,7 @@ def up_command(executor_id: Optional[str], name: Optional[str], template_id: Opt
     
     # Get or select executor
     if executor_id:
-        with loading_status("Loading executor", "Executor loaded"):
+        with loading_status("Loading executor", ""):
             executor = lium.get_executor(executor_id)
     if not executor:
         executor = select_executor()

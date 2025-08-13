@@ -3,6 +3,8 @@
 import os
 import subprocess
 import sys
+import json
+import base64
 
 import click
 
@@ -18,13 +20,62 @@ class ImageManager:
     
     def __init__(self):
         self.lium = Lium()
-        self.username, self.token = self._get_docker_credentials()
+        self._username = None
         
-    def _get_docker_credentials(self) -> tuple[str, str]:
-        """Get or prompt for Docker credentials."""
-        username = config.get_or_ask('docker.username', 'Docker Hub username')
-        token = config.get_or_ask('docker.token', 'Docker Hub Access Token', password=True)
-        return username, token
+    @property
+    def username(self) -> str:
+        """Get Docker username (cached)."""
+        if self._username is None:
+            self._username = self._get_docker_username()
+        return self._username
+        
+    def _get_docker_username(self) -> str:
+        """Get Docker username from credential helper."""
+        try:
+            # Get credential store type from Docker config
+            config_path = os.path.expanduser('~/.docker/config.json')
+            if not os.path.exists(config_path):
+                raise RuntimeError("Docker not configured. Please run: docker login")
+                
+            with open(config_path, 'r') as f:
+                docker_config = json.load(f)
+                
+            creds_store = docker_config.get('credsStore')
+            if not creds_store:
+                raise RuntimeError("No credential store configured. Please run: docker login")
+                
+            # Try to get credentials from credential helper
+            cred_helper_cmd = f'docker-credential-{creds_store}'
+            result = subprocess.run(
+                [cred_helper_cmd, 'list'],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            
+            # Parse the JSON response
+            creds = json.loads(result.stdout)
+            docker_hub_registries = [
+                'https://index.docker.io/v1/',
+                'index.docker.io',
+                'docker.io'
+            ]
+            
+            for registry in docker_hub_registries:
+                if registry in creds:
+                    username = creds[registry]
+                    if username:
+                        console.dim(f"Using Docker login for {username}")
+                        return username
+                        
+            raise RuntimeError("No Docker Hub credentials found. Please run: docker login")
+            
+        except subprocess.CalledProcessError:
+            raise RuntimeError("Failed to access Docker credentials. Please run: docker login")
+        except json.JSONDecodeError:
+            raise RuntimeError("Invalid credential helper response. Please run: docker login")
+        except Exception as e:
+            raise RuntimeError(f"Docker authentication error. Please run: docker login")
         
     def build_docker_image(self, image_name: str, path: str) -> str:
         """Build Docker image using buildx."""
@@ -41,17 +92,21 @@ class ImageManager:
         ]
         
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
             
-            for line in result.stdout.splitlines():
-                if line.strip():
-                    console.dim(f"  {line}")
+            for line in iter(process.stdout.readline, ''):
+                if line:
+                    console.dim(f"  {line.rstrip()}")
+                    
+            process.wait()
+            
+            if process.returncode != 0:
+                raise subprocess.CalledProcessError(process.returncode, cmd)
                     
             return image_tag
             
         except subprocess.CalledProcessError as e:
-            error_output = e.stderr if e.stderr else e.stdout
-            raise RuntimeError(f"Error building Docker image: {error_output}")
+            raise RuntimeError(f"Error building Docker image")
             
     def push_docker_image(self, image_name: str) -> str:
         """Push Docker image using docker push."""
@@ -59,24 +114,24 @@ class ImageManager:
         
         console.dim(f"Pushing {image_tag}...")
         
-        # Login first
-        login_cmd = ['docker', 'login', '-u', self.username, '--password-stdin']
-        try:
-            subprocess.run(login_cmd, input=self.token, text=True, check=True, capture_output=True)
-        except subprocess.CalledProcessError as e:
-            raise RuntimeError(f"Docker login failed: {e.stderr}")
-        
         # Push image
         push_cmd = ['docker', 'push', image_tag]
         try:
-            result = subprocess.run(push_cmd, capture_output=True, text=True, check=True)
+            process = subprocess.Popen(push_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
             
-            for line in result.stdout.splitlines():
-                if line.strip():
-                    console.dim(f"  {line}")
+            output_lines = []
+            for line in iter(process.stdout.readline, ''):
+                if line:
+                    output_lines.append(line.rstrip())
+                    console.dim(f"  {line.rstrip()}")
+                    
+            process.wait()
+            
+            if process.returncode != 0:
+                raise subprocess.CalledProcessError(process.returncode, push_cmd)
                     
             # Extract digest from output
-            for line in result.stderr.splitlines() + result.stdout.splitlines():
+            for line in output_lines:
                 if 'digest:' in line:
                     digest = line.split('digest: ')[1].split()[0]
                     return digest
@@ -84,8 +139,7 @@ class ImageManager:
             raise RuntimeError("Could not extract image digest from push response")
             
         except subprocess.CalledProcessError as e:
-            error_output = e.stderr if e.stderr else e.stdout
-            raise RuntimeError(f"Error pushing Docker image: {error_output}")
+            raise RuntimeError(f"Error pushing Docker image")
             
     def upsert_lium_template(self, image_name: str, digest: str, ports: list[int], start_command: str) -> Template:
         """Create Lium template and return template info."""
@@ -145,23 +199,20 @@ def image_command(image_name: str, path: str, ports: str, start_command: str, ti
     # Step 1: Build Docker image
     console.info("🔨 Building Docker image...")
     image_tag = manager.build_docker_image(image_name, path)
-    console.success("✓ Docker image built")
-    
+
     # Step 2: Push to Docker Hub  
     console.info("📤 Pushing to Docker Hub...")
     digest = manager.push_docker_image(image_name)
-    console.success("✓ Image pushed successfully")
 
     # Step 3: Create Lium template
-    with loading_status("Creating Lium template", "Template created"):
+    with loading_status("Creating Lium template", ""):
         template = manager.upsert_lium_template(image_name, digest, port_list, start_command)
 
     # Step 4: Wait for verification
-    with loading_status(f"Waiting for verification, {template.id}", "Image verified"):
+    with loading_status(f"Waiting for verification, {template.id}", ""):
         verified_template = manager.wait_for_verification(template.id, timeout)
     
     if verified_template:
-        console.success(f"✓ Image verified and ready to use")
         console.info(f"Template ID: {verified_template.id}")
         console.dim(f"Use: lium up --template_id {verified_template.id}")
     else:
