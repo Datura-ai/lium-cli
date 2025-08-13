@@ -147,14 +147,12 @@ def up_command(executor_id: Optional[str], name: Optional[str], template_id: Opt
             console.warning("Cancelled")
             return
     
-    with loading_status(f"Creating pod {name}", "Pod created"):
+    with loading_status(f"Creating pod {name}", ""):
         pod_info = lium.up(executor_id=executor.id, pod_name=name, template_id=template.id)
 
     # Wait for pod to be ready if requested
     if wait:
-        console.dim(f"Pod created. Waiting for pod to be ready (timeout: {timeout}s)...")
-        
-        with console.status("[bold green]Waiting for pod..."):
+        with loading_status("Waiting for pod to be ready..."):
             pod_id = pod_info.get('id') or pod_info.get('name', '')
             pod = lium.wait_ready(pod_id, timeout=timeout)
         
