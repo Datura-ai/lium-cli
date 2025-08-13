@@ -107,7 +107,6 @@ def _specs_row(specs: Optional[Dict]) -> Dict[str, str]:
         "TFLOPs": _maybe_int(d.get("graphics_speed")),
         "NetUp": _maybe_int(net.get("upload_speed")),
         "NetDn": _maybe_int(net.get("download_speed")),
-        "Dind": "Yes" if specs.get("sysbox_runtime", False) else "No",
     }
 
 
@@ -146,7 +145,6 @@ def _add_long_columns(t: Table) -> None:
     t.add_column("TFLOPs",  justify="right", width=8, no_wrap=True)
     t.add_column("Net ↑",   justify="right", width=8, no_wrap=True)  # note the space
     t.add_column("Net ↓",   justify="right", width=8, no_wrap=True)
-    t.add_column("Dind",    justify="right", width=8, no_wrap=True)
 
     # absorb remaining width on the right with Location
     t.add_column("Location", justify="left", ratio=4, min_width=10, overflow="fold")
@@ -216,7 +214,9 @@ def show_executors(
         
         # Format HUID with Pareto star
         huid = _mid_ellipsize(exe.huid)
-        huid_display = f"{console.get_styled('★', 'success')} {console.get_styled(huid, 'id')}" if is_pareto else f"  {console.get_styled(huid, 'pod_id')}"
+        huid += " (DinD)" if exe.docker_in_docker else ""
+        huid_display = f"{console.get_styled('★', 'success')} {console.get_styled(huid, 'id')}" if is_pareto else f"  {console.get_styled(huid, 'id')}"
+
 
         table.add_row(
             str(idx),
