@@ -119,9 +119,11 @@ class ImageManager:
 def image_command(image_name: str, path: str, ports: str, start_command: str, timeout: int):
     """Build Docker image and create Lium template.
     
+    \b
     IMAGE_NAME: Name for the Docker image
     PATH: Path to the directory containing Dockerfile
     
+    \b
     Examples:
       lium image my-app .              # Build from current directory
       lium image my-model ./models     # Build from models directory

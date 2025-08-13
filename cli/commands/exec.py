@@ -42,6 +42,7 @@ def _format_output(pod: PodInfo, result: dict, show_header: bool = True) -> None
 def exec_command(targets: str, command: Optional[str], script: Optional[str], env: Tuple[str]):
     """Execute commands on GPU pods.
     
+    \b
     TARGETS: Pod identifiers - can be:
       - Pod name/ID (eager-wolf-aa)
       - Index from 'lium ps' (1, 2, 3)
@@ -50,6 +51,7 @@ def exec_command(targets: str, command: Optional[str], script: Optional[str], en
     
     COMMAND: Command to execute
     
+    \b
     Examples:
       lium exec eager-wolf-aa "nvidia-smi"     # Run on specific pod
       lium exec 1 "python --version"           # Run on pod #1 from ps

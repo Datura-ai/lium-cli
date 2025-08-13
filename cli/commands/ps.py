@@ -131,10 +131,10 @@ def show_pods(pods: List[PodInfo]) -> None:
 @click.argument("pod_id", required=False)
 @handle_errors
 def ps_command(pod_id: Optional[str]):
-    """List active GPU pods.
-    
+    """\b
+    List active GPU pods.
     POD_ID: Optional specific pod ID/name to show details for
-    
+    \b
     Examples:
       lium ps                # Show all active pods
       lium ps eager-wolf-aa  # Show specific pod details

@@ -93,11 +93,12 @@ def show_pod_created(pod_info: dict) -> None:
 @click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt")
 @handle_errors
 def up_command(executor_id: Optional[str], name: Optional[str], template_id: Optional[str], wait: bool, timeout: int, yes: bool):
-    """Create a new GPU pod on an executor.
-    
+    """\b
+    Create a new GPU pod on an executor.
+    \b
     EXECUTOR_ID: Executor UUID, HUID, or index from last 'lium ls'. 
     If not provided, shows interactive selection.
-    
+    \b
     Examples:
       lium up                       # Interactive executor selection
       lium up cosmic-hawk-f2        # Create pod on specific executor

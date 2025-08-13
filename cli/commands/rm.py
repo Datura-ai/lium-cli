@@ -21,12 +21,14 @@ from ..utils import console, handle_errors, loading_status, parse_targets
 def rm_command(targets: Optional[str], all: bool, yes: bool):
     """Remove (terminate) GPU pods.
     
+    \b
     TARGETS: Pod identifiers - can be:
       - Pod name/ID (eager-wolf-aa)
       - Index from 'lium ps' (1, 2, 3)
       - Comma-separated (1,2,eager-wolf-aa)
       - All pods (all)
     
+    \b
     Examples:
       lium rm 1                     # Remove pod #1 from ps
       lium rm eager-wolf-aa         # Remove specific pod

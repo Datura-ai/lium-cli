@@ -22,10 +22,12 @@ from ..utils import handle_errors, loading_status, console, parse_targets
 def ssh_command(target: str):
     """Open SSH session to a GPU pod.
     
+    \b
     TARGET: Pod identifier - can be:
       - Pod name/ID (eager-wolf-aa)
       - Index from 'lium ps' (1, 2, 3)
     
+    \b
     Examples:
       lium ssh 1                    # SSH to pod #1 from ps
       lium ssh eager-wolf-aa        # SSH to specific pod

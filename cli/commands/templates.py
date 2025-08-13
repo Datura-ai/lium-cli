@@ -78,8 +78,10 @@ def show_templates(templates: List[Template], numbered: bool = False) -> None:
 def templates_command(search: Optional[str]):
     """List available Docker templates and images.
     
+    \b
     SEARCH: Optional search text to filter by name or docker image
     
+    \b
     Examples:
       lium templates            # Show all templates
       lium templates pytorch    # Filter by 'pytorch' in name/image

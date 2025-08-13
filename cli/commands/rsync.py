@@ -23,6 +23,7 @@ from ..utils import console, handle_errors, loading_status, parse_targets
 def rsync_command(targets: str, local_path: str, remote_path: Optional[str], yes: bool):
     """Sync directories to GPU pods using rsync.
 
+    \b
     Examples:
       lium rsync 1 ./project                     # Sync to /root/project on pod #1
       lium rsync all ./models                    # Sync to all pods

@@ -22,6 +22,7 @@ from ..utils import console, handle_errors, loading_status, parse_targets
 def scp_command(targets: str, local_path: str, remote_path: Optional[str], yes: bool):
     """Copy local files to GPU pods.
     
+    \b
     TARGETS: Pod identifiers - can be:
       - Pod name/ID (eager-wolf-aa)
       - Index from 'lium ps' (1, 2, 3)
@@ -31,6 +32,7 @@ def scp_command(targets: str, local_path: str, remote_path: Optional[str], yes: 
     LOCAL_PATH: Local file path to copy
     REMOTE_PATH: Remote destination path (optional, defaults to ~/filename)
     
+    \b
     Examples:
       lium scp 1 ./script.py                    # Copy to ~/script.py on pod #1
       lium scp eager-wolf-aa ./data.csv ~/data/ # Copy to ~/data/ directory

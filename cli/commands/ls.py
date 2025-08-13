@@ -231,7 +231,6 @@ def show_executors(
             s["TFLOPs"],
             s["NetUp"],
             s["NetDn"],
-            s["Dind"],
             _country_name(exe.location),
         )
 
@@ -253,8 +252,9 @@ def show_executors(
 @click.option("--limit", type=int, default=None, help="Limit number of rows shown.")
 @handle_errors
 def ls_command(gpu_type: Optional[str], sort_by: str, limit: Optional[int]):
-    """List available GPU executors.
-
+    """\b
+    List available GPU executors.
+    \b
     Examples:
       lium ls                 # List all executors
       lium ls H100            # Filter by GPU type

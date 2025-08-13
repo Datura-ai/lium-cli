@@ -44,10 +44,11 @@ def ask_tao_amount() -> float:
 @click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompts")
 @handle_errors
 def fund_command(wallet: Optional[str], amount: Optional[str], yes: bool):
-    """Fund your Lium account with TAO from Bittensor wallet.
-    
+    """
+    \b
+    Fund your Lium account with TAO from Bittensor wallet.
     Examples:
-      lium fund                           # Interactive mode
+      lium fund                          # Interactive mode
       lium fund -w default -a 1.5        # Fund with specific wallet and amount
       lium fund -w mywal -a 0.5 -y       # Skip confirmation
     """

@@ -32,11 +32,13 @@ def _show_theme_preview(console: ThemedConsole, current_theme: str, resolved_the
 def theme_command(theme_name: str | None):
     """Manage CLI color theme.
     
+    \b
     Available themes:
       auto   - Automatically detect OS theme (default)
       dark   - Dark theme for dark terminals
       light  - Light theme for light terminals
     
+    \b
     Examples:
       lium theme         # Show current theme
       lium theme auto    # Enable auto-detection
