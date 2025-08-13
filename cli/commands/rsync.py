@@ -78,13 +78,6 @@ def rsync_command(targets: str, local_path: str, remote_path: Optional[str], yes
 
             with loading_status(f"Syncing to {pod.huid}", ""):
                 lium.rsync(pod, local_formatted, remote_path)
-            console.success(f"✓ {pod.huid}")
             success += 1
         except Exception as e:
             console.error(f" ✗ {e}")
-
-    # Simple result
-    if success == len(selected_pods):
-        console.success(f"✓ Synced to all {success} pods")
-    else:
-        console.warning(f"Synced to {success}/{len(selected_pods)} pods")
