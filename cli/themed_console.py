@@ -114,6 +114,10 @@ class ThemedConsole(RichConsole):
     def dim(self, text, **kwargs) -> None:
         """Print dimmed text."""
         self._colorized_print(text, 'dim', **kwargs)
+
+    def id(self, text: str, **kwargs) -> None:
+        """Print ID text (dimmed by default)."""
+        self._colorized_print(text, 'id', **kwargs)
     
     def pod_status_color(self, status: str) -> str:
         """Get color for pod status."""
