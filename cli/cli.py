@@ -1,6 +1,7 @@
 """Main CLI entry point for Lium."""
 import click
 from importlib.metadata import version, PackageNotFoundError
+from .themed_console import ThemedConsole
 from .commands.init import init_command
 from .commands.ls import ls_command
 from .commands.templates import templates_command
@@ -36,6 +37,10 @@ def cli(ctx):
     A clean, Unix-style command-line interface for managing GPU pods.
     Run individual commands or use 'lium --help' to see all available commands.
     """
+    # Make ThemedConsole available to all commands via context
+    ctx.ensure_object(dict)
+    ctx.obj['console'] = ThemedConsole()
+    
     if ctx.invoked_subcommand is None:
         click.echo(ctx.get_help())
 
