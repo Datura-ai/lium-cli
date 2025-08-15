@@ -45,6 +45,7 @@ dependencies = [
     "docker>=7.1.0",
     "bittensor>=9.8.3",
     "lium-sdk>=0.2.4",
+    "lium-compose",
 ]
 
 [project.optional-dependencies]
@@ -55,6 +56,9 @@ lium = "cli.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["cli"]
+
+[tool.uv.sources]
+lium-compose = { git = "https://github.com/Datura-ai/lium-compose.git" }
 
 
 [project.urls]

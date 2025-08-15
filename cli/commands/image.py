@@ -8,36 +8,88 @@ import click
 from lium_sdk import Lium, Template
 
 from ..utils import console, handle_errors, loading_status
+from ..config import config
+
 
 
 def get_docker_username() -> str:
-    """Get Docker username from credential helper."""
-    config_path = Path.home() / '.docker' / 'config.json'
-    if not config_path.exists():
-        raise RuntimeError("Docker not configured. Please run: docker login")
+    """Get Docker username with proper checks."""
     
-    with open(config_path) as f:
-        config = json.load(f)
+    # 1. Try docker info first (works for some users)
+    username = get_username_from_info()
+    if username:
+        return username
+
+    # 2. Try credential helper (current implementation works well)
+    usernmae = get_username_from_credstore()
+    if username:
+        return username
+
+    is_logged = is_logged_in()
+    if not is_logged:
+        raise RuntimeError("Docker authentication failed. Please run: docker login")
+
+    # 3. Fallback to config or ask
+    username = config.get_or_ask('docker.username', 'Enter your Docker Hub username')
     
-    creds_store = config.get('credsStore')
-    if not creds_store:
-        raise RuntimeError("No credential store configured. Please run: docker login")
-    
-    try:
-        result = subprocess.run(
-            [f'docker-credential-{creds_store}', 'list'],
-            capture_output=True, text=True, check=True
+    if not username:
+        raise RuntimeError(
+            "Docker username not found. Please:\n"
+            "1. Run 'docker login' to authenticate\n"
+            "2. Or provide username when prompted"
         )
-        creds = json.loads(result.stdout)
-        
-        for registry in ['https://index.docker.io/v1/', 'index.docker.io', 'docker.io']:
-            if username := creds.get(registry):
-                console.dim(f"Using Docker login for {username}")
+    
+    console.dim(f"Using Docker username: {username}")
+    return username
+
+
+def is_logged_in() -> bool | None:
+    try:
+        message = str(subprocess.run(['docker', 'login'], capture_output=True, text=True, timeout=0.5))
+    except subprocess.TimeoutExpired as e:
+        message = str(e.stdout)
+
+    if "Authenticating" in message:
+        return True
+    elif "Cannot perform an interactive login" in message:
+        return False
+    return None
+
+
+def get_username_from_credstore() -> str:
+    config_path = Path.home() / '.docker' / 'config.json'
+    if config_path.exists():
+        with open(config_path) as f:
+            config_data = json.load(f)
+
+        creds_store = config_data.get('credsStore')
+        if creds_store:
+            try:
+                result = subprocess.run(
+                    [f'docker-credential-{creds_store}', 'list'],
+                    capture_output=True, text=True, check=True
+                )
+                creds = json.loads(result.stdout)
+
+                for registry in ['https://index.docker.io/v1/', 'index.docker.io', 'docker.io']:
+                    if username := creds.get(registry):
+                        return username
+            except:
+                pass
+
+
+def get_username_from_info():
+    try:
+        result = subprocess.run(['docker', 'info'],
+                                capture_output=True, text=True, timeout=5)
+        # Use grep-like search for cross-platform compatibility
+        for line in result.stdout.split('\n'):
+            if 'Username:' in line:
+                username = line.split('Username:')[1].strip()
                 return username
-    except (subprocess.CalledProcessError, json.JSONDecodeError):
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
+        # Docker not installed or command failed
         pass
-        
-    raise RuntimeError("Docker authentication failed. Please run: docker login")
 
 
 def build_and_push_image(image_name: str, path: str, username: str) -> tuple[str, str]:
