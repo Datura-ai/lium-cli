@@ -158,10 +158,10 @@ def show_executors(
     sort_by: str = "price_gpu",
     limit: Optional[int] = None,
     show_pareto: bool = True,
-) -> None:
+) -> List[ExecutorInfo]:
     if not executors:
-        console.print("[yellow]No executors available.[/yellow]")
-        return
+        console.warning("No executors available.")
+        return []
 
     # Calculate Pareto frontier before sorting/limiting
     pareto_flags = calculate_pareto_frontier(executors) if show_pareto else [False] * len(executors)
@@ -193,11 +193,11 @@ def show_executors(
     pareto_count = sum(pareto_flags)
 
     # Title
-    console.print(Text("Executors", style="bold"), end="")
+    console.info(Text("Executors", style="bold"), end="")
     if show_pareto and pareto_count > 0:
-        console.print(f"  [dim]({len(executors)} shown, [green]★ {pareto_count} optimal[/green])[/dim]")
+        console.dim(f"  ({len(executors)} shown, ★ {pareto_count} optimal)")
     else:
-        console.print(f"  [dim]({len(executors)} shown)[/dim]")
+        console.dim(f"  ({len(executors)} shown)")
 
     table = Table(
         show_header=True,
@@ -214,13 +214,15 @@ def show_executors(
         
         # Format HUID with Pareto star
         huid = _mid_ellipsize(exe.huid)
-        huid_display = f"[green]★[/green] [cyan]{huid}[/]" if is_pareto else f"  [cyan]{huid}[/]"
+        huid += " (DinD)" if exe.docker_in_docker else ""
+        huid_display = f"{console.get_styled('★', 'success')} {console.get_styled(huid, 'id')}" if is_pareto else f"  {console.get_styled(huid, 'id')}"
+
 
         table.add_row(
             str(idx),
             huid_display,
             _cfg(exe),
-            f"[green]{_money(exe.price_per_gpu_hour)}[/]",
+            console.get_styled(_money(exe.price_per_gpu_hour), 'success'),
             s["VRAM"],
             s["RAM"],
             s["Disk"],
@@ -232,7 +234,8 @@ def show_executors(
             _country_name(exe.location),
         )
 
-    console.print(table)
+    console.info(table)
+    return [exe for exe, _ in executors_with_pareto]  # Return sorted executors
 
 
 # Command Definition
@@ -249,8 +252,9 @@ def show_executors(
 @click.option("--limit", type=int, default=None, help="Limit number of rows shown.")
 @handle_errors
 def ls_command(gpu_type: Optional[str], sort_by: str, limit: Optional[int]):
-    """List available GPU executors.
-
+    """\b
+    List available GPU executors.
+    \b
     Examples:
       lium ls                 # List all executors
       lium ls H100            # Filter by GPU type
@@ -260,7 +264,7 @@ def ls_command(gpu_type: Optional[str], sort_by: str, limit: Optional[int]):
     with loading_status("Loading executors", "Executors loaded"):
         executors = Lium().ls(gpu_type=gpu_type)
 
-    show_executors(executors, sort_by=sort_by, limit=limit)
+    showed_executors = show_executors(executors, sort_by=sort_by, limit=limit)
     
     # Store the selection for index-based access in up command
-    store_executor_selection(executors)
+    store_executor_selection(showed_executors)

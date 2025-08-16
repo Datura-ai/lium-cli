@@ -11,53 +11,26 @@ from rich.text import Text
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from lium_sdk import Lium, PodInfo
-from ..utils import console, handle_errors, loading_status
-
-
-def _parse_targets(targets: str, all_pods: List[PodInfo]) -> List[PodInfo]:
-    """Parse target specification and return matching pods."""
-    if targets.lower() == "all":
-        return all_pods
-    
-    selected = []
-    for target in targets.split(","):
-        target = target.strip()
-        
-        # Try as index (1-based from ps output)
-        try:
-            idx = int(target) - 1
-            if 0 <= idx < len(all_pods):
-                selected.append(all_pods[idx])
-                continue
-        except ValueError:
-            pass
-        
-        # Try as pod ID/name/huid
-        for pod in all_pods:
-            if target in (pod.id, pod.name, pod.huid):
-                selected.append(pod)
-                break
-    
-    return selected
+from ..utils import console, handle_errors, loading_status, parse_targets
 
 
 def _format_output(pod: PodInfo, result: dict, show_header: bool = True) -> None:
     """Format and display execution output."""
     if show_header:
-        console.print(f"\n[bold cyan]── {pod.huid} ──[/]")
+        console.info(f"\n── {pod.huid} ──")
     
     if result.get("success"):
         if result.get("stdout"):
-            console.print(result["stdout"], end="")
+            print(result["stdout"], end="")
         if result.get("stderr"):
-            console.print(f"[yellow]{result['stderr']}[/]", end="")
+            print(f"[{console.theme.get('warning', 'yellow')}]{result['stderr']}[/]", end="")
     else:
         if result.get("error"):
-            console.print(f"[red]Error: {result['error']}[/]")
+            console.error(f"Error: {result['error']}")
         else:
-            console.print(f"[red]Command failed (exit code: {result.get('exit_code', 'unknown')})[/]")
+            console.error(f"Command failed (exit code: {result.get('exit_code', 'unknown')})")
             if result.get("stderr"):
-                console.print(f"[red]{result['stderr']}[/]", end="")
+                console.error(f"{result['stderr']}", end="")
 
 
 @click.command("exec")
@@ -69,6 +42,7 @@ def _format_output(pod: PodInfo, result: dict, show_header: bool = True) -> None
 def exec_command(targets: str, command: Optional[str], script: Optional[str], env: Tuple[str]):
     """Execute commands on GPU pods.
     
+    \b
     TARGETS: Pod identifiers - can be:
       - Pod name/ID (eager-wolf-aa)
       - Index from 'lium ps' (1, 2, 3)
@@ -77,6 +51,7 @@ def exec_command(targets: str, command: Optional[str], script: Optional[str], en
     
     COMMAND: Command to execute
     
+    \b
     Examples:
       lium exec eager-wolf-aa "nvidia-smi"     # Run on specific pod
       lium exec 1 "python --version"           # Run on pod #1 from ps
@@ -87,11 +62,11 @@ def exec_command(targets: str, command: Optional[str], script: Optional[str], en
     """
     # Validate inputs
     if not command and not script:
-        console.print("[red]Error: Either COMMAND or --script must be provided[/red]")
+        console.error("Error: Either COMMAND or --script must be provided")
         return
     
     if command and script:
-        console.print("[red]Error: Cannot use both COMMAND and --script[/red]")
+        console.error("Error: Cannot use both COMMAND and --script")
         return
     
     # Load script if provided
@@ -100,14 +75,14 @@ def exec_command(targets: str, command: Optional[str], script: Optional[str], en
             with open(script, 'r') as f:
                 command = f.read()
         except Exception as e:
-            console.print(f"[red]Error reading script: {e}[/red]")
+            console.error(f"Error reading script: {e}")
             return
     
     # Parse environment variables
     env_dict = {}
     for env_var in env:
         if '=' not in env_var:
-            console.print(f"[red]Error: Invalid env format '{env_var}' (use KEY=VALUE)[/red]")
+            console.error(f"Error: Invalid env format '{env_var}' (use KEY=VALUE)")
             return
         key, value = env_var.split('=', 1)
         env_dict[key] = value
@@ -117,21 +92,21 @@ def exec_command(targets: str, command: Optional[str], script: Optional[str], en
     with loading_status("Loading pods", ""):
         all_pods = lium.ps()
     
-    selected_pods = _parse_targets(targets, all_pods)
+    selected_pods = parse_targets(targets, all_pods)
     
     if not selected_pods:
-        console.print(f"[red]No pods match targets: {targets}[/red]")
+        console.error(f"No pods match targets: {targets}")
         return
     
     # Show what we're executing
     if len(selected_pods) == 1:
         pod = selected_pods[0]
-        console.print(f"Executing on [cyan]{pod.huid}[/cyan]")
+        console.info(f"Executing on {console.get_styled(pod.huid, 'pod_id')}")
     else:
-        console.print(f"Executing on [cyan]{len(selected_pods)}[/cyan] pods")
+        console.info(f"Executing on {len(selected_pods)} pods")
     
     if env_dict:
-        console.print(f"[dim]Environment: {', '.join(f'{k}={v}' for k, v in env_dict.items())}[/dim]")
+        console.dim(f"Environment: {', '.join(f'{k}={v}' for k, v in env_dict.items())}")
     
     # Execute on pods
     if len(selected_pods) == 1:
@@ -141,7 +116,7 @@ def exec_command(targets: str, command: Optional[str], script: Optional[str], en
             result = lium.exec(pod, command, env_dict)
             _format_output(pod, result, show_header=False)
         except Exception as e:
-            console.print(f"[red]Failed: {e}[/red]")
+            console.error(f"Failed: {e}")
     else:
         # Multiple pods - use parallel execution
         results = lium.exec_all(selected_pods, command, env_dict)
@@ -151,4 +126,4 @@ def exec_command(targets: str, command: Optional[str], script: Optional[str], en
         
         # Summary
         success_count = sum(1 for r in results if r.get("success"))
-        console.print(f"\n[dim]Completed: {success_count}/{len(results)} successful[/dim]")
+        console.dim(f"\nCompleted: {success_count}/{len(results)} successful")

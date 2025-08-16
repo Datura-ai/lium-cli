@@ -1,6 +1,7 @@
 """Main CLI entry point for Lium."""
 import click
 from importlib.metadata import version, PackageNotFoundError
+from .themed_console import ThemedConsole
 from .commands.init import init_command
 from .commands.ls import ls_command
 from .commands.templates import templates_command
@@ -9,7 +10,13 @@ from .commands.ps import ps_command
 from .commands.exec import exec_command
 from .commands.ssh import ssh_command
 from .commands.rm import rm_command
+from .commands.scp import scp_command
+from .commands.rsync import rsync_command
+from .commands.theme import theme_command
 from .commands.compose import compose_command
+from .commands.config import config_command
+from .commands.image import image_command
+from .commands.fund import fund_command
 from .plugins import load_plugins
 
 
@@ -30,6 +37,10 @@ def cli(ctx):
     A clean, Unix-style command-line interface for managing GPU pods.
     Run individual commands or use 'lium --help' to see all available commands.
     """
+    # Make ThemedConsole available to all commands via context
+    ctx.ensure_object(dict)
+    ctx.obj['console'] = ThemedConsole()
+    
     if ctx.invoked_subcommand is None:
         click.echo(ctx.get_help())
 
@@ -43,6 +54,12 @@ cli.add_command(ps_command)
 cli.add_command(exec_command)
 cli.add_command(ssh_command)
 cli.add_command(rm_command)
+cli.add_command(scp_command)
+cli.add_command(rsync_command)
+cli.add_command(theme_command)
+cli.add_command(config_command)
+cli.add_command(image_command)
+cli.add_command(fund_command)
 
 # Add compose placeholder (will be overridden if plugin is installed)
 cli.add_command(compose_command)

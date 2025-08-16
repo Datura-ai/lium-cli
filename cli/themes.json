@@ -1,0 +1,26 @@
+{
+  "dark": {
+    "success": "bright_green",
+    "error": "bright_red", 
+    "warning": "bright_yellow",
+    "info": "default",
+    "pending": "bright_magenta",
+    "running": "bright_green",
+    "stopped": "bright_black",
+    "failed": "bright_red",
+    "id": "bright_cyan",
+    "dim": "bright_black"
+  },
+  "light": {
+    "success": "#059669",
+    "error": "#dc2626",
+    "warning": "#d97706",
+    "info": "default", 
+    "pending": "#7c3aed",
+    "running": "#059669",
+    "stopped": "#4b5563",
+    "failed": "#dc2626",
+    "id": "#0891b2",
+    "dim": "#6b7280"
+  }
+}

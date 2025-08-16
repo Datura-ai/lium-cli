@@ -5,24 +5,24 @@ from typing import List, Dict, Any, Tuple, Optional
 import json
 from pathlib import Path
 from datetime import datetime
-from rich.console import Console
 from rich.status import Status
-from lium_sdk import LiumError, ExecutorInfo
+from lium_sdk import LiumError, ExecutorInfo, PodInfo
+from .themed_console import ThemedConsole
 
-console = Console()
+console = ThemedConsole()
 
 
 @contextmanager
 def loading_status(message: str, success_message: str = ""):
     """Universal context manager to show loading status."""
-    status = Status(f"[cyan]{message}...[/cyan]", console=console)
+    status = Status(f"{console.get_styled(message + '...', 'info')}", console=console)
     status.start()
     try:
         yield
         if success_message:
-            console.print(f"[green]✓[/green] {success_message}")
+            console.success(f"✓ {success_message}")
     except Exception as e:
-        console.print(f"[red]✗ Failed: {e}[/red]")
+        console.error(f"✗ Failed: {e}")
         raise
     finally:
         status.stop()
@@ -37,15 +37,15 @@ def handle_errors(func):
         except ValueError as e:
             # Check if it's the API key error from SDK
             if "No API key found" in str(e):
-                console.print("[red]No API key configured[/red]")
-                console.print("[yellow]Please run 'lium init' to set up your API key[/yellow]")
-                console.print("[dim]Or set LIUM_API_KEY environment variable[/dim]")
+                console.error("No API key configured")
+                console.warning("Please run 'lium init' to set up your API key")
+                console.dim("Or set LIUM_API_KEY environment variable")
             else:
-                console.print(f"[red]Error: {e}[/red]")
+                console.error(f"Error: {e}")
         except LiumError as e:
-            console.print(f"[red]Error: {e}[/red]")
+            console.error(f"Error: {e}")
         except Exception as e:
-            console.print(f"[red]Unexpected error: {e}[/red]")
+            console.error(f"Unexpected error: {e}")
     return wrapper
 
 
@@ -123,15 +123,10 @@ def calculate_pareto_frontier(executors: List[ExecutorInfo]) -> List[bool]:
     return is_pareto
 
 
-def get_config_dir() -> Path:
-    """Get the configuration directory for lium-cli."""
-    config_dir = Path.home() / ".lium"
-    config_dir.mkdir(exist_ok=True)
-    return config_dir
-
-
 def store_executor_selection(executors: List[ExecutorInfo]) -> None:
     """Store the last executor selection for index-based selection."""
+    from .config import config
+    
     selection_data = {
         'timestamp': datetime.now().isoformat(),
         'executors': []
@@ -148,14 +143,16 @@ def store_executor_selection(executors: List[ExecutorInfo]) -> None:
         })
     
     # Store in config directory
-    config_file = get_config_dir() / "last_selection.json"
+    config_file = config.config_dir / "last_selection.json"
     with open(config_file, 'w') as f:
         json.dump(selection_data, f, indent=2)
 
 
 def get_last_executor_selection() -> Optional[Dict[str, Any]]:
     """Retrieve the last executor selection."""
-    config_file = get_config_dir() / "last_selection.json"
+    from .config import config
+    
+    config_file = config.config_dir / "last_selection.json"
     if config_file.exists():
         try:
             with open(config_file, 'r') as f:
@@ -197,3 +194,30 @@ def resolve_executor_indices(indices: List[str]) -> Tuple[List[str], Optional[st
         error_msg = f"Could not resolve indices: {', '.join(failed_resolutions)}"
     
     return resolved_ids, error_msg
+
+
+def parse_targets(targets: str, all_pods: List[PodInfo]) -> List[PodInfo]:
+    """Parse target specification and return matching pods."""
+    if targets.lower() == "all":
+        return all_pods
+    
+    selected = []
+    for target in targets.split(","):
+        target = target.strip()
+        
+        # Try as index (1-based from ps output)
+        try:
+            idx = int(target) - 1
+            if 0 <= idx < len(all_pods):
+                selected.append(all_pods[idx])
+                continue
+        except ValueError:
+            pass
+        
+        # Try as pod ID/name/huid
+        for pod in all_pods:
+            if target in (pod.id, pod.name, pod.huid):
+                selected.append(pod)
+                break
+    
+    return selected

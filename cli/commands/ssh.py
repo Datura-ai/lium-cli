@@ -11,25 +11,9 @@ import click
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from lium_sdk import Lium, PodInfo
-from ..utils import console, handle_errors, loading_status
+from ..utils import handle_errors, loading_status, console, parse_targets
 
 
-def _resolve_pod(target: str, all_pods: List[PodInfo]) -> Optional[PodInfo]:
-    """Resolve a single pod from target specification."""
-    # Try as index (1-based from ps output)
-    try:
-        idx = int(target) - 1
-        if 0 <= idx < len(all_pods):
-            return all_pods[idx]
-    except ValueError:
-        pass
-    
-    # Try as pod ID/name/huid
-    for pod in all_pods:
-        if target in (pod.id, pod.name, pod.huid):
-            return pod
-    
-    return None
 
 
 @click.command("ssh")
@@ -38,17 +22,19 @@ def _resolve_pod(target: str, all_pods: List[PodInfo]) -> Optional[PodInfo]:
 def ssh_command(target: str):
     """Open SSH session to a GPU pod.
     
+    \b
     TARGET: Pod identifier - can be:
       - Pod name/ID (eager-wolf-aa)
       - Index from 'lium ps' (1, 2, 3)
     
+    \b
     Examples:
       lium ssh 1                    # SSH to pod #1 from ps
       lium ssh eager-wolf-aa        # SSH to specific pod
     """
     # Check if ssh is available
     if not shutil.which("ssh"):
-        console.print("[red]Error: 'ssh' command not found. Please install an SSH client.[/red]")
+        console.error("Error: 'ssh' command not found. Please install an SSH client.")
         return
     
     # Get pods and resolve target
@@ -56,38 +42,41 @@ def ssh_command(target: str):
     with loading_status("Loading pods", ""):
         all_pods = lium.ps()
     
-    pod = _resolve_pod(target, all_pods)
+    pods = parse_targets(target, all_pods)
+    pod = pods[0] if pods else None
     
     if not pod:
-        console.print(f"[red]Pod '{target}' not found[/red]")
+        console.error(f"Pod '{target}' not found")
         # Show available pods
         if all_pods:
-            console.print("\n[dim]Available pods:[/dim]")
+            console.dim("\nAvailable pods:")
             for i, p in enumerate(all_pods, 1):
-                status_color = "green" if p.status == "RUNNING" else "yellow"
-                console.print(f"  {i}. [{status_color}]{p.huid}[/] ({p.status})")
+                status_color = console.pod_status_color(p.status)
+                console.info(f"  {i}. [{status_color}]{p.huid}[/{status_color}] ({p.status})")
         return
     
     # Check if pod is running
     if pod.status != "RUNNING":
-        console.print(f"[yellow]Warning: Pod '{pod.huid}' is {pod.status}[/yellow]")
+        console.warning(f"Warning: Pod '{pod.huid}' is {pod.status}")
         if pod.status in ["STOPPED", "FAILED"]:
-            console.print("[red]Cannot SSH to a stopped or failed pod[/red]")
+            console.error("Cannot SSH to a stopped or failed pod")
             return
     
     # Check if SSH command is available
     if not pod.ssh_cmd:
-        console.print(f"[red]No SSH connection available for pod '{pod.huid}'[/red]")
+        console.error(f"No SSH connection available for pod '{pod.huid}'")
         return
     
     # Get SSH command from SDK
     try:
         ssh_cmd = lium.ssh(pod)
-        console.print(f"[dim]Connecting to {pod.huid}...[/dim]")
+        console.dim(f"Connecting to {pod.huid}...")
     except ValueError as e:
         # Fallback to using the raw ssh_cmd if SDK method fails
         ssh_cmd = pod.ssh_cmd
-        console.print(f"[dim]Connecting to {pod.huid} (using default SSH)...[/dim]")
+        console.dim(f"Connecting to {pod.huid} (using default SSH)...")
+
+    ssh_cmd += " -o StrictHostKeyChecking=no"
     
     # Execute SSH command interactively
     try:
@@ -96,8 +85,8 @@ def ssh_command(target: str):
         
         # Only show exit code if it's non-zero and not 255 (common disconnect code)
         if result.returncode != 0 and result.returncode != 255:
-            console.print(f"\n[dim]SSH session ended with exit code {result.returncode}[/dim]")
+            console.dim(f"\nSSH session ended with exit code {result.returncode}")
     except KeyboardInterrupt:
-        console.print("\n[yellow]SSH session interrupted[/yellow]")
+        console.warning("\nSSH session interrupted")
     except Exception as e:
-        console.print(f"[red]Error executing SSH: {e}[/red]")
+        console.error(f"Error executing SSH: {e}")
