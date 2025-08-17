@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0-beta.1] - 2025-01-17
+
+### Added
+- **New Commands**:
+  - `fund` command - Fund accounts with TAO directly from Bittensor wallet
+  - `config` command - Manage CLI configuration and settings
+  - `rsync` command - Efficient file synchronization with pods
+  - `scp` command - Secure file copying to/from pods
+  - `theme` command - Customize CLI appearance with automatic OS theme detection
+- **ThemedConsole system** - OS-aware color schemes with light/dark mode auto-detection
+- **Enhanced plugin system** - Better integration for extending CLI functionality
+
+### Changed
+- Improved executor selection storage mechanism
+- Cleaner console output with reduced verbosity
+- Updated `lium-sdk` dependency to version 0.2.4
+
+### Removed
+- Success message from init command for cleaner output
+- Dind column from `ls` output
+
+### Note
+- `image` and `compose` commands temporarily disabled for beta.1, will be included in beta.2
+
 ## [0.2.2] - 2025-01-10
 
 ### Added

@@ -13,9 +13,9 @@ from .commands.rm import rm_command
 from .commands.scp import scp_command
 from .commands.rsync import rsync_command
 from .commands.theme import theme_command
-from .commands.compose import compose_command
+# from .commands.compose import compose_command  # Disabled for beta.1
 from .commands.config import config_command
-from .commands.image import image_command
+# from .commands.image import image_command  # Disabled for beta.1
 from .commands.fund import fund_command
 from .plugins import load_plugins
 
@@ -58,11 +58,11 @@ cli.add_command(scp_command)
 cli.add_command(rsync_command)
 cli.add_command(theme_command)
 cli.add_command(config_command)
-cli.add_command(image_command)
+# cli.add_command(image_command)  # Disabled for beta.1
 cli.add_command(fund_command)
 
 # Add compose placeholder (will be overridden if plugin is installed)
-cli.add_command(compose_command)
+# cli.add_command(compose_command)  # Disabled for beta.1
 
 # Load any installed plugins
 # Plugins can override existing commands or add new ones
