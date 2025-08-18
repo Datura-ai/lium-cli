@@ -134,5 +134,5 @@ def fund_command(wallet: Optional[str], amount: Optional[str], yes: bool):
     
     # Success
     funded_amount = new_balance - current_balance
-    console.success(f"✓ Successfully funded {console.get_styled(f'{funded_amount:.4f} TAO', 'success')}")
+    console.success(f"✓ Successfully funded {console.get_styled(f'{funded_amount:.4f} USD', 'success')}")
     console.success(f"✓ New balance: {console.get_styled(f'{new_balance} USD', 'success')}")
