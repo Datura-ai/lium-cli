@@ -12,8 +12,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 
 from lium_sdk import ExecutorInfo, Lium, Template
 from ..utils import (console, handle_errors, loading_status,
-                     resolve_executor_indices)
-
+                     resolve_executor_indices,get_pytorch_template_id)
+from .ssh import ssh_command
 
 def select_executor() -> Optional[ExecutorInfo]:
     """Interactive executor selection."""
@@ -119,16 +119,14 @@ def up_command(executor_id: Optional[str], name: Optional[str], template_id: Opt
         if resolved_ids:
             executor_id = resolved_ids[0]
     
-    # Get or select executor
-    if executor_id:
-        with loading_status("Loading executor", ""):
-            executor = lium.get_executor(executor_id)
-    if not executor:
+    # Check if executor id is not empty if is user need to pick 
+    if not executor_id:
         executor = select_executor()
         if not executor:
             return
 
     # Get or select template
+    """
     template = None
     if template_id:
         template = lium.get_template(template_id)
@@ -136,31 +134,26 @@ def up_command(executor_id: Optional[str], name: Optional[str], template_id: Opt
         template = select_template()
         if not template:
             return
-
-    # Use executor HUID as default name
-    if not name:
-        name = executor.huid
-
-    # Confirm creation
-    if not yes:
-        confirm_msg = f"Acquire pod on {executor.huid} ({executor.gpu_count}×{executor.gpu_type}) at ${executor.price_per_hour:.2f}/h?"
-        if not Confirm.ask(confirm_msg, default=False):
-            console.warning("Cancelled")
-            return
-    
-    with loading_status(f"Creating pod {name}", ""):
-        pod_info = lium.up(executor_id=executor.id, pod_name=name, template_id=template.id)
-
-    # Wait for pod to be ready if requested
-    if wait:
-        with loading_status("Waiting for pod to be ready..."):
-            pod_id = pod_info.get('id') or pod_info.get('name', '')
-            pod = lium.wait_ready(pod_id, timeout=timeout)
+    """
+    with loading_status("renting machine",""):
+        # Select executor ID 
+        executor = lium.get_executor(executor_id)
+        # Select default PYTORCH tempalte 
+        template = lium.get_template(get_pytorch_template_id())
+        # Use executor HUID as default name
+        if not name:
+            name = executor.huid
         
+        pod_info = lium.up(executor_id=executor.id, pod_name=name, template_id=template.id)
+        ssh_command("12312312312321")
+        exit(1)
+    # Wait for pod to be ready if requested
+    with loading_status("loading image"):
+        pod_id = pod_info.get('id') or pod_info.get('name', '')
+        pod = lium.wait_ready(pod_id, timeout=timeout)       
         if pod:
-            show_pod_created({"huid": pod.huid, "name": pod.name, "status": pod.status, "ssh_cmd": pod.ssh_cmd})
+            with loading_status("Making ssh connection", ""):
+                ssh_command(pod_id)
         else:
             console.warning(f"⚠ Pod not ready after {timeout}s timeout")
             show_pod_created(pod_info)
-    else:
-        show_pod_created(pod_info)

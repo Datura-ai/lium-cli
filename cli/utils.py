@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from datetime import datetime
 from rich.status import Status
-from lium_sdk import LiumError, ExecutorInfo, PodInfo
+from lium_sdk import LiumError, ExecutorInfo, PodInfo,Lium
 from .themed_console import ThemedConsole
 
 console = ThemedConsole()
@@ -221,3 +221,37 @@ def parse_targets(targets: str, all_pods: List[PodInfo]) -> List[PodInfo]:
                 break
     
     return selected
+
+
+def get_pytorch_template_id() -> Optional[str]:
+    """Get the template ID for the newest PyTorch template."""
+    
+    lium = Lium()
+    templates = lium.templates()
+    
+    # Filter PyTorch templates from daturaai/pytorch
+    pytorch_templates = [
+        t for t in templates 
+        if t.category.upper() == "PYTORCH" 
+        and t.docker_image == "daturaai/pytorch"
+        and t.name.startswith("Pytorch (Cuda)")
+    ]
+    
+    if not pytorch_templates:
+        return None
+    
+    # Sort by PyTorch version (extract version from tag)
+    def extract_pytorch_version(template):
+        tag = template.docker_image_tag
+        # Extract version like "2.6.0" from "2.6.0-py3.11-cuda12.5.1-devel-ubuntu24.04"
+        version_part = tag.split('-')[0]
+        try:
+            # Split version into major.minor.patch for proper sorting
+            parts = [int(x) for x in version_part.split('.')]
+            return tuple(parts)
+        except:
+            return (0, 0, 0)
+    
+    # Get the template with highest version
+    newest_template = max(pytorch_templates, key=extract_pytorch_version)
+    return newest_template.id
