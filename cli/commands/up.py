@@ -145,15 +145,13 @@ def up_command(executor_id: Optional[str], name: Optional[str], template_id: Opt
             name = executor.huid
         
         pod_info = lium.up(executor_id=executor.id, pod_name=name, template_id=template.id)
-        ssh_command("12312312312321")
-        exit(1)
     # Wait for pod to be ready if requested
     with loading_status("loading image"):
         pod_id = pod_info.get('id') or pod_info.get('name', '')
         pod = lium.wait_ready(pod_id, timeout=timeout)       
         if pod:
             with loading_status("Making ssh connection", ""):
-                ssh_command(pod_id)
+                ssh_command(name)
         else:
             console.warning(f"⚠ Pod not ready after {timeout}s timeout")
             show_pod_created(pod_info)
