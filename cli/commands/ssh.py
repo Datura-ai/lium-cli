@@ -36,10 +36,12 @@ def get_ssh_method_and_pod(target:str):
     # Get SSH command from SDK
     try:
         ssh_cmd = lium.ssh(pod)
+        # Add SSH options to skip host key verification
+        ssh_cmd += " -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
         return ssh_cmd,pod
     except ValueError as e:
         # Fallback to using the raw ssh_cmd if SDK method fails
-        ssh_cmd = pod.ssh_cmd =+ " -o StrictHostKeyChecking=no"
+        ssh_cmd = pod.ssh_cmd + " -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
         return ssh_cmd,pod
     
 
@@ -53,7 +55,10 @@ def ssh_to_pod(ssh_cmd: str,pod):
     try:
         ssh_cmd = lium.ssh(pod)
     except ValueError as e:
-        pass 
+        ssh_cmd = pod.ssh_cmd
+    
+    # Add SSH options to skip host key verification
+    ssh_cmd += " -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" 
 
     # Execute SSH command interactively
     try:

@@ -187,6 +187,6 @@ def up_command(executor_id: Optional[str], name: Optional[str], template_id: Opt
                 console.warning(f"⚠ Pod not ready after {timeout}s timeout")
                 show_pod_created(pod_info)
                 return
-        with loading_status("Making ssh connection", ""):
+        with loading_status("Making SSH connection", "SSH connection ready"):
             ssh_cmd,pod = get_ssh_method_and_pod(name)
         ssh_to_pod(ssh_cmd,pod)
