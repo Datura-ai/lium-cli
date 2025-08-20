@@ -5,7 +5,7 @@ import os
 import sys
 import subprocess
 import shutil
-from typing import Optional, List
+from typing import Optional, List, Tuple
 
 import click
 
@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 from lium_sdk import Lium, PodInfo
 from ..utils import handle_errors, loading_status, console, parse_targets
 
-def get_ssh_method_and_pod(target:str):
+def get_ssh_method_and_pod(target: str) -> Tuple[str, PodInfo]:
     """Helper function that check method for SSH."""
     # Check if ssh is available
     if not shutil.which("ssh"):
@@ -46,7 +46,7 @@ def get_ssh_method_and_pod(target:str):
     
 
 
-def ssh_to_pod(ssh_cmd: str,pod):
+def ssh_to_pod(ssh_cmd: str, pod: PodInfo) -> None:
     """Helper function to SSH to a pod without Click decorators."""
     
     lium = Lium()
