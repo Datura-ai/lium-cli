@@ -83,9 +83,9 @@ def dominates(metrics_a: Dict[str, float], metrics_b: Dict[str, float]) -> bool:
     at_least_one_better = False
     
     for metric in metrics_a:
-        val_a = metrics_a[metric]
-        val_b = metrics_b.get(metric, 0)
-        
+        val_a = metrics_a[metric] or 0
+        val_b = metrics_b.get(metric, 0) or 0
+
         if metric in minimize_metrics:
             # For minimize metrics, A is better if it's lower
             if val_a < val_b:
