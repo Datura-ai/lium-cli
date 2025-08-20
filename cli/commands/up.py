@@ -91,9 +91,9 @@ def show_pod_created(pod_info: dict) -> None:
 @click.option("--wait", "-w", is_flag=True, help="Wait for pod to be ready")
 @click.option("--timeout", default=300, help="Wait timeout in seconds (default: 300)")
 @click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt")
-@click.option("--with-template","-wt",is_flag=True,help="Allow user to select own template")
+@click.option("--interactive", "-i", is_flag=True, help="Interactive mode with template selection and confirmation prompts")
 @handle_errors
-def up_command(executor_id: Optional[str], name: Optional[str], template_id: Optional[str], wait: bool, timeout: int, yes: bool, with_template: Optional[bool]):
+def up_command(executor_id: Optional[str], name: Optional[str], template_id: Optional[str], wait: bool, timeout: int, yes: bool, interactive: Optional[bool]):
     """\b
     Create a new GPU pod on an executor.
     \b
@@ -126,8 +126,8 @@ def up_command(executor_id: Optional[str], name: Optional[str], template_id: Opt
         if not executor:
             return
     
-    # Old logic
-    if with_template:
+    # Interactive mode
+    if interactive:
         # Get or select template
         with loading_status("Loading executor", ""):
             executor = lium.get_executor(executor_id)
