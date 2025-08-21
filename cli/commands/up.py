@@ -167,7 +167,7 @@ def up_command(executor_id: Optional[str], name: Optional[str], template_id: Opt
             show_pod_created(pod_info)
     else:
         # Auto logic
-        with loading_status("Renting machine","Machine rented"):
+        with loading_status("Renting machine"):
             # Select executor ID 
             executor = lium.get_executor(executor_id)
             # Select default PYTORCH tempalte 
@@ -178,7 +178,7 @@ def up_command(executor_id: Optional[str], name: Optional[str], template_id: Opt
             
             pod_info = lium.up(executor_id=executor.id, pod_name=name, template_id=template.id)
         # Wait for pod to be ready if requested
-        with loading_status("Loading image","Image loaded"):
+        with loading_status("Loading image"):
             pod_id = pod_info.get('id') or pod_info.get('name', '')
             pod = lium.wait_ready(pod_id, timeout=timeout)       
             if pod:
@@ -187,6 +187,6 @@ def up_command(executor_id: Optional[str], name: Optional[str], template_id: Opt
                 console.warning(f"⚠ Pod not ready after {timeout}s timeout")
                 show_pod_created(pod_info)
                 return
-        with loading_status("Making SSH connection", "SSH connection ready"):
+        with loading_status("Making SSH connection"):
             ssh_cmd,pod = get_ssh_method_and_pod(name)
         ssh_to_pod(ssh_cmd,pod)
