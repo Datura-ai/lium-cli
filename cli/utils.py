@@ -28,6 +28,98 @@ def loading_status(message: str, success_message: str = ""):
         status.stop()
 
 
+def _update_spinner_display(step_prefix: str, message: str, start_time: float, running_flag):
+    """Internal function to update spinner display with time."""
+    import time
+    import sys
+    
+    # Spinner characters (dots spinner)
+    spinner_chars = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+    spinner_index = 0
+    
+    # Get green color code from console theme
+    green_color = console.theme.get('success', 'green')
+    # Convert Rich color to ANSI escape sequence
+    if green_color == 'green':
+        green_code = '\033[32m'  # ANSI green
+    else:
+        green_code = '\033[32m'  # fallback to green
+    reset_code = '\033[0m'  # ANSI reset
+    
+    while running_flag[0]:  # Use list for mutable reference
+        elapsed = time.time() - start_time
+        spinner_char = spinner_chars[spinner_index % len(spinner_chars)]
+        
+        # Use carriage return to overwrite the line smoothly with green spinner
+        line = f"{step_prefix}{message}... {green_code}{spinner_char}{reset_code} ({elapsed:.1f}s)"
+        sys.stdout.write(f"\r{line}")
+        sys.stdout.flush()
+        spinner_index += 1
+        time.sleep(0.1)
+
+
+def _handle_step_completion(step_prefix: str, message: str, elapsed: float, exception: Exception = None):
+    """Internal function to handle step completion display."""
+    import sys
+    
+    # Clear the line and print final result
+    sys.stdout.write('\r\033[K')  # Clear entire line
+    
+    if exception is None:
+        # Success case
+        done_styled = console.get_styled("done", 'success')
+        console.print(f"{step_prefix}{message}... {done_styled} ({elapsed:.1f}s)", highlight=False)
+    else:
+        # General failure case
+        failed_styled = console.get_styled("failed", 'error')
+        console.print(f"{step_prefix}{message}... {failed_styled} ({elapsed:.1f}s)", highlight=False)
+
+
+@contextmanager
+def timed_step_status(step: int = 0, total_steps: int = 0, message: str = ""):
+    """Context manager to show timed step status like [1/3] Renting machine... ⠋ (3.2s) -> [1/3] Renting machine... done (3.2s)."""
+    import time
+    import threading
+    import sys
+    
+    start_time = time.time()
+    # Only show step prefix if steps > 0
+    step_prefix = f"[{step}/{total_steps}] " if step > 0 and total_steps > 0 else ""
+    running = [True]  # Use list for mutable reference
+    
+    # Hide cursor during animation
+    sys.stdout.write('\033[?25l')  # Hide cursor
+    sys.stdout.flush()
+    
+    # Start the update thread
+    update_thread = threading.Thread(target=_update_spinner_display, args=(step_prefix, message, start_time, running), daemon=True)
+    update_thread.start()
+    
+    try:
+        yield
+        # Stop the update and show success
+        running[0] = False
+        update_thread.join(timeout=0.1)
+        
+        # Show cursor again
+        sys.stdout.write('\033[?25h')  # Show cursor
+        
+        elapsed = time.time() - start_time
+        _handle_step_completion(step_prefix, message, elapsed)
+        
+    except Exception as e:
+        # Stop the update and show appropriate message
+        running[0] = False
+        update_thread.join(timeout=0.1)
+        
+        # Show cursor again
+        sys.stdout.write('\033[?25h')  # Show cursor
+        
+        elapsed = time.time() - start_time
+        _handle_step_completion(step_prefix, message, elapsed, e)
+        raise
+
+
 def handle_errors(func):
     """Decorator to handle CLI errors gracefully."""
     @wraps(func)
@@ -221,6 +313,20 @@ def parse_targets(targets: str, all_pods: List[PodInfo]) -> List[PodInfo]:
                 break
     
     return selected
+
+
+def wait_ready_no_timeout(lium_client, pod_id: str):
+    """Wait indefinitely for pod to be ready (RUNNING with SSH)."""
+    import time
+    
+    while True:
+        fresh_pods = lium_client.ps()
+        pod = next((p for p in fresh_pods if p.id == pod_id), None)
+        
+        if pod and pod.status.upper() == "RUNNING" and pod.ssh_cmd:
+            return pod
+        
+        time.sleep(10)  # Check every 10 seconds
 
 
 def get_pytorch_template_id() -> Optional[str]:
