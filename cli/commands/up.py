@@ -107,10 +107,12 @@ def up_command(executor_id: Optional[str], name: Optional[str], template_id: Opt
       lium up --name my-pod         # Create with custom name
     """
     lium = Lium()
-
+    # Load and store executors if we need to resolve an index
     # Resolve executor ID if it's an index
     executor = None
     if executor_id and executor_id.isdigit():
+        from .ls import ls_store_executor
+        ls_store_executor()
         resolved_ids, error_msg = resolve_executor_indices([executor_id])
         if error_msg:
             console.error(f"{error_msg}")
@@ -124,13 +126,11 @@ def up_command(executor_id: Optional[str], name: Optional[str], template_id: Opt
         executor = select_executor()
         if not executor:
             return
-    
     # Interactive mode
     if interactive:
         # Get or select template
         with loading_status("Loading executor", ""):
             executor = lium.get_executor(executor_id)
-
         template = None
         if template_id:
             template = lium.get_template(template_id)
@@ -161,10 +161,15 @@ def up_command(executor_id: Optional[str], name: Optional[str], template_id: Opt
         else:
             show_pod_created(pod_info)
     else:
+        # Select executor ID 
+        executor = lium.get_executor(executor_id)
+        if not yes:
+            confirm_msg = f"Acquire pod on {executor.huid} ({executor.gpu_count}×{executor.gpu_type}) at ${executor.price_per_hour:.2f}/h?"
+            if not Confirm.ask(confirm_msg, default=False):
+                console.warning("Cancelled")
+                return
         # Auto logic with timed steps
         with timed_step_status(1, 3, "Renting machine"):
-            # Select executor ID 
-            executor = lium.get_executor(executor_id)
             # Select default PYTORCH tempalte 
             template = lium.get_template(get_pytorch_template_id())
             # Use executor HUID as default name

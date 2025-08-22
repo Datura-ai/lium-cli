@@ -238,6 +238,35 @@ def show_executors(
     return [exe for exe, _ in executors_with_pareto]  # Return sorted executors
 
 
+# Utility Function
+
+def ls_store_executor(gpu_type: Optional[str] = None) -> List[ExecutorInfo]:
+    """Load and store executors without displaying them."""
+    executors = Lium().ls(gpu_type=gpu_type)
+    
+    # Process executors similar to show_executors but without display
+    if not executors:
+        return []
+    
+    # Calculate Pareto frontier and sort (same logic as show_executors)
+    pareto_flags = calculate_pareto_frontier(executors)
+    executors_with_pareto = list(zip(executors, pareto_flags))
+    
+    # Sort with Pareto-optimal first, then by price_gpu
+    executors_with_pareto = sorted(
+        executors_with_pareto,
+        key=lambda x: (not x[1], _sort_key_factory("price_gpu")(x[0]))
+    )
+    
+    # Extract sorted executors
+    showed_executors = [e for e, _ in executors_with_pareto]
+    
+    # Store the selection for index-based access in up command
+    store_executor_selection(showed_executors)
+    
+    return showed_executors
+
+
 # Command Definition
 
 @click.command("ls")
