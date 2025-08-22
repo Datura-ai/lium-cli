@@ -83,6 +83,16 @@ def show_pod_created(pod_info: dict) -> None:
     
     console.dim("Use 'lium ps' to check status")
 
+def _get_executor_id(executor_id):
+    if executor_id and executor_id.isdigit():
+        resolved_ids, error_msg = resolve_executor_indices([executor_id])
+        if error_msg:
+            console.error(f"{error_msg}")
+            if not resolved_ids:
+                return None
+        if resolved_ids:
+            executor_id = resolved_ids[0]
+    return executor_id
 
 @click.command("up")
 @click.argument("executor_id", required=False)
@@ -110,17 +120,32 @@ def up_command(executor_id: Optional[str], name: Optional[str], template_id: Opt
     # Load and store executors if we need to resolve an index
     # Resolve executor ID if it's an index
     executor = None
-    if executor_id and executor_id.isdigit():
+    original_executor_id = executor_id  # Preserve original input
+    executor_id = _get_executor_id(executor_id)
+    
+    # Check if executor_id resolution failed
+    if executor_id is None and not interactive:
+        return
+    
+    executor = lium.get_executor(executor_id)
+    
+    # If executor not found, try refreshing cache once
+    if executor is None and not interactive:
         from .ls import ls_store_executor
         ls_store_executor()
-        resolved_ids, error_msg = resolve_executor_indices([executor_id])
-        if error_msg:
-            console.error(f"{error_msg}")
-            if not resolved_ids:
-                return
-        if resolved_ids:
-            executor_id = resolved_ids[0]
-    
+        executor_id = _get_executor_id(original_executor_id)  # Use original input
+        
+        # Check if retry resolution failed
+        if executor_id is None :
+            return
+            
+        executor = lium.get_executor(executor_id)
+        
+        if executor is None:
+            console.error(f"Executor '{executor_id}' not found")
+            return
+    else:
+        _get_executor_id(executor_id)
     # Check if executor id is not empty if is user need to pick 
     if not executor_id:
         executor = select_executor()
@@ -161,6 +186,7 @@ def up_command(executor_id: Optional[str], name: Optional[str], template_id: Opt
         else:
             show_pod_created(pod_info)
     else:
+        
         # Select executor ID 
         executor = lium.get_executor(executor_id)
         if not yes:

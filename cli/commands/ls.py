@@ -240,7 +240,7 @@ def show_executors(
 
 # Utility Function
 
-def ls_store_executor(gpu_type: Optional[str] = None) -> List[ExecutorInfo]:
+def ls_store_executor(gpu_type: Optional[str] = None,sort_by: str = "price_gpu") -> List[ExecutorInfo]:
     """Load and store executors without displaying them."""
     executors = Lium().ls(gpu_type=gpu_type)
     
@@ -255,7 +255,7 @@ def ls_store_executor(gpu_type: Optional[str] = None) -> List[ExecutorInfo]:
     # Sort with Pareto-optimal first, then by price_gpu
     executors_with_pareto = sorted(
         executors_with_pareto,
-        key=lambda x: (not x[1], _sort_key_factory("price_gpu")(x[0]))
+        key=lambda x: (not x[1], _sort_key_factory(sort_by)(x[0]))
     )
     
     # Extract sorted executors

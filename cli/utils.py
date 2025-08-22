@@ -261,7 +261,7 @@ def resolve_executor_indices(indices: List[str]) -> Tuple[List[str], Optional[st
     """
     last_selection = get_last_executor_selection()
     if not last_selection:
-        return [], "No previous executor selection found. Please run 'lium ls' first."
+        return [], None
     
     executors = last_selection.get('executors', [])
     if not executors:
@@ -277,7 +277,7 @@ def resolve_executor_indices(indices: List[str]) -> Tuple[List[str], Optional[st
                 executor_data = executors[index - 1]
                 resolved_ids.append(executor_data['id'])
             else:
-                failed_resolutions.append(f"{index_str} (index out of range 1-{len(executors)})")
+                failed_resolutions.append(f"Index {index_str} is out of range (1..{len(executors)}). Try: lium ls")
         except ValueError:
             failed_resolutions.append(f"{index_str} (not a valid index)")
     
