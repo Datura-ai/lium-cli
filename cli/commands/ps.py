@@ -85,13 +85,8 @@ def _format_ports(ports: dict) -> str:
     # Format as internal:external pairs
     port_pairs = [f"{k}:{v}" for k, v in ports.items()]
     
-    # Always use multi-line format for consistent spacing, group 2 per line
-    lines = []
-    for i in range(0, len(port_pairs), 2):
-        line_ports = port_pairs[i:i+2]
-        lines.append(", ".join(line_ports))
-    
-    return chr(10).join(lines)
+    # Join all ports with comma and space for single-line display
+    return ", ".join(port_pairs)
 
 
 def show_pods(pods: List[PodInfo]) -> None:
@@ -114,14 +109,14 @@ def show_pods(pods: List[PodInfo]) -> None:
     )
     
     # Add columns with fixed or ratio widths
-    table.add_column("Pod", justify="left", ratio=5, min_width=18, overflow="fold")
+    table.add_column("Pod", justify="left", ratio=3, min_width=18, overflow="fold")
     table.add_column("Status", justify="left", width=11, no_wrap=True)
     table.add_column("Config", justify="left", width=12, no_wrap=True)
-    table.add_column("Template", justify="left", width=18, overflow="ellipsis")
+    table.add_column("Template", justify="left", ratio=2, min_width=12, overflow="ellipsis")
     table.add_column("$/h", justify="right", width=6, no_wrap=True)
     table.add_column("Spent", justify="right", width=8, no_wrap=True)
     table.add_column("Uptime", justify="right", width=7, no_wrap=True)
-    table.add_column("Ports", justify="left", ratio=6, min_width=20, overflow="fold")
+    table.add_column("Ports", justify="left", ratio=3, min_width=15, overflow="fold")
     
     for pod in pods:
         executor = pod.executor
