@@ -67,9 +67,31 @@ def _format_cost(created_at: str, price_per_hour: Optional[float]) -> str:
     return f"${cost:.2f}"
 
 
-def _format_ssh_command(ssh_cmd: Optional[str]) -> str:
-    """Format SSH command for display."""
-    return ssh_cmd if ssh_cmd else "—"
+def _format_template_name(template: dict) -> str:
+    """Format template name for display."""
+    if not template:
+        return "—"
+    
+    # Try to get template name, fallback to template_name field
+    name = template.get("name") or template.get("template_name") or "—"
+    return name
+
+
+def _format_ports(ports: dict) -> str:
+    """Format port mappings with consistent spacing."""
+    if not ports:
+        return "—"
+    
+    # Format as internal:external pairs
+    port_pairs = [f"{k}:{v}" for k, v in ports.items()]
+    
+    # Always use multi-line format for consistent spacing, group 2 per line
+    lines = []
+    for i in range(0, len(port_pairs), 2):
+        line_ports = port_pairs[i:i+2]
+        lines.append(", ".join(line_ports))
+    
+    return chr(10).join(lines)
 
 
 def show_pods(pods: List[PodInfo]) -> None:
@@ -93,12 +115,13 @@ def show_pods(pods: List[PodInfo]) -> None:
     
     # Add columns with fixed or ratio widths
     table.add_column("Pod", justify="left", ratio=5, min_width=18, overflow="fold")
-    table.add_column("Status", justify="left", width=13, no_wrap=True)
-    table.add_column("Config", justify="left", width=14, no_wrap=True)
-    table.add_column("$/h", justify="right", width=8, no_wrap=True)
-    table.add_column("Spent", justify="right", width=10, no_wrap=True)
-    table.add_column("Uptime", justify="right", width=9, no_wrap=True)
-    table.add_column("SSH", justify="left", ratio=6, min_width=30, overflow="fold")
+    table.add_column("Status", justify="left", width=11, no_wrap=True)
+    table.add_column("Config", justify="left", width=12, no_wrap=True)
+    table.add_column("Template", justify="left", width=18, overflow="ellipsis")
+    table.add_column("$/h", justify="right", width=6, no_wrap=True)
+    table.add_column("Spent", justify="right", width=8, no_wrap=True)
+    table.add_column("Uptime", justify="right", width=7, no_wrap=True)
+    table.add_column("Ports (internal:external)", justify="left", ratio=6, min_width=20, overflow="fold")
     
     for pod in pods:
         executor = pod.executor
@@ -114,14 +137,19 @@ def show_pods(pods: List[PodInfo]) -> None:
         status_color = console.pod_status_color(pod.status)
         status_text = f"[{status_color}]{pod.status.upper()}[/]"
         
+        # Format template name and port mappings for this GPU pod
+        template_name = _format_template_name(pod.template)
+        ports_display = _format_ports(pod.ports)
+        
         table.add_row(
             console.get_styled(pod.huid, 'pod_id'),
             status_text,
             config,
+            console.get_styled(template_name, 'info'),
             price_str,
             _format_cost(pod.created_at, price_per_hour),
             _format_uptime(pod.created_at),
-            console.get_styled(_format_ssh_command(pod.ssh_cmd), 'info'),
+            console.get_styled(ports_display, 'info'),
         )
     
     console.info(table)
