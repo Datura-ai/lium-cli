@@ -117,45 +117,38 @@ def up_command(executor_id: Optional[str], name: Optional[str], template_id: Opt
       lium up --name my-pod         # Create with custom name
     """
     lium = Lium()
-    # Load and store executors if we need to resolve an index
-    # Resolve executor ID if it's an index
     executor = None
-    original_executor_id = executor_id  # Preserve original input
-    executor_id = _get_executor_id(executor_id)
     
-    # Check if executor_id resolution failed
-    if executor_id is None and not interactive:
-        return
-    
-    executor = lium.get_executor(executor_id)
-    
-    # If executor not found, try refreshing cache once
-    if executor is None and not interactive:
-        from .ls import ls_store_executor
-        ls_store_executor()
-        executor_id = _get_executor_id(original_executor_id)  # Use original input
+    # Resolve executor (from ID, index, or interactive selection)
+    if executor_id:
+        original_executor_id = executor_id
+        executor_id = _get_executor_id(executor_id)
         
-        # Check if retry resolution failed
-        if executor_id is None :
+        if executor_id is None:  # Resolution failed (invalid index, etc.)
             return
             
         executor = lium.get_executor(executor_id)
         
+        # Single retry if not found
         if executor is None:
-            console.error(f"Executor '{executor_id}' not found")
-            return
+            from .ls import ls_store_executor
+            ls_store_executor()
+            executor_id = _get_executor_id(original_executor_id)
+            if executor_id is None:
+                return
+            executor = lium.get_executor(executor_id)
+            if executor is None:
+                console.error(f"Executor '{executor_id}' not found")
+                return
     else:
-        _get_executor_id(executor_id)
-    # Check if executor id is not empty if is user need to pick 
-    if not executor_id:
+        # No executor provided - user needs to select
         executor = select_executor()
         if not executor:
             return
+        executor_id = executor.id
     # Interactive mode
     if interactive:
         # Get or select template
-        with loading_status("Loading executor", ""):
-            executor = lium.get_executor(executor_id)
         template = None
         if template_id:
             template = lium.get_template(template_id)
@@ -186,9 +179,6 @@ def up_command(executor_id: Optional[str], name: Optional[str], template_id: Opt
         else:
             show_pod_created(pod_info)
     else:
-        
-        # Select executor ID 
-        executor = lium.get_executor(executor_id)
         if not yes:
             confirm_msg = f"Acquire pod on {executor.huid} ({executor.gpu_count}×{executor.gpu_type}) at ${executor.price_per_hour:.2f}/h?"
             if not Confirm.ask(confirm_msg, default=False):
