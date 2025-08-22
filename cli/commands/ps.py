@@ -121,7 +121,7 @@ def show_pods(pods: List[PodInfo]) -> None:
     table.add_column("$/h", justify="right", width=6, no_wrap=True)
     table.add_column("Spent", justify="right", width=8, no_wrap=True)
     table.add_column("Uptime", justify="right", width=7, no_wrap=True)
-    table.add_column("Ports (internal:external)", justify="left", ratio=6, min_width=20, overflow="fold")
+    table.add_column("Ports", justify="left", ratio=6, min_width=20, overflow="fold")
     
     for pod in pods:
         executor = pod.executor
