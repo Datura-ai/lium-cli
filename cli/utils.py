@@ -154,6 +154,12 @@ def extract_executor_metrics(executor: ExecutorInfo) -> Dict[str, float]:
     disk_data = specs.get("hard_disk", {})
     network = specs.get("network", {})
     
+    # Location preference (US gets a bonus)
+    location = executor.location or {}
+    country = location.get("country", "").upper()
+    country_code = location.get("country_code", "").upper()
+    is_us = country == "UNITED STATES" or country_code == "US"
+    
     return {
         'price_per_gpu_hour': executor.price_per_gpu_hour or float('inf'),
         'vram_gb': (gpu_details.get("capacity", 0) / 1024) if gpu_details else 0,  # MiB to GB
@@ -164,6 +170,8 @@ def extract_executor_metrics(executor: ExecutorInfo) -> Dict[str, float]:
         'tflops': gpu_details.get("graphics_speed", 0),
         'net_up': network.get("upload_speed", 0),
         'net_down': network.get("download_speed", 0),
+        'location_score': 1.0 if is_us else 0.0,  # US locations get higher score
+        'total_bandwidth': network.get("upload_speed", 0) + network.get("download_speed", 0),  # Combined bandwidth
     }
 
 
@@ -172,6 +180,46 @@ def dominates(metrics_a: Dict[str, float], metrics_b: Dict[str, float]) -> bool:
     # Metrics to minimize (lower is better)
     minimize_metrics = {'price_per_gpu_hour'}
     
+    # Priority metrics when prices are equal
+    priority_metrics = ['total_bandwidth', 'location_score', 'net_down', 'net_up']
+    
+    price_a = metrics_a.get('price_per_gpu_hour', float('inf'))
+    price_b = metrics_b.get('price_per_gpu_hour', float('inf'))
+    
+    # Special handling when prices are equal (common with GPU filtering)
+    if abs(price_a - price_b) < 0.01:  # Prices are effectively equal
+        # Compare based on priority metrics
+        for metric in priority_metrics:
+            val_a = metrics_a.get(metric, 0) or 0
+            val_b = metrics_b.get(metric, 0) or 0
+            
+            # Significant difference threshold (10% for bandwidth, any diff for location)
+            threshold = 0.1 * max(val_a, val_b) if metric != 'location_score' else 0
+            
+            if val_a > val_b + threshold:
+                # A is significantly better in this priority metric
+                return True
+            elif val_b > val_a + threshold:
+                # B is significantly better in this priority metric
+                return False
+        
+        # If all priority metrics are similar, compare all metrics
+        at_least_one_better = False
+        for metric in metrics_a:
+            if metric in priority_metrics:
+                continue  # Already checked
+            
+            val_a = metrics_a[metric] or 0
+            val_b = metrics_b.get(metric, 0) or 0
+            
+            if val_a > val_b:
+                at_least_one_better = True
+            elif val_a < val_b:
+                return False
+        
+        return at_least_one_better
+    
+    # Standard Pareto domination when prices differ
     at_least_one_better = False
     
     for metric in metrics_a:
