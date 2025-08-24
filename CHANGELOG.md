@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2025-01-23
+
+### Added
+- **GPU Filtering for `lium up`**:
+  - `--gpu` option to filter executors by GPU type (e.g., H200, A6000)
+  - `-c/--count` option to filter by exact GPU count per pod
+  - `--country` option to filter by ISO country code (e.g., US, SG)
+- **Auto-selection with filters** - Automatically selects best executor when filters are provided
+- **Enhanced Pareto frontier** - Prioritizes US location and high bandwidth when prices are equal
+- **Better error messages** - Helpful tips when no executors match filters
+- **Loading indicators** - Shows progress when searching for executors
+
+### Changed
+- **Refactored `up` command** - Cleaner code structure with extracted helper functions
+- **SSH always connects** - Pod creation now always waits and connects via SSH
+- **Consistent behavior** - Both interactive and non-interactive modes auto-connect
+- **Improved executor ranking** - Better selection when multiple executors have same price
+
+### Removed
+- `-w/--wait` option from `up` command - Now always waits and connects
+
 ## [0.3.0-beta.1] - 2025-01-17
 
 ### Added
