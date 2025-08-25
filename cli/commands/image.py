@@ -10,18 +10,113 @@ from lium_sdk import Lium, Template
 from ..utils import console, handle_errors, loading_status
 from ..config import config
 
+def _get_docker_credential_location_wsl_windows() -> str:
+    try:
+        # Use Windows `where` command via cmd.exe
+        cmd = ["cmd.exe", "/c", "where", "docker-credential-desktop.exe"]
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            shell=False,
+            check=True
+        )
 
+        # Take the first line of output (first path found)
+        path = result.stdout.strip().splitlines()[0]
+        return path
+    except Exception as e:
+        return None
+
+def get_username_docker_username_wsl():
+    try:
+        # Use system-wide path
+        docker_cred_path = _get_docker_credential_location_wsl_windows()
+        if not docker_cred_path:
+            return None
+
+        cmd = ["cmd.exe", "/c", docker_cred_path, "get"]
+        result = subprocess.run(
+            cmd,
+            input="https://index.docker.io/v1/\n",  # send registry URL to stdin
+            capture_output=True,
+            text=True,
+            shell=False,
+            check=True
+        )
+
+        creds = json.loads(result.stdout)
+        return creds.get("Username")
+    except Exception as e:
+        return None
+
+def _is_wsl()->bool:
+    """Check if user is on WSL (works with all distros: Ubuntu, Debian, custom, etc.)"""
+    import platform
+    import os
+    
+    # Only run on Linux systems
+    if platform.system() != "Linux":
+        return False
+    
+    # Method 1: Check kernel release for WSL indicators
+    try:
+        uname_info = os.uname()
+        release = uname_info.release.lower()
+        
+        # Check for various WSL indicators in kernel release
+        wsl_indicators = ["microsoft", "wsl", "-microsoft-standard"]
+        if any(indicator in release for indicator in wsl_indicators):
+            return True
+    except Exception:
+        pass
+    
+    # Method 2: Check for WSL-specific files
+    wsl_files = [
+        "/proc/sys/fs/binfmt_misc/WSLInterop",  # WSL2
+        "/proc/version"  # Check version file content
+    ]
+    
+    for wsl_file in wsl_files:
+        try:
+            if os.path.exists(wsl_file):
+                if wsl_file.endswith("WSLInterop"):
+                    return True
+                elif wsl_file.endswith("version"):
+                    with open(wsl_file, 'r') as f:
+                        content = f.read().lower()
+                        if "microsoft" in content or "wsl" in content:
+                            return True
+        except Exception:
+            continue
+    
+    # Method 3: Check environment variables
+    try:
+        # WSL sets these environment variables
+        if os.environ.get("WSL_DISTRO_NAME") or os.environ.get("WSLENV"):
+            return True
+    except Exception:
+        pass
+    
+    return False
 
 def get_docker_username() -> str:
     """Get Docker username with proper checks."""
     
-    # 1. Try docker info first (works for some users)
+    # Check if user is using WSL if yes get credential from windows layer 
+    is_wsl = _is_wsl()
+    if is_wsl:
+        username = get_username_docker_username_wsl()
+        if username:
+            return username
+
+   # 1. Try docker info first (works for some users)
     username = get_username_from_info()
     if username:
         return username
 
     # 2. Try credential helper (current implementation works well)
-    usernmae = get_username_from_credstore()
+    username = get_username_from_credstore()
     if username:
         return username
 
