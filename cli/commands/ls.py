@@ -160,7 +160,6 @@ def show_executors(
     show_pareto: bool = True,
 ) -> List[ExecutorInfo]:
     if not executors:
-        console.warning("No executors available.")
         return []
 
     # Calculate Pareto frontier before sorting/limiting
@@ -235,6 +234,11 @@ def show_executors(
         )
 
     console.info(table)
+    
+    # Add helpful tip with divider
+    console.info("")
+    console.info(f"Tip: {console.get_styled('lium up <index>', 'success')} {console.get_styled('# e.g. lium up 1', 'dim')}")
+    
     return [exe for exe, _ in executors_with_pareto]  # Return sorted executors
 
 
@@ -290,8 +294,17 @@ def ls_command(gpu_type: Optional[str], sort_by: str, limit: Optional[int]):
       lium ls --sort loc      # Sort by location
       lium ls --limit 20      # Show first 20 rows
     """
-    with loading_status("Loading executors", "Executors loaded"):
+    with loading_status("Loading executors", ""):
         executors = Lium().ls(gpu_type=gpu_type)
+
+    if not executors:
+        if gpu_type:
+            console.error(f"All {gpu_type} GPUs are currently rented out.")
+            console.info(f"Tip: {console.get_styled('lium ls', 'success')}")
+        else:
+            console.error("All GPUs are currently rented out.")
+            console.info("Check back later or contact support if this persists.")
+        return
 
     showed_executors = show_executors(executors, sort_by=sort_by, limit=limit)
     

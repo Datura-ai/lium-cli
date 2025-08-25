@@ -91,7 +91,7 @@ def _find_executor_by_id(lium: Lium, executor_id: str) -> Optional[ExecutorInfo]
             executor = lium.get_executor(executor_id)
             if executor is None:
                 console.error(f"No executor found with ID '{original_id}'")
-                console.info(f"Tip: Run {console.get_styled('lium ls', 'success')} to see available executors.")
+                console.info(f"Tip: {console.get_styled('lium ls', 'success')}")
                 return None
     
     return executor
@@ -113,7 +113,7 @@ def _auto_select_executor(
         if not executors:
             filter_desc = _build_filter_description(gpu, count, country)
             console.error(f"All matching GPUs are currently rented out. (filters: {filter_desc})")
-            console.info(f"Tip: Run {console.get_styled('lium ls', 'success')} to see what's available now.")
+            console.info(f"Tip: {console.get_styled('lium ls', 'success')}")
             return None
         
         # Store for potential index reference
