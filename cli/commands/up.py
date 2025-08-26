@@ -106,14 +106,17 @@ def _auto_select_executor(
 ) -> Optional[ExecutorInfo]:
     """Automatically select best executor based on filters."""
     from .ls import ls_store_executor
-    
+
     with loading_status("Finding best executor", ""):
         executors = lium.ls(gpu_type=gpu)
         executors = _apply_executor_filters(executors, gpu_count=count, country_code=country)
         
         if not executors:
-            filter_desc = _build_filter_description(gpu, count, country)
-            console.error(f"All matching GPUs are currently rented out. (filters: {filter_desc})")
+            if gpu not in lium.gpu_types():
+                console.error(f"GPU '{gpu}' Not recognized")
+            else:
+                filter_desc = _build_filter_description(gpu, count, country)
+                console.error(f"All matching GPUs are currently rented out. (filters: {filter_desc})")
             console.info(f"Tip: {console.get_styled('lium ls', 'success')}")
             return None
         
