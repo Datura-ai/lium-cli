@@ -12,7 +12,7 @@ from rich.text import Text
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from lium_sdk import Lium, PodInfo
-from ..utils import console, handle_errors, loading_status
+from ..utils import console, handle_errors, loading_status, ensure_config
 
 
 
@@ -162,6 +162,8 @@ def ps_command(pod_id: Optional[str]):
       lium ps                # Show all active pods
       lium ps eager-wolf-aa  # Show specific pod details
     """
+    ensure_config()
+
     with loading_status("Loading pods", ""):
         pods = Lium().ps()
     
