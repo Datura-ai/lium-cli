@@ -1,6 +1,7 @@
 """Initialize Lium CLI configuration."""
 
 import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -52,9 +53,17 @@ def setup_ssh_key() -> None:
             available_keys.append(key_path)
     
     if not available_keys:
-        console.warning("⚠ No SSH keys found in ~/.ssh/")
-        console.dim("You may need to generate one with: ssh-keygen -t ed25519")
-        return
+        console.warning("⚠ No SSH keys found. Generating new SSH key...")
+        key_path = ssh_dir / "id_ed25519"
+        
+        try:
+            subprocess.run(["ssh-keygen", "-t", "ed25519", "-f", str(key_path), "-N", "", "-q"], check=True)
+            console.success(f"✓ SSH key generated: {key_path}")
+            config.set('ssh.key_path', str(key_path))
+            return
+        except Exception as e:
+            console.error(f"Failed to generate SSH key: {e}")
+            return
     
     # Auto-select if only one
     if len(available_keys) == 1:
