@@ -409,3 +409,16 @@ def get_pytorch_template_id() -> Optional[str]:
     # Get the template with highest version
     newest_template = max(pytorch_templates, key=extract_pytorch_version)
     return newest_template.id
+
+
+def ensure_config():
+    from .commands.init import setup_api_key, setup_ssh_key
+    from .config import config
+
+    if not config.get('api.api_key'):
+        # Setup API key
+        setup_api_key()
+
+    if not config.get('ssh.key_path'):
+        # Setup SSH key
+        setup_ssh_key()
