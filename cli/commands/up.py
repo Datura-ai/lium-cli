@@ -20,6 +20,7 @@ from ..utils import (
     resolve_executor_indices,
     timed_step_status,
     wait_ready_no_timeout,
+    ensure_config
 )
 from .ssh import get_ssh_method_and_pod, ssh_to_pod
 
@@ -306,6 +307,7 @@ def up_command(
       lium up --country US          # Filter by country code
       lium up --gpu H200 --country FR  # Combine multiple filters
     """
+    ensure_config()
     lium = Lium()
     
     # Resolve executor
