@@ -113,7 +113,7 @@ def _auto_select_executor(
         
         if not executors:
             if gpu not in lium.gpu_types():
-                console.error(f"GPU '{gpu}' Not recognized.")
+                console.error(f"GPU '{gpu}' Not recognized")
             else:
                 filter_desc = _build_filter_description(gpu, count, country)
                 console.error(f"All matching GPUs are currently rented out. (filters: {filter_desc})")
