@@ -29,7 +29,7 @@ def setup_api_key() -> None:
     
     # Prompt for new key
     api_key = Prompt.ask(
-        "[cyan]Enter your Lium API key (get from https://lium.ai/api-keys)[/cyan]"
+        "[cyan]Enter your Lium API key (get from https://lium.io/api-keys)[/cyan]"
     )
     
     if not api_key:
