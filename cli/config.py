@@ -17,6 +17,11 @@ class ConfigManager:
         self.config_dir = self._ensure_config_dir()
         self.config_file = self.config_dir / "config.ini"
         self._config = self._load_config()
+
+    @property
+    def default_template_id(self) -> Optional[str]:
+        DEFAULT_TEMPLATE_ID = "1948937e-5049-47ad-8e26-bcf1a4549d70"
+        return DEFAULT_TEMPLATE_ID
     
     def _ensure_config_dir(self) -> Path:
         """Ensure ~/.lium directory exists."""
