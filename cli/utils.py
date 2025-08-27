@@ -4,6 +4,7 @@ from contextlib import contextmanager
 from typing import List, Dict, Any, Tuple, Optional
 import json
 from pathlib import Path
+from cli.config import config
 from datetime import datetime
 from rich.status import Status
 from lium_sdk import LiumError, ExecutorInfo, PodInfo,Lium
@@ -382,6 +383,9 @@ def get_pytorch_template_id() -> Optional[str]:
     
     lium = Lium()
     templates = lium.templates()
+
+    if config.default_template_id in {t.id for t in templates}:
+        return config.default_template_id
     
     # Filter PyTorch templates from daturaai/pytorch
     pytorch_templates = [
@@ -405,7 +409,7 @@ def get_pytorch_template_id() -> Optional[str]:
             return tuple(parts)
         except:
             return (0, 0, 0)
-    
+
     # Get the template with highest version
     newest_template = max(pytorch_templates, key=extract_pytorch_version)
     return newest_template.id
