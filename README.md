@@ -32,7 +32,11 @@ lium ssh <pod-name>
 # Stop a pod
 lium rm <pod-name>
 ```
- ![quick start demo](https://vhs.charm.sh/vhs-1PbVchM8viEmMg8seSsGl7.gif)
+ <video width="600" controls>
+    <source src="https://screen.studio/share/KIf3liN1" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+
 
 ## Commands
 
