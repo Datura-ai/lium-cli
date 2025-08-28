@@ -33,10 +33,11 @@ lium ssh <pod-name>
 lium rm <pod-name>
 ```
  <video width="600" controls>
-    <source src="https://screen.studio/share/KIf3liN1" type="video/mp4">
+    <source src="https://github.com/user-attachments/assets/5e6f81ff-acac-4704-942b-9bd1b49276b5" type="video/mp4">
     Your browser does not support the video tag.
   </video>
-
+  
+https://github.com/user-attachments/assets/5e6f81ff-acac-4704-942b-9bd1b49276b5
 
 ## Commands
 
