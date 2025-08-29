@@ -2,6 +2,24 @@
 
 Command-line interface for managing GPU pods on the Lium platform.
 
+<p align="center">
+  <img src="web-app-manifest-512x512.png" alt="Lium CLI Logo" width="120" />
+</p>
+
+<h1 align="center">Lium</h1>
+
+<div align="center">
+  <a href="https://docs.lium.io/cli/quickstart">Quickstart</a>
+  <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
+  <a href="https://lium.io/?utm_source=github">Website</a>
+  <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
+  <a href="https://docs.lium.io/cli">Docs</a>
+  <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
+  <a href="https://docs.lium.io/cli/commands">Reference</a>
+  <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
+  <a href="https://discord.gg/lium">Discord</a>
+</div>
+
 ## Installation
 
 ```bash
