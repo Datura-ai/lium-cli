@@ -117,6 +117,7 @@ def show_pods(pods: List[PodInfo]) -> None:
     table.add_column("Spent", justify="right", width=8, no_wrap=True)
     table.add_column("Uptime", justify="right", width=7, no_wrap=True)
     table.add_column("Ports", justify="left", ratio=3, min_width=15, overflow="fold")
+    table.add_column("Name", justify="left", ratio=2, min_width=15, overflow="fold")
     
     for pod in pods:
         executor = pod.executor
@@ -145,6 +146,7 @@ def show_pods(pods: List[PodInfo]) -> None:
             _format_cost(pod.created_at, price_per_hour),
             _format_uptime(pod.created_at),
             console.get_styled(ports_display, 'info'),
+            console.get_styled(pod.name or "—", 'info'),
         )
     
     console.info(table)
