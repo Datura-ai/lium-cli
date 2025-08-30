@@ -31,7 +31,6 @@ def poll_auth(session_id, max_attempts=6, interval=5):  # 30 seconds timeout (6 
             resp = requests.get(url, timeout=5)
             if resp.status_code == 200:
                 data = resp.json()
-                print(f"Status: {data.get('status')}")  # Print status
                 if data.get("status") == "approved":
                     return data.get("api_key")
         except KeyboardInterrupt:
