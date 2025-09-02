@@ -129,7 +129,7 @@ def fund_command(wallet: Optional[str], amount: Optional[str], yes: bool):
             time.sleep(5)  # Check every 5 seconds
         else:
             console.warning(f"Balance not updated after {FUNDING_TIMEOUT}s timeout")
-            console.dim("Check your balance later with 'lium config get user.balance'")
+            console.dim("Check your balance later")
             return
     
     # Success
