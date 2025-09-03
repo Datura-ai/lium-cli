@@ -102,6 +102,7 @@ def _specs_row(specs: Optional[Dict]) -> Dict[str, str]:
         "VRAM": _maybe_gi_from_capacity(d.get("capacity")),
         "RAM": _maybe_gi_from_big_number(ram.get("total")),
         "Disk": _maybe_gi_from_big_number(disk.get("total")),
+        "Country": _country_name(specs.get("location")),
         "PCIe": _maybe_int(d.get("pcie_speed")),
         "Mem": _maybe_int(d.get("memory_speed")),
         "TFLOPs": _maybe_int(d.get("graphics_speed")),
@@ -137,17 +138,14 @@ def _add_long_columns(t: Table) -> None:
 
     # fixed widths for numerics
     t.add_column("$/GPU·h", justify="right", width=8, no_wrap=True)
+    t.add_column("Location", justify="left", ratio=4, min_width=10, overflow="fold")
     t.add_column("VRAM",    justify="right", width=8, no_wrap=True)
     t.add_column("RAM",     justify="right", width=8, no_wrap=True)
     t.add_column("Disk",    justify="right", width=8, no_wrap=True)
-    t.add_column("PCIe",    justify="right", width=8, no_wrap=True)
     t.add_column("Mem",     justify="right", width=8, no_wrap=True)
-    t.add_column("TFLOPs",  justify="right", width=8, no_wrap=True)
     t.add_column("Net ↑",   justify="right", width=8, no_wrap=True)  # note the space
     t.add_column("Net ↓",   justify="right", width=8, no_wrap=True)
 
-    # absorb remaining width on the right with Location
-    t.add_column("Location", justify="left", ratio=4, min_width=10, overflow="fold")
 
 
 # Display Functions
@@ -222,15 +220,13 @@ def show_executors(
             huid_display,
             _cfg(exe),
             console.get_styled(_money(exe.price_per_gpu_hour), 'success'),
+            _country_name(exe.location),
             s["VRAM"],
             s["RAM"],
             s["Disk"],
-            s["PCIe"],
             s["Mem"],
-            s["TFLOPs"],
             s["NetUp"],
             s["NetDn"],
-            _country_name(exe.location),
         )
 
     console.info(table)
