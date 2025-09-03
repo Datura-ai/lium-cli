@@ -91,7 +91,7 @@ def _first_gpu_detail(specs: Optional[Dict]) -> Dict:
 def _specs_row(specs: Optional[Dict]) -> Dict[str, str]:
     """Extract display fields from specs."""
     if not specs:
-        return {k: "—" for k in ["VRAM", "RAM", "Disk", "PCIe", "Mem", "TFLOPs", "NetUp", "NetDn"]}
+        return {k: "—" for k in ["VRAM", "RAM", "Disk", "PCIe", "Mem", "TFLOPs", "Upload", "Download"]}
     
     d = _first_gpu_detail(specs)
     ram = specs.get("ram", {})
@@ -104,8 +104,8 @@ def _specs_row(specs: Optional[Dict]) -> Dict[str, str]:
         "Disk": _maybe_gi_from_big_number(disk.get("total")),
         "Country": _country_name(specs.get("location")),
         "PCIe": _maybe_int(d.get("pcie_speed")),
-        "NetUp": _maybe_int(net.get("upload_speed")),
-        "NetDn": _maybe_int(net.get("download_speed")),
+        "Upload": _maybe_int(net.get("upload_speed")),
+        "Download": _maybe_int(net.get("download_speed")),
     }
 
 
@@ -137,11 +137,11 @@ def _add_long_columns(t: Table) -> None:
     # fixed widths for numerics
     t.add_column("$/GPU·h", justify="right", width=8, no_wrap=True)
     t.add_column("Location", justify="left", ratio=4, min_width=10, overflow="fold")
-    t.add_column("VRAM",    justify="right", width=8, no_wrap=True)
-    t.add_column("RAM",     justify="right", width=8, no_wrap=True)
-    t.add_column("Disk",    justify="right", width=8, no_wrap=True)
-    t.add_column("Net ↑",   justify="right", width=8, no_wrap=True)  # note the space
-    t.add_column("Net ↓",   justify="right", width=8, no_wrap=True)
+    t.add_column("VRAM (Gb)",    justify="right", width=11, no_wrap=True)
+    t.add_column("RAM (Gb)",     justify="right", width=10, no_wrap=True)
+    t.add_column("Disk (Gb)",    justify="right", width=11, no_wrap=True)
+    t.add_column("Upload (Mbps)",   justify="right", width=14, no_wrap=True)
+    t.add_column("Download (Mbps)", justify="right", width=16, no_wrap=True)
 
 
 
@@ -221,8 +221,8 @@ def show_executors(
             s["VRAM"],
             s["RAM"],
             s["Disk"],
-            s["NetUp"],
-            s["NetDn"],
+            s["Upload"],
+            s["Download"],
         )
 
     console.info(table)
