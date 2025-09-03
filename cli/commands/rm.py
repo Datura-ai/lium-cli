@@ -6,11 +6,29 @@ import sys
 from typing import Optional, List
 
 import click
-from rich.prompt import Confirm
+from rich.prompt import Confirm, Prompt
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from lium_sdk import Lium, PodInfo
 from ..utils import console, handle_errors, loading_status, parse_targets
+from .ps import show_pods
+
+
+def select_targets_interactive(all_pods: List[PodInfo]) -> str:
+    """Interactive pod selection."""
+    console.warning("Select pods to remove:")
+    show_pods(all_pods, format="short")
+    
+    choices = [str(i) for i in range(1, len(all_pods) + 1)]
+    choices.append("all")
+    
+    selection = Prompt.ask(
+        console.get_styled("Select pods by number, comma-separated, ranges like 1-3, or 'all')", "info"),
+        default="1"
+    )
+    
+    # Return the selection string directly for parse_targets to handle
+    return selection
 
 
 @click.command("rm")
@@ -37,11 +55,6 @@ def rm_command(targets: Optional[str], all: bool, yes: bool):
       lium rm --all                 # Remove all pods (alternative)
       lium rm 1 -y                  # Remove without confirmation
     """
-    # Validate inputs
-    if not targets and not all:
-        console.error("Error: Specify pod targets or use --all")
-        return
-    
     # Get all pods
     lium = Lium()
     with loading_status("Loading pods", ""):
@@ -57,7 +70,9 @@ def rm_command(targets: Optional[str], all: bool, yes: bool):
     elif targets:
         selected_pods = parse_targets(targets, all_pods)
     else:
-        selected_pods = []
+        # Interactive mode when no targets specified
+        targets = select_targets_interactive(all_pods)
+        selected_pods = parse_targets(targets, all_pods)
     
     if not selected_pods:
         console.error(f"No pods match targets: {targets}")
@@ -79,7 +94,7 @@ def rm_command(targets: Optional[str], all: bool, yes: bool):
                 now_utc = datetime.now(timezone.utc)
                 hours = (now_utc - dt_created).total_seconds() / 3600
                 total_cost += hours * pod.executor.price_per_hour
-            except:
+            except Exception:
                 pass
     
     # Show what will be removed
