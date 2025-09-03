@@ -17,7 +17,7 @@ from .ps import show_pods
 def select_targets_interactive(all_pods: List[PodInfo]) -> str:
     """Interactive pod selection."""
     console.warning("Select pods to remove:")
-    show_pods(all_pods, format="short")
+    show_pods(all_pods, short=True)
     
     choices = [str(i) for i in range(1, len(all_pods) + 1)]
     choices.append("all")

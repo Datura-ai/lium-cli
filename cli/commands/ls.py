@@ -104,8 +104,6 @@ def _specs_row(specs: Optional[Dict]) -> Dict[str, str]:
         "Disk": _maybe_gi_from_big_number(disk.get("total")),
         "Country": _country_name(specs.get("location")),
         "PCIe": _maybe_int(d.get("pcie_speed")),
-        "Mem": _maybe_int(d.get("memory_speed")),
-        "TFLOPs": _maybe_int(d.get("graphics_speed")),
         "NetUp": _maybe_int(net.get("upload_speed")),
         "NetDn": _maybe_int(net.get("download_speed")),
     }
@@ -142,7 +140,6 @@ def _add_long_columns(t: Table) -> None:
     t.add_column("VRAM",    justify="right", width=8, no_wrap=True)
     t.add_column("RAM",     justify="right", width=8, no_wrap=True)
     t.add_column("Disk",    justify="right", width=8, no_wrap=True)
-    t.add_column("Mem",     justify="right", width=8, no_wrap=True)
     t.add_column("Net ↑",   justify="right", width=8, no_wrap=True)  # note the space
     t.add_column("Net ↓",   justify="right", width=8, no_wrap=True)
 
@@ -224,7 +221,6 @@ def show_executors(
             s["VRAM"],
             s["RAM"],
             s["Disk"],
-            s["Mem"],
             s["NetUp"],
             s["NetDn"],
         )
