@@ -31,7 +31,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest", "black", "wheel"]
+dev = ["pytest", "pytest-mock", "black", "wheel"]
 
 [project.scripts]
 lium = "cli.cli:main"
@@ -42,6 +42,11 @@ packages = ["cli"]
 [tool.hatch.metadata]
 allow-direct-references = true
 
+[dependency-groups]
+dev = [
+    "pytest>=8.4.1",
+    "pytest-mock>=3.14.1",
+]
 
 [project.urls]
 Homepage = "https://github.com/Datura-ai/lium-cli"
