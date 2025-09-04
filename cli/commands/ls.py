@@ -2,6 +2,7 @@
 
 import os
 import sys
+from functools import cache
 from typing import Any, Callable, Dict, List, Optional
 
 import click
@@ -14,6 +15,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 from lium_sdk import ExecutorInfo, Lium
 from ..utils import (calculate_pareto_frontier, console, handle_errors,
                      loading_status, store_executor_selection)
+
+@cache
+def _get_full_gpu_types() -> List[str]:
+    return list(Lium().gpu_types())
 
 
 # Helper Functions
@@ -264,9 +269,11 @@ def ls_store_executor(gpu_type: Optional[str] = None,sort_by: str = "price_gpu")
 
 
 # Command Definition
+def get_gpu_completions(ctx, param, incomplete):
+    return [f for f in _get_full_gpu_types() if f.startswith(incomplete.upper())]
 
 @click.command("ls")
-@click.argument("gpu_type", required=False)
+@click.argument("gpu_type", required=False, shell_complete=get_gpu_completions)
 @click.option(
     "--sort",
     "sort_by",
