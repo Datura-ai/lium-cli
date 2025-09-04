@@ -8,6 +8,8 @@ import click
 from rich.prompt import Confirm, Prompt
 from rich.text import Text
 
+from ..completion import get_gpu_completions
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from lium_sdk import ExecutorInfo, Lium, Template
@@ -280,7 +282,7 @@ def _create_and_connect_pod(
 @click.option("--template_id", "-t", help="Template ID")
 @click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt")
 @click.option("--interactive", "-i", is_flag=True, help="Interactive mode with template selection")
-@click.option("--gpu", help="Filter executors by GPU type (e.g., H200, A6000)")
+@click.option("--gpu", help="Filter executors by GPU type (e.g., H200, A6000)", shell_complete=get_gpu_completions)
 @click.option("--count", "-c", type=int, help="Number of GPUs per pod")
 @click.option("--country", help="Filter executors by ISO country code (e.g., US, FR)")
 @handle_errors

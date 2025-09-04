@@ -1,5 +1,6 @@
 """Main CLI entry point for Lium."""
 import click
+import os
 from importlib.metadata import version, PackageNotFoundError
 from .themed_console import ThemedConsole
 from .commands.init import init_command
@@ -71,6 +72,10 @@ load_plugins(cli)
 
 def main():
     """Main entry point for the CLI."""
+    if not os.environ.get('_LIUM_COMPLETE'):
+        from .completion import ensure_completion
+        ensure_completion()
+    
     cli()
 
 
