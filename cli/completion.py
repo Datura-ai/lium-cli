@@ -1,9 +1,11 @@
 """Shell completion setup for Lium CLI."""
 
 import os
+from functools import cache
 from pathlib import Path
-from typing import Dict, Tuple
+from typing import Dict, Tuple, List
 
+from lium_sdk import Lium
 
 # Shell configurations: (config_file, completion_script)
 SHELLS: Dict[str, Tuple[str, str]] = {
@@ -19,14 +21,14 @@ def ensure_completion() -> None:
     marker_file = Path.home() / ".lium_completion_installed"
     if marker_file.exists():
         return
-    
+
     shell = os.path.basename(os.environ.get("SHELL", "bash"))
     if shell not in SHELLS:
         return
-    
+
     config_file, script = SHELLS[shell]
     config_path = Path(config_file).expanduser()
-    
+
     # Check if already installed in shell config
     try:
         if config_path.exists() and "_LIUM_COMPLETE" in config_path.read_text():
@@ -35,7 +37,7 @@ def ensure_completion() -> None:
             return
     except IOError:
         return
-    
+
     # Install completion and notify user
     try:
         config_path.parent.mkdir(parents=True, exist_ok=True)
@@ -43,7 +45,7 @@ def ensure_completion() -> None:
             f.write(f"\n# Lium CLI completion\n{script}\n")
         # Mark as installed
         marker_file.touch()
-        
+
         # Show success message using ThemedConsole
         from .themed_console import ThemedConsole
         console = ThemedConsole()
@@ -51,6 +53,15 @@ def ensure_completion() -> None:
         console.info("✓ Please restart your terminal or run:")
         console.info(f"  source {config_file}")
         console.print()
-        
+
     except IOError:
         pass  # Silent fail
+
+
+@cache
+def _get_full_gpu_types() -> List[str]:
+    return list(Lium().gpu_types())
+
+
+def get_gpu_completions(ctx, param, incomplete):
+    return [f for f in _get_full_gpu_types() if f.startswith(incomplete.upper())]
