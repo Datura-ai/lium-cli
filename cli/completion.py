@@ -60,7 +60,7 @@ def ensure_completion() -> None:
 
 @cache
 def _get_full_gpu_types() -> List[str]:
-    return list(Lium().gpu_types())
+    return sorted(list(Lium().gpu_types()))
 
 
 def get_gpu_completions(ctx, param, incomplete):
