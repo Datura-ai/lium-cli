@@ -9,9 +9,9 @@ from lium_sdk import Lium
 
 # Shell configurations: (config_file, completion_script)
 SHELLS: Dict[str, Tuple[str, str]] = {
-    "bash": ("~/.bashrc", 'eval "$(_LIUM_COMPLETE=bash_source lium)"'),
-    "zsh": ("~/.zshrc", 'eval "$(_LIUM_COMPLETE=zsh_source lium)"'),
-    "fish": ("~/.config/fish/config.fish", "_LIUM_COMPLETE=fish_source lium | source")
+    "bash": ("~/.bashrc", 'command -v lium >/dev/null 2>&1 && eval "$(_LIUM_COMPLETE=bash_source lium)"'),
+    "zsh": ("~/.zshrc", 'command -v lium >/dev/null 2>&1 && eval "$(_LIUM_COMPLETE=zsh_source lium)"'),
+    "fish": ("~/.config/fish/config.fish", "command -v lium >/dev/null 2>&1 && _LIUM_COMPLETE=fish_source lium | source")
 }
 
 
