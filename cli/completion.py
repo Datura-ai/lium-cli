@@ -64,4 +64,8 @@ def _get_full_gpu_types() -> List[str]:
 
 
 def get_gpu_completions(ctx, param, incomplete):
-    return [f for f in _get_full_gpu_types() if f.startswith(incomplete.upper())]
+    try:
+        return [f for f in _get_full_gpu_types() if f.startswith(incomplete.upper())]
+    except Exception:
+        # silent fail
+        return []
