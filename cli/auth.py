@@ -1,4 +1,7 @@
 import os, sys, time, requests, webbrowser
+from typing import Optional
+
+from .utils import console
 
 class quiet_fds:
     """Redirect stdout/stderr to /dev/null (silences child processes)."""
@@ -24,7 +27,7 @@ def init_auth():
     resp.raise_for_status()
     return resp.json()["browser_url"], resp.json()["session_id"]
 
-def poll_auth(session_id, max_attempts=6, interval=5):  # 30 seconds timeout (6 * 5)
+def poll_auth(session_id, max_attempts=6, interval=5) -> Optional[str]:  # 30 seconds timeout (6 * 5)
     url = f"https://lium.io/api/cli-auth/poll/{session_id}"
     for _ in range(max_attempts):
         try:
@@ -40,12 +43,20 @@ def poll_auth(session_id, max_attempts=6, interval=5):  # 30 seconds timeout (6 
         time.sleep(interval)
     return None
 
-def browser_auth():
+def browser_auth() -> Optional[str]:
     """Execute browser authentication flow and return API key or None."""
     try:
         browser_url, session_id = init_auth()
+
+        # Clear messaging about what's happening
+        console.info("Opening browser for authentication...")
+
         with quiet_fds():
-            webbrowser.open(browser_url)
+            result = webbrowser.open(browser_url)
+
+        if not result:
+            console.info(f"Opening browser failed. Please, open the page for authentication: {browser_url}")
+
         return poll_auth(session_id)
     except Exception:
         return None
