@@ -19,7 +19,6 @@ def setup_api_key() -> None:
         return  # Already configured, skip silently
     
     # Browser authentication flow
-    console.info("Opening browser for authentication...")
     api_key = browser_auth()
     
     if api_key:

@@ -1,4 +1,5 @@
 import os, sys, time, requests, webbrowser
+from .utils import console
 
 class quiet_fds:
     """Redirect stdout/stderr to /dev/null (silences child processes)."""
@@ -44,8 +45,15 @@ def browser_auth():
     """Execute browser authentication flow and return API key or None."""
     try:
         browser_url, session_id = init_auth()
+
+        # Clear messaging about what's happening
+        console.info("Opening browser for authentication...")
+        console.info(f"If the browser doesn't open, visit: {browser_url}")
+        
+        # Try to open browser (will work if available, fail silently if not)
         with quiet_fds():
             webbrowser.open(browser_url)
+        
         return poll_auth(session_id)
     except Exception:
         return None
