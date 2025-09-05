@@ -55,7 +55,7 @@ def browser_auth() -> Optional[str]:
             result = webbrowser.open(browser_url)
 
         if not result:
-            console.info(f"Opening browswer was failed. Please, open the page for authentication: {browser_url}")
+            console.info(f"Opening browser failed. Please, open the page for authentication: {browser_url}")
 
         return poll_auth(session_id)
     except Exception:
