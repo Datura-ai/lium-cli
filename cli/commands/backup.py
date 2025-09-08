@@ -47,30 +47,6 @@ def _get_pod_name_for_backup_config(lium: Lium, config: BackupConfig) -> str:
     return getattr(config, 'huid', 'Unknown')
 
 
-def _format_frequency(hours: int) -> str:
-    """Format frequency for display."""
-    if hours == 24:
-        return "daily"
-    elif hours == 12:
-        return "12h"
-    elif hours == 6:
-        return "6h"
-    elif hours == 1:
-        return "hourly"
-    else:
-        return f"{hours}h"
-
-
-def _format_retention(days: int) -> str:
-    """Format retention for display."""
-    if days == 1:
-        return "1 day"
-    elif days == 7:
-        return "1 week"
-    elif days == 30:
-        return "1 month"
-    else:
-        return f"{days} days"
 
 
 def _store_backup_configs(configs: List[BackupConfig]) -> None:
@@ -246,8 +222,8 @@ def backup_ls_command(pod: Optional[str]):
             str(idx),
             pod_name,
             path,
-            _format_frequency(frequency),
-            _format_retention(retention),
+            f"{frequency}h",
+            f"{retention}d",
             status,
             config_id_short
         )

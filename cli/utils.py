@@ -1,7 +1,7 @@
 """CLI utilities and decorators."""
 from functools import wraps
 from contextlib import contextmanager
-from typing import List, Dict, Any, Tuple, Optional
+from typing import List, Dict, Any, Tuple, Optional, Callable, TypeVar
 import json
 from pathlib import Path
 from cli.config import config
@@ -12,16 +12,45 @@ from .themed_console import ThemedConsole
 from dataclasses import dataclass
 from rich.prompt import Prompt
 
+T = TypeVar("T")
+
 console = ThemedConsole()
+
+
+def _prompt_value(
+    prompt_text: str,
+    default_value: T,
+    value: T,
+    cast: Callable[[str], T],
+    validate: Callable[[T], bool],
+) -> T:
+    """Loop: Enter -> default, invalid -> reprompt until valid."""
+    default_str = str(default_value)
+    if value != default_value:
+        return value
+    while True:
+        raw = Prompt.ask(prompt_text, default=default_str)
+        # Empty/Enter -> use default
+        if raw.strip() == "":
+            return default_value
+        try:
+            value = cast(raw)
+        except Exception:
+            console.error("Invalid value, please try again")
+            continue
+        if not validate(value):
+            console.error("Invalid value, please try again")
+            continue
+        return value
 
 
 @dataclass
 class BackupParams:
     """Backup configuration parameters."""
     enabled: bool = False
-    path: str = "/root"
-    frequency: int = 6  # hours
-    retention: int = 7  # days
+    path: str = config.default_backup_path
+    frequency: int = config.default_backup_frequency  # hours
+    retention: int = config.default_backup_retention  # days
     
     def validate(self) -> None:
         """Validate backup parameters."""
@@ -465,88 +494,59 @@ def ensure_config():
 
 def ensure_backup_params(
     enabled: bool = True, 
-    path: str = "/root", 
-    frequency: int = 6, 
-    retention: int = 7, 
+    path: str = config.default_backup_path, 
+    frequency: int = config.default_backup_frequency, 
+    retention: int = config.default_backup_retention, 
     skip_prompts: bool = False
 ) -> BackupParams:
     """Create and validate backup parameters, prompt if needed.
     
-    Args:
-        enabled: Whether backup is enabled
-        path: Initial backup path
-        frequency: Initial frequency in hours  
-        retention: Initial retention in days
-        skip_prompts: If True, don't prompt user interactively
-        
-    Returns:
-        BackupParams object with validated parameters
+    - If prompts run: Enter -> default, invalid -> ask again (uniform for all fields).
+    - If prompts are skipped: uses passed values as-is.
     """
     if not enabled:
         return BackupParams(enabled=False)
-    
-    final_path = path
-    final_frequency = frequency 
-    final_retention = retention
-    
-    # If using defaults and not skipping prompts, ask user
-    if not skip_prompts and path == "/root" and frequency == 6 and retention == 7:
+
+    final_path, final_frequency, final_retention = path, frequency, retention
+
+    # Keep original behavior: only prompt when using the built-in defaults and prompts not skipped
+    default_tuple = (config.default_backup_path, config.default_backup_frequency, config.default_backup_retention)
+    if not skip_prompts and (path, frequency, retention) == default_tuple:
         console.info("Configuring automated backups...")
-        
-        # Path prompt
-        while True:
-            path_input = Prompt.ask(
-                "[cyan]Backup path[/cyan]",
-                default="/root"
-            )
-            if path_input.startswith('/'):
-                final_path = path_input
-                break
-            else:
-                console.error("Backup path must be absolute (start with /)")
-        
-        # Frequency prompt
-        frequency_input = Prompt.ask(
+
+        final_path = _prompt_value(
+            "[cyan]Backup path[/cyan]",
+            default_value=config.default_backup_path,
+            value=path,
+            cast=str,
+            validate=lambda p: isinstance(p, str) and p.startswith("/"),
+        )
+
+        final_frequency = _prompt_value(
             "[cyan]Backup frequency in hours[/cyan] (e.g., 6, 12, 24)",
-            default="6"
+            default_value=config.default_backup_frequency,
+            value=frequency,
+            cast=int,
+            validate=lambda x: isinstance(x, int) and x > 0,
         )
-        try:
-            final_frequency = int(frequency_input)
-            if final_frequency <= 0:
-                console.error("Frequency must be positive, using default 6 hours")
-                final_frequency = 6
-        except ValueError:
-            console.error("Invalid frequency, using default 6 hours")
-            final_frequency = 6
-        
-        # Retention prompt
-        retention_input = Prompt.ask(
+
+        final_retention = _prompt_value(
             "[cyan]Backup retention in days[/cyan] (e.g., 7, 14, 30)",
-            default="7"
+            default_value=config.default_backup_retention,
+            value=retention,
+            cast=int,
+            validate=lambda x: isinstance(x, int) and x > 0,
         )
-        try:
-            final_retention = int(retention_input)
-            if final_retention <= 0:
-                console.error("Retention must be positive, using default 7 days")
-                final_retention = 7
-        except ValueError:
-            console.error("Invalid retention, using default 7 days")
-            final_retention = 7
-    
-    # Create BackupParams and validate
-    backup_params = BackupParams(
+
+    params = BackupParams(
         enabled=True,
         path=final_path,
         frequency=final_frequency,
-        retention=final_retention
+        retention=final_retention,
     )
-    
-    try:
-        backup_params.validate()
-        return backup_params
-    except ValueError as e:
-        console.error(str(e))
-        raise
+    # Let validate() raise with a clear message if something is wrong
+    params.validate()
+    return params
 
 
 def setup_backup(lium, pod_name: str, backup_params: BackupParams, replace_existing: bool = True) -> None:
@@ -575,6 +575,12 @@ def setup_backup(lium, pod_name: str, backup_params: BackupParams, replace_exist
                 lium.backup_delete(config.id)
             # try again
             return setup_backup(lium, pod_name, backup_params, replace_existing=False)
+        elif "API error 400" in str(e):
+            data_str = str(e).split("API error 400:")[-1].strip()
+            data = json.loads(data_str) if data_str else {}
+            if "message" in data:
+                console.error(f"Failed to setup backup: {data['message']}")
+                return
 
         console.error(f"Failed to setup backup: {e}")
         raise

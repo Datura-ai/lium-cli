@@ -22,6 +22,21 @@ class ConfigManager:
     def default_template_id(self) -> Optional[str]:
         DEFAULT_TEMPLATE_ID = "1948937e-5049-47ad-8e26-bcf1a4549d70"
         return DEFAULT_TEMPLATE_ID
+
+    @property
+    def default_backup_path(self) -> str:
+        """Default backup path."""
+        return "/root"
+    
+    @property
+    def default_backup_frequency(self) -> int:
+        """Default backup frequency in hours."""
+        return 6
+    
+    @property
+    def default_backup_retention(self) -> int:
+        """Default backup retention in days."""
+        return 7
     
     def _ensure_config_dir(self) -> Path:
         """Ensure ~/.lium directory exists."""
