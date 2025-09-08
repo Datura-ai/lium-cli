@@ -23,32 +23,15 @@ classifiers = [
   "Operating System :: OS Independent"
 ]
 dependencies = [
-    "typer>=0.12,<0.16",
+    "click>=8.0.0",
     "rich>=14.1.0,<15.0",
-    "pycryptodome>=3.0.0,<4.0.0",
     "PyYAML~=6.0.1",
-    "aiohttp~=3.10.2",
-    "backoff~=2.2.1",
-    "GitPython>=3.0.0",
-    "async-substrate-interface>=1.1.0",
-    "scalecodec==1.2.11",
-    "plotly>=6.0.0",
-    "plotille>=5.0.0",
-    "fuzzywuzzy~=0.18.0",
-    "python-Levenshtein",
-    "netaddr~=1.3.0",
-    "Jinja2",
-    "pywry>=0.6.2",
-    "async-property==0.2.2",
-    "bittensor-cli>=9.1.0",
-    "paramiko>=3.5.1",
-    "docker>=7.1.0",
-    "bittensor>=9.8.3",
+    "requests>=2.25.0",
     "lium-sdk>=0.2.6",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest", "black", "wheel"]
+dev = ["pytest", "pytest-mock", "black", "wheel"]
 
 [project.scripts]
 lium = "cli.cli:main"
@@ -56,6 +39,14 @@ lium = "cli.cli:main"
 [tool.hatch.build.targets.wheel]
 packages = ["cli"]
 
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.1",
+    "pytest-mock>=3.14.1",
+]
 
 [project.urls]
 Homepage = "https://github.com/Datura-ai/lium-cli"
