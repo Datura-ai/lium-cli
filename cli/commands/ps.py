@@ -89,16 +89,16 @@ def _format_ports(ports: dict) -> str:
     return ", ".join(port_pairs)
 
 
-def show_pods(pods: List[PodInfo]) -> None:
+def show_pods(pods: List[PodInfo], short: bool = False) -> None:
     """Display pods in a tight, well-engineered table."""
     if not pods:
         console.warning("No active pods")
         return
-    
+
     # Title
     console.info(Text("Pods", style="bold"), end="")
     console.dim(f"  ({len(pods)} active)")
-    
+
     table = Table(
         show_header=True,
         header_style="dim",
@@ -107,7 +107,7 @@ def show_pods(pods: List[PodInfo]) -> None:
         expand=True,     # full terminal width
         padding=(0, 1),  # tight padding
     )
-    
+
     # Add columns with fixed or ratio widths
     table.add_column("Pod", justify="left", ratio=3, min_width=18, overflow="fold")
     table.add_column("Status", justify="left", width=11, no_wrap=True)
@@ -116,9 +116,9 @@ def show_pods(pods: List[PodInfo]) -> None:
     table.add_column("$/h", justify="right", width=6, no_wrap=True)
     table.add_column("Spent", justify="right", width=8, no_wrap=True)
     table.add_column("Uptime", justify="right", width=7, no_wrap=True)
-    table.add_column("Ports", justify="left", ratio=3, min_width=15, overflow="fold")
+    table.add_column("Ports", justify="left", ratio=3, min_width=15, overflow="fold") if not short else None
     table.add_column("Name", justify="left", ratio=2, min_width=15, overflow="fold")
-    
+
     for pod in pods:
         executor = pod.executor
         if executor:
@@ -129,15 +129,14 @@ def show_pods(pods: List[PodInfo]) -> None:
             config = "—"
             price_str = "—"
             price_per_hour = None
-        
+
         status_color = console.pod_status_color(pod.status)
         status_text = f"[{status_color}]{pod.status.upper()}[/]"
-        
+
         # Format template name and port mappings for this GPU pod
         template_name = _format_template_name(pod.template)
         ports_display = _format_ports(pod.ports)
-        
-        table.add_row(
+        row = [
             console.get_styled(pod.huid, 'pod_id'),
             status_text,
             config,
@@ -147,8 +146,13 @@ def show_pods(pods: List[PodInfo]) -> None:
             _format_uptime(pod.created_at),
             console.get_styled(ports_display, 'info'),
             console.get_styled(pod.name or "—", 'info'),
+        ]
+        if short:
+            row.pop(-2)  # Remove Ports column for short view
+        table.add_row(
+            *row
         )
-    
+
     console.info(table)
 
 

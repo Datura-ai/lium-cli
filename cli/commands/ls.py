@@ -8,13 +8,14 @@ import click
 from rich.table import Table
 from rich.text import Text
 
+from ..completion import get_gpu_completions
+
 # Add parent directory to path for lium_sdk import
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from lium_sdk import ExecutorInfo, Lium
 from ..utils import (calculate_pareto_frontier, console, handle_errors,
                      loading_status, store_executor_selection)
-
 
 # Helper Functions
 
@@ -91,7 +92,7 @@ def _first_gpu_detail(specs: Optional[Dict]) -> Dict:
 def _specs_row(specs: Optional[Dict]) -> Dict[str, str]:
     """Extract display fields from specs."""
     if not specs:
-        return {k: "—" for k in ["VRAM", "RAM", "Disk", "PCIe", "Mem", "TFLOPs", "NetUp", "NetDn"]}
+        return {k: "—" for k in ["VRAM", "RAM", "Disk", "PCIe", "Mem", "TFLOPs", "Upload", "Download"]}
     
     d = _first_gpu_detail(specs)
     ram = specs.get("ram", {})
@@ -102,11 +103,10 @@ def _specs_row(specs: Optional[Dict]) -> Dict[str, str]:
         "VRAM": _maybe_gi_from_capacity(d.get("capacity")),
         "RAM": _maybe_gi_from_big_number(ram.get("total")),
         "Disk": _maybe_gi_from_big_number(disk.get("total")),
+        "Country": _country_name(specs.get("location")),
         "PCIe": _maybe_int(d.get("pcie_speed")),
-        "Mem": _maybe_int(d.get("memory_speed")),
-        "TFLOPs": _maybe_int(d.get("graphics_speed")),
-        "NetUp": _maybe_int(net.get("upload_speed")),
-        "NetDn": _maybe_int(net.get("download_speed")),
+        "Upload": _maybe_int(net.get("upload_speed")),
+        "Download": _maybe_int(net.get("download_speed")),
     }
 
 
@@ -137,17 +137,13 @@ def _add_long_columns(t: Table) -> None:
 
     # fixed widths for numerics
     t.add_column("$/GPU·h", justify="right", width=8, no_wrap=True)
-    t.add_column("VRAM",    justify="right", width=8, no_wrap=True)
-    t.add_column("RAM",     justify="right", width=8, no_wrap=True)
-    t.add_column("Disk",    justify="right", width=8, no_wrap=True)
-    t.add_column("PCIe",    justify="right", width=8, no_wrap=True)
-    t.add_column("Mem",     justify="right", width=8, no_wrap=True)
-    t.add_column("TFLOPs",  justify="right", width=8, no_wrap=True)
-    t.add_column("Net ↑",   justify="right", width=8, no_wrap=True)  # note the space
-    t.add_column("Net ↓",   justify="right", width=8, no_wrap=True)
-
-    # absorb remaining width on the right with Location
     t.add_column("Location", justify="left", ratio=4, min_width=10, overflow="fold")
+    t.add_column("VRAM (Gb)",    justify="right", width=11, no_wrap=True)
+    t.add_column("RAM (Gb)",     justify="right", width=10, no_wrap=True)
+    t.add_column("Disk (Gb)",    justify="right", width=11, no_wrap=True)
+    t.add_column("Upload (Mbps)",   justify="right", width=14, no_wrap=True)
+    t.add_column("Download (Mbps)", justify="right", width=16, no_wrap=True)
+
 
 
 # Display Functions
@@ -222,15 +218,12 @@ def show_executors(
             huid_display,
             _cfg(exe),
             console.get_styled(_money(exe.price_per_gpu_hour), 'success'),
+            _country_name(exe.location),
             s["VRAM"],
             s["RAM"],
             s["Disk"],
-            s["PCIe"],
-            s["Mem"],
-            s["TFLOPs"],
-            s["NetUp"],
-            s["NetDn"],
-            _country_name(exe.location),
+            s["Upload"],
+            s["Download"],
         )
 
     console.info(table)
@@ -273,8 +266,9 @@ def ls_store_executor(gpu_type: Optional[str] = None,sort_by: str = "price_gpu")
 
 # Command Definition
 
+
 @click.command("ls")
-@click.argument("gpu_type", required=False)
+@click.argument("gpu_type", required=False, shell_complete=get_gpu_completions)
 @click.option(
     "--sort",
     "sort_by",
