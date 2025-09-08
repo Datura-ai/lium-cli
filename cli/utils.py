@@ -550,7 +550,7 @@ def ensure_backup_params(
         raise
 
 
-def setup_backup(lium, pod_name: str, backup_params: BackupParams) -> None:
+def setup_backup(lium, pod_name: str, backup_params: BackupParams, replace_existing: bool = True) -> None:
     """Setup backup for a pod using lium SDK.
     
     Args:
@@ -569,5 +569,13 @@ def setup_backup(lium, pod_name: str, backup_params: BackupParams) -> None:
             retention_days=backup_params.retention
         )
     except Exception as e:
+        if "Backup configuration already exists" in str(e) and replace_existing:
+            # remove existing one
+            backup_configs = lium.backup_list(pod_name)
+            for config in backup_configs:
+                lium.backup_delete(config.id)
+            # try again
+            return setup_backup(lium, pod_name, backup_params, replace_existing=False)
+
         console.error(f"Failed to setup backup: {e}")
         raise
