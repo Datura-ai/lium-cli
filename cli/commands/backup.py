@@ -1,16 +1,15 @@
 """Backup management commands."""
 
-import os
-import sys
+import json
+from datetime import datetime, timezone
 from typing import Optional, List
 
 import click
 from rich.prompt import Confirm
 from rich.table import Table
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
-from lium_sdk import Lium, BackupConfig, BackupLog, PodInfo
+from lium_sdk import Lium, BackupConfig
+from cli.config import config
 from ..utils import console, handle_errors, loading_status, ensure_config, parse_targets
 
 
@@ -76,9 +75,6 @@ def _format_retention(days: int) -> str:
 
 def _store_backup_configs(configs: List[BackupConfig]) -> None:
     """Store backup configs for index-based operations."""
-    import json
-    from cli.config import config
-    from datetime import datetime
     
     selection_data = {
         'timestamp': datetime.now().isoformat(),
@@ -104,8 +100,6 @@ def _store_backup_configs(configs: List[BackupConfig]) -> None:
 
 def _get_last_backup_configs() -> Optional[List[dict]]:
     """Retrieve the last backup configs selection."""
-    from cli.config import config
-    import json
     
     config_file = config.config_dir / "last_backup_configs.json"
     if config_file.exists():
@@ -285,7 +279,6 @@ def backup_trigger_command(pod_target: str, name: Optional[str]):
         return
     
     if not name:
-        from datetime import datetime
         name = f"manual-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
     
     with loading_status(f"Triggering backup '{name}' for pod '{pod_name}'", ""):
@@ -345,7 +338,6 @@ def backup_logs_command(pod_target: str):
         # Format started_at timestamp as relative time (like ps command)
         started_at = getattr(log, 'started_at', '')
         if started_at:
-            from datetime import datetime, timezone
             try:
                 if started_at.endswith('Z'):
                     dt = datetime.fromisoformat(started_at.replace('Z', '+00:00'))

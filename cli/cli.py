@@ -64,10 +64,7 @@ cli.add_command(fund_command)
 cli.add_command(backup_command)
 
 # Add backup alias
-import copy
-b_command = copy.deepcopy(backup_command)
-b_command.name = "b"
-cli.add_command(b_command)
+cli.add_command(backup_command, name="b")
 
 # Add compose placeholder (will be overridden if plugin is installed)
 # cli.add_command(compose_command)  # Disabled for beta.1

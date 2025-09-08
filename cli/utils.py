@@ -10,6 +10,7 @@ from rich.status import Status
 from lium_sdk import LiumError, ExecutorInfo, PodInfo,Lium
 from .themed_console import ThemedConsole
 from dataclasses import dataclass
+from rich.prompt import Prompt
 
 console = ThemedConsole()
 
@@ -483,8 +484,6 @@ def ensure_backup_params(
     """
     if not enabled:
         return BackupParams(enabled=False)
-    
-    from rich.prompt import Prompt
     
     final_path = path
     final_frequency = frequency 
