@@ -9,8 +9,42 @@ from datetime import datetime
 from rich.status import Status
 from lium_sdk import LiumError, ExecutorInfo, PodInfo,Lium
 from .themed_console import ThemedConsole
+from dataclasses import dataclass
 
 console = ThemedConsole()
+
+
+@dataclass
+class BackupParams:
+    """Backup configuration parameters."""
+    enabled: bool = False
+    path: str = "/root"
+    frequency: int = 6  # hours
+    retention: int = 7  # days
+    
+    def validate(self) -> None:
+        """Validate backup parameters."""
+        if not self.enabled:
+            return
+            
+        if not self.path.startswith('/'):
+            raise ValueError(f"Backup path must be absolute (start with /), got: {self.path}")
+        
+        if self.frequency <= 0:
+            raise ValueError(f"Backup frequency must be positive, got: {self.frequency}")
+        
+        if self.retention <= 0:
+            raise ValueError(f"Backup retention must be positive, got: {self.retention}")
+    
+    def display_info(self) -> str:
+        """Return formatted display info for backup configuration."""
+        if not self.enabled:
+            return "Backup: disabled"
+        
+        freq_display = f"{self.frequency}h" if self.frequency != 24 else "daily"
+        ret_display = f"{self.retention} days" if self.retention != 7 else "1 week"
+        
+        return f"Backup: {self.path} every {freq_display}, retained for {ret_display}"
 
 
 @contextmanager
@@ -426,3 +460,114 @@ def ensure_config():
     if not config.get('ssh.key_path'):
         # Setup SSH key
         setup_ssh_key()
+
+
+def ensure_backup_params(
+    enabled: bool = True, 
+    path: str = "/root", 
+    frequency: int = 6, 
+    retention: int = 7, 
+    skip_prompts: bool = False
+) -> BackupParams:
+    """Create and validate backup parameters, prompt if needed.
+    
+    Args:
+        enabled: Whether backup is enabled
+        path: Initial backup path
+        frequency: Initial frequency in hours  
+        retention: Initial retention in days
+        skip_prompts: If True, don't prompt user interactively
+        
+    Returns:
+        BackupParams object with validated parameters
+    """
+    if not enabled:
+        return BackupParams(enabled=False)
+    
+    from rich.prompt import Prompt
+    
+    final_path = path
+    final_frequency = frequency 
+    final_retention = retention
+    
+    # If using defaults and not skipping prompts, ask user
+    if not skip_prompts and path == "/root" and frequency == 6 and retention == 7:
+        console.info("Configuring automated backups...")
+        
+        # Path prompt
+        while True:
+            path_input = Prompt.ask(
+                "[cyan]Backup path[/cyan]",
+                default="/root"
+            )
+            if path_input.startswith('/'):
+                final_path = path_input
+                break
+            else:
+                console.error("Backup path must be absolute (start with /)")
+        
+        # Frequency prompt
+        frequency_input = Prompt.ask(
+            "[cyan]Backup frequency in hours[/cyan] (e.g., 6, 12, 24)",
+            default="6"
+        )
+        try:
+            final_frequency = int(frequency_input)
+            if final_frequency <= 0:
+                console.error("Frequency must be positive, using default 6 hours")
+                final_frequency = 6
+        except ValueError:
+            console.error("Invalid frequency, using default 6 hours")
+            final_frequency = 6
+        
+        # Retention prompt
+        retention_input = Prompt.ask(
+            "[cyan]Backup retention in days[/cyan] (e.g., 7, 14, 30)",
+            default="7"
+        )
+        try:
+            final_retention = int(retention_input)
+            if final_retention <= 0:
+                console.error("Retention must be positive, using default 7 days")
+                final_retention = 7
+        except ValueError:
+            console.error("Invalid retention, using default 7 days")
+            final_retention = 7
+    
+    # Create BackupParams and validate
+    backup_params = BackupParams(
+        enabled=True,
+        path=final_path,
+        frequency=final_frequency,
+        retention=final_retention
+    )
+    
+    try:
+        backup_params.validate()
+        return backup_params
+    except ValueError as e:
+        console.error(str(e))
+        raise
+
+
+def setup_backup(lium, pod_name: str, backup_params: BackupParams) -> None:
+    """Setup backup for a pod using lium SDK.
+    
+    Args:
+        lium: Lium SDK instance
+        pod_name: Name of the pod
+        backup_params: Backup configuration parameters
+    """
+    if not backup_params.enabled:
+        return
+    
+    try:
+        lium.backup_create(
+            pod=pod_name,
+            path=backup_params.path,
+            frequency_hours=backup_params.frequency,
+            retention_days=backup_params.retention
+        )
+    except Exception as e:
+        console.error(f"Failed to setup backup: {e}")
+        raise

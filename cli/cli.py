@@ -17,6 +17,7 @@ from .commands.theme import theme_command
 from .commands.config import config_command
 # from .commands.image import image_command  # Disabled for beta.1
 from .commands.fund import fund_command
+from .commands.backup import backup_command
 from .plugins import load_plugins
 
 
@@ -60,6 +61,13 @@ cli.add_command(theme_command)
 cli.add_command(config_command)
 # cli.add_command(image_command)  # Disabled for beta.1
 cli.add_command(fund_command)
+cli.add_command(backup_command)
+
+# Add backup alias
+import copy
+b_command = copy.deepcopy(backup_command)
+b_command.name = "b"
+cli.add_command(b_command)
 
 # Add compose placeholder (will be overridden if plugin is installed)
 # cli.add_command(compose_command)  # Disabled for beta.1
