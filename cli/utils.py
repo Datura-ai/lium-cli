@@ -570,9 +570,9 @@ def setup_backup(lium, pod_name: str, backup_params: BackupParams, replace_exist
     except Exception as e:
         if "Backup configuration already exists" in str(e) and replace_existing:
             # remove existing one
-            backup_configs = lium.backup_list(pod_name)
-            for config in backup_configs:
-                lium.backup_delete(config.id)
+            backup_config = lium.backup_config(pod=pod_name)
+            if backup_config:
+                lium.backup_delete(backup_config.id)
             # try again
             return setup_backup(lium, pod_name, backup_params, replace_existing=False)
         elif "API error 400" in str(e):

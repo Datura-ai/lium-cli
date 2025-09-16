@@ -180,7 +180,12 @@ def backup_ls_command(pod: Optional[str]):
             return
     
     with loading_status("Loading backup configurations", ""):
-        backup_configs = lium.backup_list(pod=resolved_pod)
+        if resolved_pod:
+            backup_config = lium.backup_config(pod=resolved_pod)
+            # Convert single config to list for consistent handling
+            backup_configs = [backup_config] if backup_config else []
+        else:
+            backup_configs = lium.backup_list()
     
     if not backup_configs:
         if pod:
