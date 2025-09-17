@@ -1,7 +1,7 @@
 """CLI utilities and decorators."""
 from functools import wraps
 from contextlib import contextmanager
-from typing import List, Dict, Any, Tuple, Optional
+from typing import List, Dict, Any, Tuple, Optional, Callable, TypeVar
 import json
 from pathlib import Path
 from cli.config import config
@@ -9,8 +9,72 @@ from datetime import datetime
 from rich.status import Status
 from lium_sdk import LiumError, ExecutorInfo, PodInfo,Lium
 from .themed_console import ThemedConsole
+from dataclasses import dataclass
+from rich.prompt import Prompt
+
+T = TypeVar("T")
 
 console = ThemedConsole()
+
+
+def _prompt_value(
+    prompt_text: str,
+    default_value: T,
+    value: T,
+    cast: Callable[[str], T],
+    validate: Callable[[T], bool],
+) -> T:
+    """Loop: Enter -> default, invalid -> reprompt until valid."""
+    default_str = str(default_value)
+    if value != default_value:
+        return value
+    while True:
+        raw = Prompt.ask(prompt_text, default=default_str)
+        # Empty/Enter -> use default
+        if raw.strip() == "":
+            return default_value
+        try:
+            value = cast(raw)
+        except Exception:
+            console.error("Invalid value, please try again")
+            continue
+        if not validate(value):
+            console.error("Invalid value, please try again")
+            continue
+        return value
+
+
+@dataclass
+class BackupParams:
+    """Backup configuration parameters."""
+    enabled: bool = False
+    path: str = config.default_backup_path
+    frequency: int = config.default_backup_frequency  # hours
+    retention: int = config.default_backup_retention  # days
+    
+    def validate(self) -> None:
+        """Validate backup parameters."""
+        if not self.enabled:
+            return
+            
+        if not self.path.startswith('/'):
+            raise ValueError(f"Backup path must be absolute (start with /), got: {self.path}")
+        
+        if self.frequency <= 0:
+            raise ValueError(f"Backup frequency must be positive, got: {self.frequency}")
+        
+        if self.retention <= 0:
+            raise ValueError(f"Backup retention must be positive, got: {self.retention}")
+    
+    def display_info(self) -> str:
+        """Return formatted display info for backup configuration."""
+        if not self.enabled:
+            return "Backup: disabled"
+        
+        freq_display = f"{self.frequency}h" if self.frequency != 24 else "daily"
+        ret_display = f"{self.retention} days" if self.retention != 7 else "1 week"
+        
+        return f"Backup: {self.path} every {freq_display}, retained for {ret_display}"
 
 
 @contextmanager
@@ -426,3 +490,97 @@ def ensure_config():
     if not config.get('ssh.key_path'):
         # Setup SSH key
         setup_ssh_key()
+
+
+def ensure_backup_params(
+    enabled: bool = True, 
+    path: str = config.default_backup_path, 
+    frequency: int = config.default_backup_frequency, 
+    retention: int = config.default_backup_retention, 
+    skip_prompts: bool = False
+) -> BackupParams:
+    """Create and validate backup parameters, prompt if needed.
+    
+    - If prompts run: Enter -> default, invalid -> ask again (uniform for all fields).
+    - If prompts are skipped: uses passed values as-is.
+    """
+    if not enabled:
+        return BackupParams(enabled=False)
+
+    final_path, final_frequency, final_retention = path, frequency, retention
+
+    # Keep original behavior: only prompt when using the built-in defaults and prompts not skipped
+    default_tuple = (config.default_backup_path, config.default_backup_frequency, config.default_backup_retention)
+    if not skip_prompts and (path, frequency, retention) == default_tuple:
+        console.info("Configuring automated backups...")
+
+        final_path = _prompt_value(
+            "[cyan]Backup path[/cyan]",
+            default_value=config.default_backup_path,
+            value=path,
+            cast=str,
+            validate=lambda p: isinstance(p, str) and p.startswith("/"),
+        )
+
+        final_frequency = _prompt_value(
+            "[cyan]Backup frequency in hours[/cyan] (e.g., 6, 12, 24)",
+            default_value=config.default_backup_frequency,
+            value=frequency,
+            cast=int,
+            validate=lambda x: isinstance(x, int) and x > 0,
+        )
+
+        final_retention = _prompt_value(
+            "[cyan]Backup retention in days[/cyan] (e.g., 7, 14, 30)",
+            default_value=config.default_backup_retention,
+            value=retention,
+            cast=int,
+            validate=lambda x: isinstance(x, int) and x > 0,
+        )
+
+    params = BackupParams(
+        enabled=True,
+        path=final_path,
+        frequency=final_frequency,
+        retention=final_retention,
+    )
+    # Let validate() raise with a clear message if something is wrong
+    params.validate()
+    return params
+
+
+def setup_backup(lium, pod_name: str, backup_params: BackupParams, replace_existing: bool = True) -> None:
+    """Setup backup for a pod using lium SDK.
+    
+    Args:
+        lium: Lium SDK instance
+        pod_name: Name of the pod
+        backup_params: Backup configuration parameters
+    """
+    if not backup_params.enabled:
+        return
+    
+    try:
+        lium.backup_create(
+            pod=pod_name,
+            path=backup_params.path,
+            frequency_hours=backup_params.frequency,
+            retention_days=backup_params.retention
+        )
+    except Exception as e:
+        if "Backup configuration already exists" in str(e) and replace_existing:
+            # remove existing one
+            backup_config = lium.backup_config(pod=pod_name)
+            if backup_config:
+                lium.backup_delete(backup_config.id)
+            # try again
+            return setup_backup(lium, pod_name, backup_params, replace_existing=False)
+        elif "API error 400" in str(e):
+            data_str = str(e).split("API error 400:")[-1].strip()
+            data = json.loads(data_str) if data_str else {}
+            if "message" in data:
+                console.error(f"Failed to setup backup: {data['message']}")
+                return
+
+        console.error(f"Failed to setup backup: {e}")
+        raise
