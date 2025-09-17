@@ -34,398 +34,431 @@ def _resolve_pod_target(lium: Lium, target: str) -> Optional[str]:
     return selected_pods[0].name or selected_pods[0].huid
 
 
-def _get_pod_name_for_backup_config(lium: Lium, config: BackupConfig) -> str:
-    """Get pod huid for backup config using pod_executor_id."""
-    all_pods = lium.ps()
-    
-    # Match by pod_executor_id (which is pod.id)
-    for pod in all_pods:
-        if pod.id == config.pod_executor_id:
-            return pod.huid or pod.name
-    
-    # If pod not found in active pods, return huid from config
-    return getattr(config, 'huid', 'Unknown')
-
-
-
-
-def _store_backup_configs(configs: List[BackupConfig]) -> None:
-    """Store backup configs for index-based operations."""
-    
-    selection_data = {
-        'timestamp': datetime.now().isoformat(),
-        'configs': []
-    }
-    
-    for backup_config in configs:
-        selection_data['configs'].append({
-            'id': backup_config.id,
-            'huid': backup_config.huid,
-            'pod_executor_id': backup_config.pod_executor_id,
-            'backup_path': backup_config.backup_path,
-            'backup_frequency_hours': backup_config.backup_frequency_hours,
-            'retention_days': backup_config.retention_days,
-            'is_active': backup_config.is_active
-        })
-    
-    # Store in config directory
-    config_file = config.config_dir / "last_backup_configs.json"
-    with open(config_file, 'w') as f:
-        json.dump(selection_data, f, indent=2)
-
-
-def _get_last_backup_configs() -> Optional[List[dict]]:
-    """Retrieve the last backup configs selection."""
-    
-    config_file = config.config_dir / "last_backup_configs.json"
-    if config_file.exists():
-        try:
-            with open(config_file, 'r') as f:
-                data = json.load(f)
-                return data.get('configs', [])
-        except (json.JSONDecodeError, IOError):
-            return None
-    return None
-
-
-def _resolve_backup_config_id(config_target: str) -> Optional[str]:
-    """Resolve backup config target (index or ID) to actual config ID."""
-    # If it looks like a UUID, return as-is
-    if len(config_target) >= 8 and not config_target.isdigit():
-        return config_target
-    
-    # Try as index
-    if config_target.isdigit():
-        last_configs = _get_last_backup_configs()
-        if not last_configs:
-            console.error("No recent backup configurations found. Please run 'lium backup ls' first.")
-            return None
-        
-        index = int(config_target)
-        if 1 <= index <= len(last_configs):
-            return last_configs[index - 1]['id']
-        else:
-            console.error(f"Index {config_target} is out of range (1..{len(last_configs)}). Try: lium backup ls")
-            return None
-    
-    return config_target
-
-
-
-@click.command("up")
-@click.argument("pod_target", required=True)
-@click.option("--path", default="/root", help="Backup path (default: /root)")
-@click.option("--frequency", type=int, default=6, help="Backup frequency in hours (default: 6)")
-@click.option("--retention", type=int, default=7, help="Backup retention in days (default: 7)")
-@click.option("--yes", "-y", is_flag=True, help="Skip interactive prompts")
+@click.command("show")
+@click.argument("pod_id")
 @handle_errors
-def backup_up_command(pod_target: str, path: str, frequency: int, retention: int, yes: bool):
-    """Set up automated backups for an existing pod.
+def bk_show_command(pod_id: str):
+    """Show backup configuration for a specific pod.
+    
+    \b
+    POD_ID: Pod identifier - can be:
+      - Pod name/ID (eager-wolf-aa)
+      - Index from 'lium ps' (1, 2, 3)
     
     \b
     Examples:
-      lium backup up pod-name                           # Interactive setup
-      lium backup up 1 --path /home --frequency 12     # By index with custom params
-      lium backup up pod-name --frequency 6 --retention 7 --path /root
+      lium bk show 1                 # Show backup config for pod #1
+      lium bk show eager-wolf-aa     # Show backup config by name
     """
-    from ..utils import ensure_backup_params, setup_backup, BackupParams
-    
     ensure_config()
     lium = Lium()
     
-    # Resolve pod target to actual pod name
-    pod_name = _resolve_pod_target(lium, pod_target)
+    # Resolve pod target
+    pod_name = _resolve_pod_target(lium, pod_id)
     if not pod_name:
         return
     
-    try:
-        # Ensure backup parameters (prompts if using defaults and not --yes)
-        backup_params = ensure_backup_params(
-            enabled=True,
-            path=path, 
-            frequency=frequency, 
-            retention=retention, 
-            skip_prompts=yes
-        )
-        
-        # Setup backup using SDK
-        setup_backup(lium, pod_name, backup_params)
-        
-    except ValueError as e:
-        # Validation errors are already logged by ensure_backup_params
+    console.info(f"Pod: {pod_id}")
+    
+    with loading_status("Loading backup config", ""):
+        backup_config = lium.backup_config(pod=pod_name)
+    
+    if not backup_config:
+        console.print("No backup configuration found.")
         return
+    
+    # Print config line
+    console.print(f"Config: path={backup_config.backup_path}, every={backup_config.backup_frequency_hours}h, keep={backup_config.retention_days}d")
+    
+    # Get backup logs for last/next backup info
+    with loading_status("Loading backup status", ""):
+        backup_logs = lium.backup_logs(pod=pod_name)
+    
+    if backup_logs and len(backup_logs) > 0:
+        last_log = backup_logs[0]  # Assuming most recent first
+        status = getattr(last_log, 'status', 'UNKNOWN').upper()
+        timestamp = getattr(last_log, 'created_at', 'Unknown')
+        backup_id = getattr(last_log, 'id', '')[:8] if getattr(last_log, 'id', None) else 'unknown'
+        console.print(f"Last Backup: {status} at {timestamp} (id={backup_id})")
+    
+    # Calculate next due time if we have frequency info
+    if hasattr(backup_config, 'next_backup_at') and backup_config.next_backup_at:
+        console.print(f"Next Due: {backup_config.next_backup_at}")
+    elif backup_logs and len(backup_logs) > 0:
+        # Calculate based on last backup + frequency
+        from datetime import datetime, timedelta
+        try:
+            last_time = datetime.fromisoformat(getattr(backup_logs[0], 'created_at', '').replace('Z', '+00:00'))
+            next_time = last_time + timedelta(hours=backup_config.backup_frequency_hours)
+            console.print(f"Next Due: {next_time.strftime('%Y-%m-%d %H:%M')}")
+        except:
+            pass
 
 
-
-@click.command("ls")
-@click.option("--pod", help="Filter by pod name")
+@click.command("rm")
+@click.argument("pod_id")
+@click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt")
 @handle_errors
-def backup_ls_command(pod: Optional[str]):
-    """List backup configurations.
+def bk_rm_command(pod_id: str, yes: bool):
+    """Remove backup configuration for a pod.
+    
+    \b
+    POD_ID: Pod identifier - can be:
+      - Pod name/ID (eager-wolf-aa)
+      - Index from 'lium ps' (1, 2, 3)
     
     \b
     Examples:
-      lium backup ls                    # List all backup configs
-      lium backup ls --pod my-pod       # List backups for specific pod
-      lium backup ls --pod 1            # List backups for pod #1 (from lium ps)
+      lium bk rm 1                  # Remove backup for pod #1
+      lium bk rm eager-wolf-aa      # Remove backup by name
+      lium bk rm 1 --yes            # Remove without confirmation
     """
     ensure_config()
     lium = Lium()
     
-    # Resolve pod parameter if provided
-    resolved_pod = None
-    if pod:
-        resolved_pod = _resolve_pod_target(lium, pod)
-        if not resolved_pod:
+    # Resolve pod target
+    pod_name = _resolve_pod_target(lium, pod_id)
+    if not pod_name:
+        return
+    
+    with loading_status("Loading backup config", ""):
+        backup_config = lium.backup_config(pod=pod_name)
+    
+    if not backup_config:
+        console.warning(f"No backup configuration found for pod '{pod_id}'")
+        return
+    
+    if not yes:
+        if not Confirm.ask(f"Remove backup configuration for pod '{pod_id}'?"):
+            console.warning("Cancelled")
             return
     
-    with loading_status("Loading backup configurations", ""):
-        if resolved_pod:
-            backup_config = lium.backup_config(pod=resolved_pod)
-            # Convert single config to list for consistent handling
-            backup_configs = [backup_config] if backup_config else []
-        else:
-            backup_configs = lium.backup_list()
+    with loading_status(f"Removing backup configuration", ""):
+        lium.backup_delete(backup_config.id)
     
-    if not backup_configs:
-        if pod:
-            console.warning(f"No backup configurations found for pod '{pod}'")
-        else:
-            console.warning("No backup configurations found")
-        return
-    
-    # Title with count
-    console.info(f"Backup Configurations  ({len(backup_configs)} active)")
-    
-    table = Table(
-        show_header=True,
-        header_style="dim",
-        box=None,        # no ASCII borders
-        pad_edge=False,
-        expand=False,    # don't expand to full width
-        padding=(0, 1),  # tight padding
-    )
-    
-    table.add_column("#", justify="right", width=3, no_wrap=True)
-    table.add_column("Pod", justify="left", width=18, overflow="ellipsis")
-    table.add_column("Path", justify="left", width=15, overflow="ellipsis")
-    table.add_column("Frequency", justify="left", width=10, no_wrap=True)
-    table.add_column("Retention", justify="left", width=10, no_wrap=True)
-    table.add_column("Status", justify="left", width=8, no_wrap=True)
-    table.add_column("ID", justify="left", width=8, overflow="ellipsis")
-    
-    for idx, config in enumerate(backup_configs, 1):
-        # Get proper pod name using helper function
-        pod_name = _get_pod_name_for_backup_config(lium, config)
-        path = config.backup_path
-        frequency = config.backup_frequency_hours
-        retention = config.retention_days
-        status = "Active" if config.is_active else "Inactive"
-        config_id_short = config.id[:8] if len(config.id) > 8 else config.id
-        
-        table.add_row(
-            str(idx),
-            pod_name,
-            path,
-            f"{frequency}h",
-            f"{retention}d",
-            status,
-            config_id_short
-        )
-    
-    console.print(table)
-    
-    # Store backup configs for index-based operations
-    _store_backup_configs(backup_configs)
+    console.success(f"Backup configuration removed for pod '{pod_id}'")
 
 
-@click.command("trigger")
-@click.argument("pod_target", required=True)
-@click.option("--name", help="Backup name")
+@click.command("set")
+@click.argument("pod_id")
+@click.option("--path", default="/root", help="Backup path (default: /root)")
+@click.option("--every", help="Backup frequency (e.g., 1h, 6h, 24h)")
+@click.option("--keep", help="Retention period (e.g., 1d, 7d, 30d)")
+@click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt")
 @handle_errors
-def backup_trigger_command(pod_target: str, name: Optional[str]):
-    """Trigger a manual backup for a pod.
+def bk_set_command(pod_id: str, path: str, every: str, keep: str, yes: bool):
+    """Set or update backup configuration for a pod.
+    
+    \b
+    POD_ID: Pod identifier - can be:
+      - Pod name/ID (eager-wolf-aa)
+      - Index from 'lium ps' (1, 2, 3)
     
     \b
     Examples:
-      lium backup trigger my-pod                    # Trigger backup with auto name
-      lium backup trigger 1 --name "before-update" # By index from 'lium ps'
+      lium bk set 1 --path /root --every 6h --keep 7d
+      lium bk set eager-wolf-aa --every 1h --keep 1d
     """
     ensure_config()
     lium = Lium()
     
-    # Resolve pod target to actual pod name
-    pod_name = _resolve_pod_target(lium, pod_target)
+    # Resolve pod target
+    pod_name = _resolve_pod_target(lium, pod_id)
     if not pod_name:
         return
     
+    # Parse frequency and retention
+    import re
+    
+    if every:
+        match = re.match(r'(\d+)([hd])', every)
+        if not match:
+            console.error("Invalid frequency format. Use format like '1h' or '24h'")
+            return
+        frequency_hours = int(match.group(1))
+        if match.group(2) == 'd':
+            frequency_hours *= 24
+    else:
+        frequency_hours = config.default_backup_frequency
+    
+    if keep:
+        match = re.match(r'(\d+)d', keep)
+        if not match:
+            console.error("Invalid retention format. Use format like '1d' or '7d'")
+            return
+        retention_days = int(match.group(1))
+    else:
+        retention_days = config.default_backup_retention
+    
+    # Check if backup already exists
+    with loading_status("Checking existing backup config", ""):
+        existing_config = lium.backup_config(pod=pod_name)
+    
+    if existing_config:
+        if not yes:
+            if not Confirm.ask(f"Backup configuration already exists. Replace it?"):
+                console.warning("Cancelled")
+                return
+        # Delete existing config
+        with loading_status("Removing existing configuration", ""):
+            lium.backup_delete(existing_config.id)
+    
+    # Create new backup config
+    with loading_status(f"Setting backup configuration", ""):
+        lium.backup_create(
+            pod=pod_name,
+            path=path,
+            frequency_hours=frequency_hours,
+            retention_days=retention_days
+        )
+    
+    console.success(f"Backup configured: path={path}, every={frequency_hours}h, keep={retention_days}d")
+
+
+@click.command("now")
+@click.argument("pod_id")
+@click.option("-n", "--name", help="Backup name (e.g., 'pre-release')")
+@click.option("-d", "--description", help="Backup description (e.g., 'before deploy')")
+@handle_errors
+def bk_now_command(pod_id: str, name: Optional[str], description: Optional[str]):
+    """Trigger an immediate backup for a pod.
+    
+    \b
+    POD_ID: Pod identifier - can be:
+      - Pod name/ID (eager-wolf-aa)
+      - Index from 'lium ps' (1, 2, 3)
+    
+    \b
+    Examples:
+      lium bk now 1                                    # Trigger backup for pod #1
+      lium bk now 1 -n "pre-release"                   # With custom name
+      lium bk now 1 -n "v2.0" -d "before deployment"   # With name and description
+    """
+    ensure_config()
+    lium = Lium()
+    
+    # Resolve pod target
+    pod_name = _resolve_pod_target(lium, pod_id)
+    if not pod_name:
+        return
+    
+    # Check if backup config exists
+    with loading_status("Checking backup config", ""):
+        backup_config = lium.backup_config(pod=pod_name)
+    
+    if not backup_config:
+        console.error(f"No backup configuration found for pod '{pod_id}'")
+        console.info("Tip: Set up backup first with 'lium bk set'")
+        return
+    
+    # Generate default name if not provided
     if not name:
+        from datetime import datetime
         name = f"manual-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
     
-    with loading_status(f"Triggering backup '{name}' for pod '{pod_name}'", ""):
+    # Use provided description or default
+    if not description:
+        description = "Manual backup triggered from CLI"
+    
+    with loading_status(f"Triggering backup '{name}'", ""):
         result = lium.backup_now(
             pod=pod_name,
             name=name,
-            description=f"Manual backup triggered from CLI"
+            description=description
         )
     
     console.success(f"Backup '{name}' triggered successfully")
 
 
 @click.command("logs")
-@click.argument("pod_target", required=True)
+@click.argument("pod_id", required=False)
+@click.option("--id", "backup_id", help="Specific backup ID to show details")
 @handle_errors
-def backup_logs_command(pod_target: str):
-    """Show backup logs for a pod.
+def bk_logs_command(pod_id: Optional[str], backup_id: Optional[str]):
+    """Show backup logs for a pod or specific backup.
+    
+    \b
+    POD_ID: Pod identifier - can be:
+      - Pod name/ID (eager-wolf-aa)
+      - Index from 'lium ps' (1, 2, 3)
     
     \b
     Examples:
-      lium backup logs my-pod        # By pod name
-      lium backup logs 1             # By index from 'lium ps'
+      lium bk logs 1                 # Show recent logs for pod #1
+      lium bk logs eager-wolf        # Show logs by pod name
+      lium bk logs --id abc123       # Show details for specific backup
     """
     ensure_config()
     lium = Lium()
     
-    # Resolve pod target to actual pod name
-    pod_name = _resolve_pod_target(lium, pod_target)
+    if backup_id:
+        # Show specific backup details
+        # Note: SDK may need a method to get single backup log by ID
+        console.info(f"Backup ID: {backup_id}")
+        # For now, we'll need to fetch all logs and filter
+        with loading_status("Loading backup details", ""):
+            # This is a workaround - ideally SDK would have backup_log(id=backup_id)
+            all_pods = lium.ps()
+            found = False
+            for pod_info in all_pods:
+                pod_name = pod_info.name or pod_info.huid
+                logs = lium.backup_logs(pod=pod_name)
+                for log in logs:
+                    if getattr(log, 'id', '').startswith(backup_id):
+                        found = True
+                        # Display detailed log info
+                        console.print(f"Pod: {pod_name}")
+                        console.print(f"Status: {getattr(log, 'status', 'Unknown')}")
+                        console.print(f"Created: {getattr(log, 'created_at', 'Unknown')}")
+                        if hasattr(log, 'completed_at') and log.completed_at:
+                            console.print(f"Completed: {log.completed_at}")
+                        if hasattr(log, 'size_bytes') and log.size_bytes:
+                            size_mb = log.size_bytes / (1024 * 1024)
+                            console.print(f"Size: {size_mb:.2f} MB")
+                        if hasattr(log, 'error') and log.error:
+                            console.print(f"Error: {log.error}", style="red")
+                        break
+                if found:
+                    break
+            
+            if not found:
+                console.error(f"Backup '{backup_id}' not found")
+        return
+    
+    if not pod_id:
+        console.error("Please specify either a pod ID or use --id for a specific backup")
+        return
+    
+    # Show logs for a specific pod
+    pod_name = _resolve_pod_target(lium, pod_id)
     if not pod_name:
         return
     
-    with loading_status(f"Loading backup logs for pod '{pod_name}'", ""):
-        logs = lium.backup_logs(pod=pod_name)
+    with loading_status(f"Loading backup logs for {pod_name}", ""):
+        backup_logs = lium.backup_logs(pod=pod_name)
     
-    if not logs:
-        console.warning(f"No backup logs found for pod '{pod_name}'")
+    if not backup_logs:
+        console.warning(f"No backup logs found for pod '{pod_id}'")
         return
     
-    # Title with count
-    console.info(f"Backup Logs for {pod_name}  ({len(logs)} entries)")
+    # Display logs in a table
+    from rich.table import Table
     
     table = Table(
         show_header=True,
         header_style="dim",
-        box=None,        # no ASCII borders
-        pad_edge=False,
-        expand=False,    # don't expand to full width
-        padding=(0, 1),  # tight padding
+        box=None,
+        padding=(0, 2)
     )
     
-    table.add_column("Started", justify="left", width=12, no_wrap=True)
-    table.add_column("Backup ID", justify="left", width=20, overflow="ellipsis")
-    table.add_column("Status", justify="left", width=10, no_wrap=True)
-    table.add_column("Duration", justify="right", width=8, no_wrap=True)
+    table.add_column("#", style="dim")
+    table.add_column("Backup ID", style="cyan")
+    table.add_column("Status")
+    table.add_column("Created")
+    table.add_column("Size", justify="right")
     
-    for log in logs:
-        # Format started_at timestamp as relative time (like ps command)
-        started_at = getattr(log, 'started_at', '')
-        if started_at:
-            try:
-                if started_at.endswith('Z'):
-                    dt = datetime.fromisoformat(started_at.replace('Z', '+00:00'))
-                else:
-                    dt = datetime.fromisoformat(started_at)
-                    if not dt.tzinfo:
-                        dt = dt.replace(tzinfo=timezone.utc)
-                
-                duration = datetime.now(timezone.utc) - dt
-                hours = duration.total_seconds() / 3600
-                
-                if hours < 1:
-                    mins = duration.total_seconds() / 60
-                    timestamp = f"{mins:.0f}m ago"
-                elif hours < 24:
-                    timestamp = f"{hours:.1f}h ago"
-                else:
-                    days = hours / 24
-                    timestamp = f"{days:.1f}d ago"
-            except:
-                timestamp = started_at[:16] if len(started_at) > 16 else started_at
-        else:
-            timestamp = '—'
-        
-        # Use huid as backup identifier
-        backup_id = getattr(log, 'huid', '—')
+    for idx, log in enumerate(backup_logs[:10], 1):  # Show last 10
+        backup_id_full = getattr(log, 'id', 'unknown')
         status = getattr(log, 'status', 'Unknown')
         
-        # Calculate duration
-        started = getattr(log, 'started_at', '')
-        completed = getattr(log, 'completed_at', '')
-        duration_str = '—'
-        if started and completed:
-            try:
-                start_dt = datetime.fromisoformat(started.replace('Z', '+00:00'))
-                end_dt = datetime.fromisoformat(completed.replace('Z', '+00:00'))
-                duration = end_dt - start_dt
-                total_seconds = duration.total_seconds()
-                if total_seconds >= 60:
-                    duration_str = f"{int(total_seconds//60)}m{int(total_seconds%60)}s"
-                else:
-                    duration_str = f"{int(total_seconds)}s"
-            except:
-                duration_str = '—'
-        
         # Color status
-        if status.lower() in ['success', 'completed']:
-            status_style = "green"
-        elif status.lower() in ['error', 'failed']:
-            status_style = "red"
+        if status.upper() == 'COMPLETED':
+            status = f"[green]{status}[/green]"
+        elif status.upper() in ['FAILED', 'ERROR']:
+            status = f"[red]{status}[/red]"
         else:
-            status_style = "yellow"
+            status = f"[yellow]{status}[/yellow]"
+        
+        created = getattr(log, 'created_at', 'Unknown')
+        if created != 'Unknown':
+            # Format timestamp for readability
+            try:
+                from datetime import datetime
+                dt = datetime.fromisoformat(created.replace('Z', '+00:00'))
+                created = dt.strftime('%Y-%m-%d %H:%M')
+            except:
+                pass
+        
+        size = ""
+        if hasattr(log, 'size_bytes') and log.size_bytes:
+            size_mb = log.size_bytes / (1024 * 1024)
+            size = f"{size_mb:.1f} MB"
         
         table.add_row(
-            timestamp,
-            backup_id,
-            f"[{status_style}]{status}[/{status_style}]",
-            duration_str
+            str(idx),
+            backup_id_full,
+            status,
+            created,
+            size
         )
     
     console.print(table)
 
 
-@click.command("rm")
-@click.argument("config_id", required=True)
+@click.command("restore")
+@click.argument("pod_id")
+@click.option("--id", "backup_id", required=True, help="Backup ID to restore")
+@click.option("--to", "restore_path", default="/root", help="Restore path (default: /root)")
 @click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt")
 @handle_errors
-def backup_rm_command(config_id: str, yes: bool):
-    """Remove backup configuration.
+def bk_restore_command(pod_id: str, backup_id: str, restore_path: str, yes: bool):
+    """Restore a backup to a pod.
+    
+    \b
+    POD_ID: Pod identifier - can be:
+      - Pod name/ID (eager-wolf-aa)
+      - Index from 'lium ps' (1, 2, 3)
     
     \b
     Examples:
-      lium backup rm 1              # Remove config by index (from backup ls)
-      lium backup rm config-123     # Remove config by ID
-      lium backup rm config-123 -y  # Skip confirmation
+      lium bk restore 1 --id <backup-uuid>              # Restore to default /root
+      lium bk restore 1 --id <backup-uuid> --to /home   # Restore to specific path
+      lium bk restore eager-wolf --id <backup-uuid> -y  # Skip confirmation
     """
     ensure_config()
     lium = Lium()
     
-    # Resolve config ID (support index or actual ID)
-    resolved_config_id = _resolve_backup_config_id(config_id)
-    if not resolved_config_id:
+    # Resolve pod target
+    pod_name = _resolve_pod_target(lium, pod_id)
+    if not pod_name:
         return
     
     if not yes:
-        if not Confirm.ask(f"Remove backup configuration '{config_id}'?", default=False):
+        from rich.prompt import Confirm
+        if not Confirm.ask(f"Restore backup to pod '{pod_id}' at {restore_path}?"):
             console.warning("Cancelled")
             return
     
-    with loading_status(f"Removing backup configuration '{config_id}'", ""):
-        result = lium.backup_delete(config_id=resolved_config_id)
+    with loading_status(f"Restoring backup to {restore_path}", ""):
+        result = lium.restore(
+            pod=pod_name,
+            backup_id=backup_id,
+            restore_path=restore_path
+        )
     
-    console.success(f"Backup configuration '{config_id}' removed")
+    console.success(f"Backup restored to {restore_path}")
 
 
-@click.group("backup")
-def backup_command():
-    """Manage pod backups.
+@click.group("bk")
+def bk_command():
+    """Manage pod backup configurations.
     
-    Automated backup system for your pods with configurable frequency and retention.
+    \b
+    Commands:
+      show    - Display backup configuration for a pod
+      rm      - Remove backup configuration
+      set     - Set or update backup configuration
+      now     - Trigger immediate backup
+      logs    - Show backup logs
+      restore - Restore a backup to a pod
     """
     pass
 
 
-# Add subcommands to the backup group
-backup_command.add_command(backup_up_command)
-backup_command.add_command(backup_ls_command)
-backup_command.add_command(backup_trigger_command)
-backup_command.add_command(backup_logs_command)
-backup_command.add_command(backup_rm_command)
+# Add subcommands to the bk group
+bk_command.add_command(bk_show_command)
+bk_command.add_command(bk_rm_command)
+bk_command.add_command(bk_set_command)
+bk_command.add_command(bk_now_command)
+bk_command.add_command(bk_logs_command)
+bk_command.add_command(bk_restore_command)
