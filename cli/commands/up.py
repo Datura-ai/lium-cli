@@ -8,21 +8,21 @@ import click
 from rich.prompt import Confirm, Prompt
 from rich.text import Text
 
+from ..completion import get_gpu_completions
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from lium_sdk import ExecutorInfo, Lium, Template
 from ..utils import (
     calculate_pareto_frontier,
-    console,
+    console, 
     get_pytorch_template_id,
     handle_errors,
     loading_status,
     resolve_executor_indices,
     timed_step_status,
     wait_ready_no_timeout,
-    ensure_config,
-    BackupParams,
-    setup_backup, ensure_backup_params
+    ensure_config
 )
 from .ssh import get_ssh_method_and_pod, ssh_to_pod
 
@@ -231,10 +231,9 @@ def _create_and_connect_pod(
     executor: ExecutorInfo,
     name: Optional[str],
     template_id: Optional[str],
-    interactive_mode: bool = False,
-    backup_params: Optional[BackupParams] = None
-) -> Optional[str]:
-    """Create pod and connect via SSH. Returns pod name."""
+    interactive_mode: bool = False
+) -> None:
+    """Create pod and connect via SSH."""
     # Set defaults
     if not name:
         name = executor.huid
@@ -247,7 +246,7 @@ def _create_and_connect_pod(
         if not template:
             template = select_template()
             if not template:
-                return None
+                return
         
         # Create pod
         with loading_status(f"Creating pod {name}", ""):
@@ -258,39 +257,23 @@ def _create_and_connect_pod(
             pod_id = pod_info.get('id') or pod_info.get('name', '')
             pod = wait_ready_no_timeout(lium, pod_id)
         
-        # Setup backup if enabled
-        if backup_params and backup_params.enabled:
-            setup_backup(lium, name, backup_params)
-        
         # Connect via SSH
         with loading_status("Connecting ssh"):
             ssh_cmd, pod = get_ssh_method_and_pod(name)
     else:
         # Auto mode with timed steps
-        total_steps = 4 if backup_params and backup_params.enabled else 3
-        
-        with timed_step_status(1, total_steps, "Renting machine"):
+        with timed_step_status(1, 3, "Renting machine"):
             template = lium.get_template(get_pytorch_template_id())
             pod_info = lium.up(executor_id=executor.id, pod_name=name, template_id=template.id)
         
-        with timed_step_status(2, total_steps, "Loading image"):
+        with timed_step_status(2, 3, "Loading image"):
             pod_id = pod_info.get('id') or pod_info.get('name', '')
             pod = wait_ready_no_timeout(lium, pod_id)
         
-        # Setup backup if enabled
-        if backup_params and backup_params.enabled:
-            with timed_step_status(3, total_steps, "Setting up backup"):
-                setup_backup(lium, name, backup_params)
-        
-        with timed_step_status(total_steps, total_steps, "Connecting ssh"):
+        with timed_step_status(3, 3, "Connecting ssh"):
             ssh_cmd, pod = get_ssh_method_and_pod(name)
     
     ssh_to_pod(ssh_cmd, pod)
-    return name
-
-
-
-
 
 
 @click.command("up")
@@ -299,13 +282,9 @@ def _create_and_connect_pod(
 @click.option("--template_id", "-t", help="Template ID")
 @click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt")
 @click.option("--interactive", "-i", is_flag=True, help="Interactive mode with template selection")
-@click.option("--gpu", help="Filter executors by GPU type (e.g., H200, A6000)")
+@click.option("--gpu", help="Filter executors by GPU type (e.g., H200, A6000)", shell_complete=get_gpu_completions)
 @click.option("--count", "-c", type=int, help="Number of GPUs per pod")
 @click.option("--country", help="Filter executors by ISO country code (e.g., US, FR)")
-@click.option("--backup", "-b", is_flag=True, help="Enable automated backups")
-@click.option("--backup-path", default="/root", help="Backup path (default: /root)")
-@click.option("--backup-frequency", type=int, default=6, help="Backup frequency in hours (default: 6)")
-@click.option("--backup-retention", type=int, default=7, help="Backup retention in days (default: 7)")
 @handle_errors
 def up_command(
     executor_id: Optional[str],
@@ -315,11 +294,7 @@ def up_command(
     interactive: bool,
     gpu: Optional[str],
     count: Optional[int],
-    country: Optional[str],
-    backup: bool,
-    backup_path: str,
-    backup_frequency: int,
-    backup_retention: int
+    country: Optional[str]
 ):
     """\b
     Create a new GPU pod on an executor.
@@ -336,8 +311,6 @@ def up_command(
       lium up --gpu A6000 -c 2      # Filter by GPU type and count
       lium up --country US          # Filter by country code
       lium up --gpu H200 --country FR  # Combine multiple filters
-      lium up --gpu H200 -b         # With automated backups (interactive setup)
-      lium up 1 --backup --backup-frequency 12 --backup-retention 14  # Custom backup
     """
     ensure_config()
     lium = Lium()
@@ -362,25 +335,9 @@ def up_command(
         if not executor:
             return
     
-    # Handle backup parameters
-    backup_params = ensure_backup_params(
-        enabled=backup,
-        path=backup_path,
-        frequency=backup_frequency,
-        retention=backup_retention,
-        skip_prompts=yes
-    )
-
     # Confirm creation
     if not _confirm_pod_creation(executor, skip_confirm=yes):
         return
     
     # Create pod and connect
-    pod_name = _create_and_connect_pod(
-        lium, 
-        executor, 
-        name, 
-        template_id, 
-        interactive_mode=interactive,
-        backup_params=backup_params
-    )
+    _create_and_connect_pod(lium, executor, name, template_id, interactive_mode=interactive)
