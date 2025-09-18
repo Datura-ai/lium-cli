@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.9"
 license = "MIT"
 authors = [
-    {name = "Lium", email = "support@lium.ai"}
+    {name = "Lium", email = "support@lium.io"}
 ]
 classifiers = [
   "Development Status :: 4 - Beta",

@@ -184,7 +184,7 @@ class ConfigManager:
         from .utils import console  # Local import to avoid circular dependency
         
         api_key = Prompt.ask(
-            "[cyan]Enter your Lium API key (get from https://lium.ai/api-keys)[/cyan]",
+            "[cyan]Enter your Lium API key (get from https://lium.io/api-keys)[/cyan]",
             password=True
         )
         
