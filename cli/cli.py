@@ -62,9 +62,7 @@ cli.add_command(theme_command)
 cli.add_command(config_command)
 # cli.add_command(image_command)  # Disabled for beta.1
 cli.add_command(fund_command)
-cli.add_command(bk_command)
-# Add backup as an alias for bk
-cli.add_command(bk_command, name="backup")
+cli.add_command(bk_command, name="bk")
 
 # Add compose placeholder (will be overridden if plugin is installed)
 # cli.add_command(compose_command)  # Disabled for beta.1

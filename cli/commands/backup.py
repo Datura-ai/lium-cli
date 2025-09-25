@@ -439,7 +439,7 @@ def bk_restore_command(pod_id: str, backup_id: str, restore_path: str, yes: bool
     console.success(f"Backup restored to {restore_path}")
 
 
-@click.group("bk")
+@click.group()
 def bk_command():
     """Manage pod backup configurations.
     
