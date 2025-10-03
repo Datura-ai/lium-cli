@@ -263,7 +263,9 @@ def _create_and_connect_pod(
     else:
         # Auto mode with timed steps
         with timed_step_status(1, 3, "Renting machine"):
-            template = lium.get_template(get_pytorch_template_id())
+            template = lium.default_docker_template(executor)
+            if not template:
+                template = lium.get_template(get_pytorch_template_id())
             pod_info = lium.up(executor_id=executor.id, pod_name=name, template_id=template.id)
         
         with timed_step_status(2, 3, "Loading image"):
