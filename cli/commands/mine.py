@@ -20,8 +20,7 @@ from rich.panel import Panel
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from lium_sdk import Lium  # noqa: F401  (kept to ensure SDK is importable)
-from ..utils import console, handle_errors, ensure_config, timed_step_status
+from ..utils import console, handle_errors, timed_step_status
 
 
 class PrerequisiteError(Exception):
@@ -385,7 +384,7 @@ def _gather_inputs(
 @click.option("--verbose", "-v", is_flag=True, help="Show the plan banner")
 @handle_errors
 def mine_command(hotkey, dir_, branch, update, skip_sysbox, no_start, auto, yes, verbose):
-    ensure_config()
+    # No need for ensure_config() - this command doesn't use Lium API
 
     if verbose:
         _show_setup_summary()   # keep the banner only when asked
