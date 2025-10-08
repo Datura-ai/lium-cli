@@ -191,9 +191,9 @@ def _setup_executor_env(
     executor_dir: str | Path,
     *,
     hotkey: str,
-    internal_port: int = 4000,
-    external_port: int = 4000,
-    ssh_port: int = 4122,
+    internal_port: int = 8080,
+    external_port: int = 8080,
+    ssh_port: int = 2200,
     ssh_public_port: str = "",
     port_range: str = "",
 ) -> bool:
@@ -357,17 +357,17 @@ def _gather_inputs(
         # Auto mode - use all defaults
         answers["hotkey"] = hotkey or ""
         answers.update(dict(
-            internal_port="4000",
-            external_port="4000",
-            ssh_port="4122",
+            internal_port="8080",
+            external_port="8080",
+            ssh_port="2200",
             ssh_public_port="",
             port_range=""
         ))
     else:
         # Show informative header about port configuration
         console.print("\n[bold]We're setting up how your executor can be reached.[/bold]\n")
-        console.print("• [cyan]Service port[/cyan] → where the executor's HTTP API listens (default 4000).")
-        console.print("• [cyan]Executor SSH port[/cyan] → used by validators to SSH into the container (default 4122).")
+        console.print("• [cyan]Service port[/cyan] → where the executor's HTTP API listens (default 8080).")
+        console.print("• [cyan]Executor SSH port[/cyan] → used by validators to SSH into the container (default 2200).")
         console.print("• [cyan]Public SSH port[/cyan] → only if your server is behind NAT and you forward a different public port.")
         console.print("• [cyan]Renting port range[/cyan] → optional, used only if your firewall limits outbound ports.\n")
         
@@ -387,10 +387,10 @@ def _gather_inputs(
                 console.warning("Port must be an integer between 1 and 65535.")
         
         # Service ports
-        service_port = ask_port("Service port (where the executor API will be reachable)", 4000)
+        service_port = ask_port("Service port (where the executor API will be reachable)", 8080)
         answers["internal_port"] = service_port
         answers["external_port"] = service_port  # Set external same as internal
-        answers["ssh_port"] = ask_port("Executor SSH port (used by validator to SSH into the container)", 4122)
+        answers["ssh_port"] = ask_port("Executor SSH port (used by validator to SSH into the container)", 2200)
         
         # Optional ports
         ssh_public = Prompt.ask("Public SSH port (optional, only if behind NAT and forwarding a different port)", default="")
@@ -495,7 +495,7 @@ def mine_command(hotkey, dir_, branch, update, no_start, auto, yes, verbose):
     public_ip = _get_public_ip()
     
     # Get the external port from answers
-    external_port = answers.get("external_port", "4000")
+    external_port = answers.get("external_port", "8080")
     
     console.success("\n✨ Executor setup complete!")
     console.print()
