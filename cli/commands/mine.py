@@ -31,6 +31,42 @@ class PrerequisiteError(Exception):
 # --------------------------
 # Helpers
 # --------------------------
+def _get_gpu_info() -> dict:
+    """Get GPU information using nvidia-smi."""
+    # Use nvidia-smi since pynvml may not be installed
+    code, out, err = _run("nvidia-smi --query-gpu=name,count --format=csv,noheader", capture=True)
+    if code != 0:
+        return {"gpu_count": 0, "gpu_type": None}
+    
+    lines = out.strip().split('\n')
+    if lines and lines[0]:
+        # First line has GPU name
+        gpu_name = lines[0].strip()
+        # Count the number of GPUs
+        gpu_count = len(lines)
+        return {"gpu_count": gpu_count, "gpu_type": gpu_name}
+    
+    return {"gpu_count": 0, "gpu_type": None}
+
+
+def _get_public_ip() -> str:
+    """Get the public IP address."""
+    # Try multiple services for redundancy
+    services = [
+        "https://api.ipify.org",
+        "https://icanhazip.com", 
+        "https://ifconfig.me/ip"
+    ]
+    
+    for service in services:
+        code, out, err = _run(f"curl -s {service}", capture=True)
+        if code == 0 and out.strip():
+            ip = out.strip()
+            # Basic IP validation
+            if re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", ip):
+                return ip
+    
+    return "Unable to determine"
 def _run(cmd: list | str, check=False, capture=False, cwd: Optional[str] = None) -> Tuple[int, str, str]:
     import subprocess
     if isinstance(cmd, list):
@@ -244,7 +280,7 @@ def _setup_executor_env(
     return True
 
 
-def _start_executor(executor_dir: Path, wait_secs: int = 60) -> bool:
+def _start_executor(executor_dir: Path, wait_secs: int = 180) -> bool:
     # Start using the default docker-compose.yml
     code, out, err = _run("docker compose up -d", capture=True, cwd=str(executor_dir))
     if code != 0:
@@ -435,4 +471,33 @@ def mine_command(hotkey, dir_, branch, update, no_start, auto, yes, verbose):
             console.info("  docker compose ps       # Check status")
             return
 
+    # Get executor details for summary
+    gpu_info = _get_gpu_info()
+    public_ip = _get_public_ip()
+    
+    # Get the external port from answers
+    external_port = answers.get("external_port", "4000")
+    
     console.success("\n✨ Miner setup complete!")
+    console.print()
+    
+    # Show executor details
+    from rich.table import Table
+    
+    details_table = Table(show_header=False, box=None)
+    details_table.add_column("Key", style="cyan")
+    details_table.add_column("Value", style="white")
+    
+    details_table.add_row("📍 Endpoint", f"{public_ip}:{external_port}")
+    details_table.add_row("🎮 GPU", f"{gpu_info['gpu_count']}×{gpu_info['gpu_type']}")
+    details_table.add_row("📂 Directory", str(executor_dir))
+    details_table.add_row("🔑 Hotkey", answers.get("hotkey", "Not set")[:20] + "..." if len(answers.get("hotkey", "")) > 20 else answers.get("hotkey", "Not set"))
+    
+    console.print(Panel(details_table, title="[bold]Executor Details[/bold]", border_style="green"))
+    
+    console.info("\nUseful commands:")
+    console.info(f"  cd {executor_dir}")
+    console.info("  docker compose ps       # Check status")
+    console.info("  docker compose logs -f  # View logs")
+    console.info("  docker compose down     # Stop executor")
+    console.info("  docker compose up -d    # Start executor")
