@@ -72,10 +72,10 @@ def _show_setup_summary():
     table.add_column("Step", style="cyan", no_wrap=True)
     table.add_column("What happens")
     table.add_row("1", "Clone or update compute-subnet repo")
-    table.add_row("2", "Prerequisite check (Docker, Compose, NVIDIA)")
-    table.add_row("3", "Configure executor .env (ports, hotkey)")
-    table.add_row("4", "Optionally install sysbox (GPU-in-container)")
-    table.add_row("5", "Start executor with docker compose and wait for health")
+    table.add_row("2", "Prerequisite check (Docker, NVIDIA GPU)")
+    table.add_row("3", "Install executor dependencies")
+    table.add_row("4", "Configure executor .env (ports, hotkey)")
+    table.add_row("5", "Start executor with docker compose")
     console.print(table)
     console.print()
 
@@ -362,13 +362,12 @@ def _gather_inputs(
 @click.option("--dir", "-d", "dir_", default="compute-subnet", help="Target directory")
 @click.option("--branch", "-b", default="main")
 @click.option("--update/--no-update", default=True)
-@click.option("--skip-sysbox", is_flag=True)
 @click.option("--no-start", is_flag=True)
 @click.option("--auto", "-a", is_flag=True)
 @click.option("--yes", "-y", is_flag=True)
 @click.option("--verbose", "-v", is_flag=True, help="Show the plan banner")
 @handle_errors
-def mine_command(hotkey, dir_, branch, update, skip_sysbox, no_start, auto, yes, verbose):
+def mine_command(hotkey, dir_, branch, update, no_start, auto, yes, verbose):
     # No need for ensure_config() - this command doesn't use Lium API
 
     if verbose:
@@ -404,7 +403,7 @@ def mine_command(hotkey, dir_, branch, update, skip_sysbox, no_start, auto, yes,
         return
 
     if answers["run_installer"]:
-        with timed_step_status(2, 5, "Installing executor tools"):
+        with timed_step_status(3, 5, "Installing executor tools"):
             if not _install_executor_tools(target_dir, noninteractive=True):
                 console.error("Installer failed."); return
 
@@ -413,7 +412,7 @@ def mine_command(hotkey, dir_, branch, update, skip_sysbox, no_start, auto, yes,
         console.error(f"Executor directory not found at {executor_dir}")
         return
 
-    with timed_step_status(3, 5, "Configuring environment"):
+    with timed_step_status(4, 5, "Configuring environment"):
         if not _setup_executor_env(
             str(executor_dir),
             hotkey=answers["hotkey"],
@@ -429,11 +428,6 @@ def mine_command(hotkey, dir_, branch, update, skip_sysbox, no_start, auto, yes,
             ssh_pub=answers["ssh_public_port"],
             rng=answers["port_range"],
         )
-
-    if not skip_sysbox:
-        with timed_step_status(4, 5, "Sysbox (optional)"):
-            # Just a placeholder step that always succeeds
-            pass
 
     if no_start:
         console.info("Skipping start (--no-start).")
