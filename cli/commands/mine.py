@@ -387,8 +387,9 @@ def _gather_inputs(
                 console.warning("Port must be an integer between 1 and 65535.")
         
         # Service ports
-        answers["internal_port"] = ask_port("Service port (where the executor API will be reachable)", 4000)
-        answers["external_port"] = ask_port("External service port (usually same as internal)", 4000)
+        service_port = ask_port("Service port (where the executor API will be reachable)", 4000)
+        answers["internal_port"] = service_port
+        answers["external_port"] = service_port  # Set external same as internal
         answers["ssh_port"] = ask_port("Executor SSH port (used by validator to SSH into the container)", 4122)
         
         # Optional ports
@@ -512,10 +513,3 @@ def mine_command(hotkey, dir_, branch, update, no_start, auto, yes, verbose):
     details_table.add_row("🔑 Hotkey", answers.get("hotkey", "Not set")[:20] + "..." if len(answers.get("hotkey", "")) > 20 else answers.get("hotkey", "Not set"))
     
     console.print(Panel(details_table, title="[bold]Executor Details[/bold]", border_style="green"))
-    
-    console.info("\nUseful commands:")
-    console.info(f"  cd {executor_dir}")
-    console.info("  docker compose ps       # Check status")
-    console.info("  docker compose logs -f  # View logs")
-    console.info("  docker compose down     # Stop executor")
-    console.info("  docker compose up -d    # Start executor")
