@@ -244,42 +244,40 @@ def _setup_executor_env(
     return True
 
 
-def _start_executor(executor_dir: Path, wait_secs: int = 45) -> bool:
+def _start_executor(executor_dir: Path, wait_secs: int = 60) -> bool:
     # Start using the default docker-compose.yml
     code, out, err = _run("docker compose up -d", capture=True, cwd=str(executor_dir))
     if code != 0:
         return False
 
-    # Wait for the executor service defined in docker-compose.app.yml to be healthy
+    # Wait for the executor service to be fully healthy
     start = time.time()
     
     while time.time() - start < wait_secs:
-        # Check the executor service from docker-compose.app.yml
-        code, out, _ = _run("docker compose -f docker-compose.app.yml ps executor --format json", capture=True, cwd=str(executor_dir))
+        # Get the container name/ID for the executor service
+        code, out, _ = _run("docker compose ps -q executor", capture=True, cwd=str(executor_dir))
+        if code != 0 or not out.strip():
+            time.sleep(2)
+            continue
+            
+        container_id = out.strip()
+        
+        # Check the health status directly using docker inspect
+        code, out, _ = _run(f"docker inspect --format='{{{{.State.Health.Status}}}}' {container_id}", capture=True)
         
         if code == 0 and out.strip():
-            try:
-                # Parse the JSON output
-                service_info = json.loads(out.strip())
-                # Check if it's a list (newer docker) or single object
-                if isinstance(service_info, list) and service_info:
-                    service_info = service_info[0]
-                
-                # Check status - looking for "Up" and optionally "(healthy)"
-                status = service_info.get("Status", "").lower()
-                state = service_info.get("State", "").lower()
-                
-                # Service is considered ready if it's running/up
-                # Some versions use "Status" others use "State"
-                if "running" in state or "up" in status or "healthy" in status:
-                    return True
-            except Exception:
-                # Fallback to checking if container is at least running
-                code2, out2, _ = _run("docker compose -f docker-compose.app.yml ps executor", capture=True, cwd=str(executor_dir))
-                if code2 == 0 and "running" in out2.lower():
+            health_status = out.strip()
+            # Only return true if explicitly healthy
+            if health_status == "healthy":
+                return True
+            # If there's no healthcheck defined, check if container is at least running
+            elif health_status == "<no value>":
+                code2, out2, _ = _run(f"docker inspect --format='{{{{.State.Status}}}}' {container_id}", capture=True)
+                if code2 == 0 and out2.strip() == "running":
+                    # No healthcheck defined, but container is running - consider it ready
                     return True
         
-        time.sleep(2)
+        time.sleep(3)
     
     return False
 
