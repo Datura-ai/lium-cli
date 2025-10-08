@@ -104,7 +104,7 @@ def _validate_hotkey(hotkey: str) -> bool:
 
 
 def _show_setup_summary():
-    table = Table(title="Miner Setup Plan", show_header=False, box=box.SIMPLE_HEAVY)
+    table = Table(title="Executor Setup Plan", show_header=False, box=box.SIMPLE_HEAVY)
     table.add_column("Step", style="cyan", no_wrap=True)
     table.add_column("What happens")
     table.add_row("1", "Clone or update compute-subnet repo")
@@ -497,7 +497,7 @@ def mine_command(hotkey, dir_, branch, update, no_start, auto, yes, verbose):
     # Get the external port from answers
     external_port = answers.get("external_port", "4000")
     
-    console.success("\n✨ Miner setup complete!")
+    console.success("\n✨ Executor setup complete!")
     console.print()
     
     # Show executor details
