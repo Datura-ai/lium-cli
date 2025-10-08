@@ -245,49 +245,50 @@ def _setup_executor_env(
 
 
 def _start_executor(executor_dir: Path, wait_secs: int = 45) -> bool:
+    # Use the app compose file if it exists
+    compose_file = executor_dir / "docker-compose.app.yml"
+    if compose_file.exists():
+        compose_cmd = "docker compose -f docker-compose.app.yml"
+    else:
+        compose_cmd = "docker compose"
+    
     # Bring up
-    code, out, err = _run("docker compose up -d", capture=True, cwd=str(executor_dir))
+    code, out, err = _run(f"{compose_cmd} up -d", capture=True, cwd=str(executor_dir))
     if code != 0:
         return False
 
-    # Wait for health
+    # Wait specifically for the executor service to be healthy
     start = time.time()
-    healthy = False
-    service_names = []
-
-    # Discover services
-    _, out, _ = _run("docker compose ps --format json", capture=True, cwd=str(executor_dir))
-    try:
-        entries = json.loads(out)
-        service_names = [e.get("Service") for e in entries if e.get("Service")]
-    except Exception:
-        pass
-
+    
     while time.time() - start < wait_secs:
-        all_ok = True
-        for svc in service_names or []:
-            code, out, _ = _run(f"docker inspect --format='{{{{json .State.Health}}}}' $(docker compose ps -q {svc})", capture=True, cwd=str(executor_dir))
-            if code != 0 or not out.strip():
-                # No health defined; just check running
-                code2, out2, _ = _run(f"docker compose ps {svc}", capture=True, cwd=str(executor_dir))
-                if "running" not in out2:
-                    all_ok = False
-                    break
-                continue
+        # Check the executor service specifically
+        code, out, _ = _run(f"{compose_cmd} ps executor --format json", capture=True, cwd=str(executor_dir))
+        
+        if code == 0 and out.strip():
             try:
-                health = json.loads(out.strip())
-                if not health or health.get("Status") != "healthy":
-                    all_ok = False
-                    break
+                # Parse the JSON output
+                service_info = json.loads(out.strip())
+                # Check if it's a list (newer docker) or single object
+                if isinstance(service_info, list) and service_info:
+                    service_info = service_info[0]
+                
+                # Check status - looking for "Up" and optionally "(healthy)"
+                status = service_info.get("Status", "").lower()
+                state = service_info.get("State", "").lower()
+                
+                # Service is considered ready if it's running/up
+                # Some versions use "Status" others use "State"
+                if "running" in state or "up" in status or "healthy" in status:
+                    return True
             except Exception:
-                all_ok = False
-                break
-        if all_ok and service_names:
-            healthy = True
-            break
+                # Fallback to checking if container is at least running
+                code2, out2, _ = _run(f"{compose_cmd} ps executor", capture=True, cwd=str(executor_dir))
+                if code2 == 0 and "running" in out2.lower():
+                    return True
+        
         time.sleep(2)
-
-    return healthy
+    
+    return False
 
 def _apply_env_overrides(
     executor_dir: Path,
