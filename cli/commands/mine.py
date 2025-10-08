@@ -513,3 +513,19 @@ def mine_command(hotkey, dir_, branch, update, no_start, auto, yes, verbose):
     details_table.add_row("🔑 Hotkey", answers.get("hotkey", "Not set")[:20] + "..." if len(answers.get("hotkey", "")) > 20 else answers.get("hotkey", "Not set"))
     
     console.print(Panel(details_table, title="[bold]Executor Details[/bold]", border_style="green"))
+    
+    # Generate URL for adding executor via web interface
+    gpu_type = gpu_info.get('gpu_type', 'Unknown').replace(' ', '_')
+    gpu_count = gpu_info.get('gpu_count', 0)
+    
+    # Build URL with query parameters
+    add_url = (
+        f"/executors?action=add"
+        f"&gpu_type={gpu_type}"
+        f"&ip_address={public_ip}"
+        f"&port={external_port}"
+        f"&gpu_count={gpu_count}"
+    )
+    
+    console.print("\n[bold cyan]Add this executor via web interface:[/bold cyan]")
+    console.print(f"[yellow]{add_url}[/yellow]\n")
