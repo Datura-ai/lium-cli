@@ -349,16 +349,13 @@ def _gather_inputs(
     """Ask everything up-front; return a dict of resolved inputs."""
     answers = {}
 
-    # Always proceed with setup - no need to ask
     # Always install dependencies and start - that's the point of the command
     answers["run_installer"] = True
     answers["start_now"] = True
 
-    if not hotkey and not auto:
-        hotkey = Prompt.ask("Miner hotkey SS58 address")
-    answers["hotkey"] = hotkey or ""
-
     if auto:
+        # Auto mode - use all defaults
+        answers["hotkey"] = hotkey or ""
         answers.update(dict(
             internal_port="4000",
             external_port="4000",
@@ -367,17 +364,38 @@ def _gather_inputs(
             port_range=""
         ))
     else:
+        # Show informative header about port configuration
+        console.print("\n[bold]We're setting up how your executor can be reached.[/bold]\n")
+        console.print("• [cyan]Service port[/cyan] → where the executor's HTTP API listens (default 4000).")
+        console.print("• [cyan]Executor SSH port[/cyan] → used by validators to SSH into the container (default 4122).")
+        console.print("• [cyan]Public SSH port[/cyan] → only if your server is behind NAT and you forward a different public port.")
+        console.print("• [cyan]Renting port range[/cyan] → optional, used only if your firewall limits outbound ports.\n")
+        
+        if not hotkey:
+            hotkey = Prompt.ask("Miner hotkey SS58 address")
+        else:
+            console.print(f"Miner hotkey SS58 address: [yellow]{hotkey}[/yellow]\n")
+        answers["hotkey"] = hotkey or ""
+
         def ask_port(label, default):
             while True:
                 v = Prompt.ask(label, default=str(default))
+                if not v:  # Allow empty for optional ports
+                    return ""
                 if v.isdigit() and 1 <= int(v) <= 65535:
                     return v
                 console.warning("Port must be an integer between 1 and 65535.")
-        answers["internal_port"] = ask_port("Internal port", 4000)
-        answers["external_port"] = ask_port("External port", 4000)
-        answers["ssh_port"] = ask_port("SSH port", 4122)
-        answers["ssh_public_port"] = Prompt.ask("SSH public port (optional)", default="")
-        answers["port_range"] = Prompt.ask("Port range (optional, e.g. 2000-2005 or 2000,2001)", default="")
+        
+        # Service ports
+        answers["internal_port"] = ask_port("Service port (where the executor API will be reachable)", 4000)
+        answers["external_port"] = ask_port("External service port (usually same as internal)", 4000)
+        answers["ssh_port"] = ask_port("Executor SSH port (used by validator to SSH into the container)", 4122)
+        
+        # Optional ports
+        ssh_public = Prompt.ask("Public SSH port (optional, only if behind NAT and forwarding a different port)", default="")
+        answers["ssh_public_port"] = ssh_public if ssh_public and ssh_public.isdigit() else ""
+        
+        answers["port_range"] = Prompt.ask("Renting port range (optional, e.g. 2000-2005 or 2000,2001). Leave empty if all ports open", default="")
 
     return answers
 
