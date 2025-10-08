@@ -142,17 +142,13 @@ def _check_prereqs(interactive: bool) -> bool:
 def _install_executor_tools(compute_dir: Path, noninteractive: bool) -> bool:
     script = compute_dir / "scripts" / "install_executor_on_ubuntu_tight.sh"
     if not script.exists():
-        console.warning("Executor install script not found; skipping tool installation.")
+        # Skip silently if script not found
         return True
 
-    if noninteractive or Confirm.ask("Run installer for executor dependencies?", default=True):
-        _run(f"chmod +x {script}", capture=True)
-        code, out, err = _run(str(script), capture=True)
-        if code != 0:
-            console.error(f"Installer failed:\n{err}")
-            return False
-        console.success("Executor dependencies installed.")
-    return True
+    _run(f"chmod +x {script}", capture=True)
+    code, out, err = _run(str(script), capture=True)
+    # Don't print anything - let the spinner handle the output
+    return code == 0
 
 
 def _setup_executor_env(
@@ -244,21 +240,17 @@ def _setup_executor_env(
             out_lines.append(f"{k}={v}")
 
     env_f.write_text("\n".join(map(str, out_lines)) + "\n")
-    console.success(f"Wrote {env_f}")
+    # Don't print anything - let the spinner handle the output
     return True
 
 
 def _start_executor(executor_dir: Path, wait_secs: int = 45) -> bool:
     # Bring up
-    console.info("Starting executor with docker compose...")
     code, out, err = _run("docker compose up -d", capture=True, cwd=str(executor_dir))
     if code != 0:
-        console.error(f"Failed to start executor:\n{err}")
         return False
-    console.success("Compose stack started.")
 
     # Wait for health
-    console.info("Waiting for containers to report healthy...")
     start = time.time()
     healthy = False
     service_names = []
@@ -274,7 +266,7 @@ def _start_executor(executor_dir: Path, wait_secs: int = 45) -> bool:
     while time.time() - start < wait_secs:
         all_ok = True
         for svc in service_names or []:
-            code, out, _ = _run(f"docker inspect --format='{{{{json .State.Health}}}}' $(docker compose ps -q {svc})", capture=True)
+            code, out, _ = _run(f"docker inspect --format='{{{{json .State.Health}}}}' $(docker compose ps -q {svc})", capture=True, cwd=str(executor_dir))
             if code != 0 or not out.strip():
                 # No health defined; just check running
                 code2, out2, _ = _run(f"docker compose ps {svc}", capture=True, cwd=str(executor_dir))
@@ -295,14 +287,7 @@ def _start_executor(executor_dir: Path, wait_secs: int = 45) -> bool:
             break
         time.sleep(2)
 
-    if healthy:
-        console.success("Executor is healthy ✅")
-        return True
-
-    console.warning("Health not confirmed. Showing recent logs:")
-    _run("docker compose logs --since=2m --tail=200", check=False, capture=False, cwd=str(executor_dir))
-    console.print(Panel.fit("If this keeps failing, run:  docker compose logs -f", style="yellow"))
-    return False
+    return healthy
 
 def _apply_env_overrides(
     executor_dir: Path,
@@ -447,14 +432,21 @@ def mine_command(hotkey, dir_, branch, update, skip_sysbox, no_start, auto, yes,
 
     if not skip_sysbox:
         with timed_step_status(4, 5, "Sysbox (optional)"):
-            console.info("Skipping auto-install; see docs if needed.")
+            # Just a placeholder step that always succeeds
+            pass
 
     if no_start:
         console.info("Skipping start (--no-start).")
     else:
         with timed_step_status(5, 5, "Starting executor"):
             started = _start_executor(executor_dir)
-            if not started:
-                return
+        
+        if not started:
+            console.warning("⚠️  Executor started but health check failed")
+            console.info("\nTroubleshooting:")
+            console.info(f"  cd {executor_dir}")
+            console.info("  docker compose logs -f  # View logs")
+            console.info("  docker compose ps       # Check status")
+            return
 
     console.success("\n✨ Miner setup complete!")
