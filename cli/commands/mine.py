@@ -291,7 +291,7 @@ def _start_executor(executor_dir: Path, wait_secs: int = 180) -> bool:
     
     while time.time() - start < wait_secs:
         # Get the container name/ID for the executor service
-        code, out, _ = _run("docker compose ps -q executor", capture=True, cwd=str(executor_dir))
+        code, out, _ = _run("docker compose -f docker-compose.app.yml ps -q executor", capture=True, cwd=str(executor_dir))
         if code != 0 or not out.strip():
             time.sleep(2)
             continue
