@@ -176,7 +176,7 @@ def _check_prereqs(interactive: bool) -> bool:
 
 
 def _install_executor_tools(compute_dir: Path, noninteractive: bool) -> bool:
-    script = compute_dir / "scripts" / "install_executor_on_ubuntu_tight.sh"
+    script = compute_dir / "scripts" / "install_executor_on_ubuntu.sh"
     if not script.exists():
         # Skip silently if script not found
         return True
