@@ -245,24 +245,17 @@ def _setup_executor_env(
 
 
 def _start_executor(executor_dir: Path, wait_secs: int = 45) -> bool:
-    # Use the app compose file if it exists
-    compose_file = executor_dir / "docker-compose.app.yml"
-    if compose_file.exists():
-        compose_cmd = "docker compose -f docker-compose.app.yml"
-    else:
-        compose_cmd = "docker compose"
-    
-    # Bring up
-    code, out, err = _run(f"{compose_cmd} up -d", capture=True, cwd=str(executor_dir))
+    # Start using the default docker-compose.yml
+    code, out, err = _run("docker compose up -d", capture=True, cwd=str(executor_dir))
     if code != 0:
         return False
 
-    # Wait specifically for the executor service to be healthy
+    # Wait for the executor service defined in docker-compose.app.yml to be healthy
     start = time.time()
     
     while time.time() - start < wait_secs:
-        # Check the executor service specifically
-        code, out, _ = _run(f"{compose_cmd} ps executor --format json", capture=True, cwd=str(executor_dir))
+        # Check the executor service from docker-compose.app.yml
+        code, out, _ = _run("docker compose -f docker-compose.app.yml ps executor --format json", capture=True, cwd=str(executor_dir))
         
         if code == 0 and out.strip():
             try:
@@ -282,7 +275,7 @@ def _start_executor(executor_dir: Path, wait_secs: int = 45) -> bool:
                     return True
             except Exception:
                 # Fallback to checking if container is at least running
-                code2, out2, _ = _run(f"{compose_cmd} ps executor", capture=True, cwd=str(executor_dir))
+                code2, out2, _ = _run("docker compose -f docker-compose.app.yml ps executor", capture=True, cwd=str(executor_dir))
                 if code2 == 0 and "running" in out2.lower():
                     return True
         
