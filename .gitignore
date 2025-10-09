@@ -178,3 +178,4 @@ notebooks/
 
 # Claude Code configuration
 CLAUDE.md
+.python-version

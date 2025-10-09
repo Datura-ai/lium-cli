@@ -112,6 +112,7 @@ def _show_setup_summary():
     table.add_row("3", "Install executor dependencies")
     table.add_row("4", "Configure executor .env (ports, hotkey)")
     table.add_row("5", "Start executor with docker compose")
+    table.add_row("6", "Validate executor configuration")
     console.print(table)
     console.print()
 
@@ -401,6 +402,106 @@ def _gather_inputs(
     return answers
 
 
+def _validate_executor(executor_dir: Path, answers: dict, public_ip: str) -> bool:
+    """
+    Validate the executor configuration by connecting via SSH and running checks.
+    Returns True if all critical checks pass, False otherwise.
+    """
+    try:
+        # Import validation module
+        import asyncio
+
+        from validators import validate_executor
+        from validators.models import CheckStatus
+
+        # Get SSH connection info
+        ssh_port = int(answers.get("ssh_port", "2200"))
+
+        # Find SSH private key for the executor
+        # The executor should have generated an SSH key pair
+        executor_ssh_key = executor_dir / ".ssh" / "id_rsa"
+        if not executor_ssh_key.exists():
+            # Try common SSH key locations
+            home = Path.home()
+            for key_path in [home / ".ssh/id_rsa", home / ".ssh/id_ed25519"]:
+                if key_path.exists():
+                    executor_ssh_key = key_path
+                    break
+
+        if not executor_ssh_key.exists():
+            console.warning("SSH key not found, skipping validation")
+            return True
+
+        # Run validation
+        result = asyncio.run(validate_executor(
+            host="localhost",
+            username="root",
+            private_key_path=str(executor_ssh_key),
+            port=ssh_port,
+            root_dir="/root/app",
+            python_path="/usr/bin/python3",
+            run_matrix_test=False,  # Skip slow matrix test for quick setup validation
+        ))
+
+        # Display compact results
+        console.print()
+        _display_validation_summary(result)
+        console.print()
+
+        return result.is_ready_to_join()
+
+    except ImportError:
+        # Validation module not available, skip silently
+        return True
+    except Exception as e:
+        console.warning(f"Validation check failed: {e}")
+        return True  # Don't block setup if validation fails
+
+
+def _display_validation_summary(result):
+    """Display a compact validation summary."""
+    from validators.models import CheckStatus
+
+    stats = result.get_summary_stats()
+
+    # Status indicator
+    if result.is_ready_to_join():
+        status_icon = "✓"
+        status_color = "green"
+        status_text = "Ready to join subnet"
+    else:
+        status_icon = "✗"
+        status_color = "red"
+        status_text = "Configuration issues detected"
+
+    console.print(f"[{status_color}]{status_icon} Validation: {status_text}[/{status_color}]")
+
+    # Quick stats
+    console.print(
+        f"  [green]{stats['passed']} passed[/green] · "
+        f"[red]{stats['failed']} failed[/red] · "
+        f"[yellow]{stats['warnings']} warnings[/yellow]"
+    )
+
+    # Show critical failures
+    failed = result.get_failed_checks()
+    if failed:
+        console.print("\n  [bold red]Critical issues:[/bold red]")
+        for check in failed[:3]:  # Show max 3 failures
+            console.print(f"    • {check.name}: {check.message}")
+        if len(failed) > 3:
+            console.print(f"    ... and {len(failed) - 3} more")
+
+    # Show important warnings
+    warnings = result.get_warnings()
+    if warnings:
+        console.print("\n  [bold yellow]Warnings:[/bold yellow]")
+        for check in warnings[:2]:  # Show max 2 warnings
+            console.print(f"    • {check.name}: {check.message}")
+        if len(warnings) > 2:
+            console.print(f"    ... and {len(warnings) - 2} more")
+
+
 # --------------------------
 # CLI
 # --------------------------
@@ -479,9 +580,9 @@ def mine_command(hotkey, dir_, branch, update, no_start, auto, yes, verbose):
     if no_start:
         console.info("Skipping start (--no-start).")
     else:
-        with timed_step_status(5, 5, "Starting executor"):
+        with timed_step_status(5, 6, "Starting executor"):
             started = _start_executor(executor_dir)
-        
+
         if not started:
             console.warning("⚠️  Executor started but health check failed")
             console.info("\nTroubleshooting:")
@@ -489,6 +590,14 @@ def mine_command(hotkey, dir_, branch, update, no_start, auto, yes, verbose):
             console.info("  docker compose logs -f  # View logs")
             console.info("  docker compose ps       # Check status")
             return
+
+        # Step 6: Validate executor configuration
+        with timed_step_status(6, 6, "Validating executor"):
+            validation_result = _validate_executor(executor_dir, answers, public_ip)
+
+        if not validation_result:
+            console.warning("⚠️  Executor validation completed with warnings")
+            console.info("Review the validation report above for details")
 
     # Get executor details for summary
     gpu_info = _get_gpu_info()
