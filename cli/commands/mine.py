@@ -33,14 +33,14 @@ class PrerequisiteError(Exception):
 # --------------------------
 def _get_gpu_info() -> dict:
     """Get GPU information using nvidia-smi."""
-    # Use nvidia-smi since pynvml may not be installed
-    code, out, err = _run("nvidia-smi --query-gpu=name,count --format=csv,noheader", capture=True)
+    # Query only the GPU name field to get clean output
+    code, out, err = _run("nvidia-smi --query-gpu=name --format=csv,noheader", capture=True)
     if code != 0:
         return {"gpu_count": 0, "gpu_type": None}
     
     lines = out.strip().split('\n')
     if lines and lines[0]:
-        # First line has GPU name
+        # Get the first GPU's name (all GPUs in a system are typically the same model)
         gpu_name = lines[0].strip()
         # Count the number of GPUs
         gpu_count = len(lines)
@@ -515,17 +515,19 @@ def mine_command(hotkey, dir_, branch, update, no_start, auto, yes, verbose):
     console.print(Panel(details_table, title="[bold]Executor Details[/bold]", border_style="green"))
     
     # Generate URL for adding executor via web interface
-    gpu_type = gpu_info.get('gpu_type', 'Unknown').replace(' ', '_')
-    gpu_count = gpu_info.get('gpu_count', 0)
+    from urllib.parse import urlencode
     
-    # Build URL with query parameters
-    add_url = (
-        f"/executors?action=add"
-        f"&gpu_type={gpu_type}"
-        f"&ip_address={public_ip}"
-        f"&port={external_port}"
-        f"&gpu_count={gpu_count}"
-    )
+    # Build query parameters
+    params = {
+        'action': 'add',
+        'gpu_type': gpu_info.get('gpu_type', 'Unknown'),
+        'ip_address': public_ip,
+        'port': external_port,
+        'gpu_count': gpu_info.get('gpu_count', 0)
+    }
+    
+    # Build full URL with proper encoding
+    add_url = f"https://provider.lium.io/executors?{urlencode(params)}"
     
     console.print("\n[bold cyan]Add this executor via web interface:[/bold cyan]")
     console.print(f"[yellow]{add_url}[/yellow]\n")
