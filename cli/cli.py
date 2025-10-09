@@ -19,6 +19,7 @@ from .commands.config import config_command
 # from .commands.image import image_command  # Disabled for beta.1
 from .commands.fund import fund_command
 from .commands.backup import bk_command
+from .commands.mine import mine_command
 from .plugins import load_plugins
 
 
@@ -63,6 +64,7 @@ cli.add_command(config_command)
 # cli.add_command(image_command)  # Disabled for beta.1
 cli.add_command(fund_command)
 cli.add_command(bk_command, name="bk")
+cli.add_command(mine_command)
 
 # Add compose placeholder (will be overridden if plugin is installed)
 # cli.add_command(compose_command)  # Disabled for beta.1
