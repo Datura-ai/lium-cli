@@ -5,27 +5,18 @@ import re
 import sys
 import json
 import time
-import socket
 import shutil
-import platform
 from pathlib import Path
 
 from typing import Optional, Tuple
 
 import click
 from rich import box
-from rich.prompt import Confirm, Prompt
+from rich.prompt import Prompt
 from rich.table import Table
 from rich.panel import Panel
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
 from ..utils import console, handle_errors, timed_step_status
-
-
-class PrerequisiteError(Exception):
-    """Raised when prerequisite checks fail."""
-    pass
 
 
 # --------------------------
@@ -34,11 +25,9 @@ class PrerequisiteError(Exception):
 def _get_gpu_info() -> dict:
     """Get GPU information using nvidia-smi."""
     # Query only the GPU name field to get clean output
-    code, out, err = _run("nvidia-smi --query-gpu=name --format=csv,noheader", capture=True)
-    if code != 0:
-        return {"gpu_count": 0, "gpu_type": None}
-    
+    out, _ = _run("nvidia-smi --query-gpu=name --format=csv,noheader")
     lines = out.strip().split('\n')
+
     if lines and lines[0]:
         # Get the first GPU's name (all GPUs in a system are typically the same model)
         gpu_name = lines[0].strip()
@@ -50,24 +39,26 @@ def _get_gpu_info() -> dict:
 
 
 def _get_public_ip() -> str:
-    """Get the public IP address."""
-    # Try multiple services for redundancy
+    """Get the public IP address (IPv4 only)."""
+    # Try multiple services for redundancy, requesting IPv4 explicitly
     services = [
-        "https://api.ipify.org",
-        "https://icanhazip.com", 
+        "https://api.ipify.org?format=text",
+        "https://ipv4.icanhazip.com",
         "https://ifconfig.me/ip"
     ]
-    
+
     for service in services:
-        code, out, err = _run(f"curl -s {service}", capture=True)
-        if code == 0 and out.strip():
-            ip = out.strip()
-            # Basic IP validation
-            if re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", ip):
+        out, _ = _run(f"curl -4 -s {service}")
+        ip = out.strip()
+        # Validate IPv4 format (strict check for valid octets)
+        if re.match(r"^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$", ip):
+            # Additional check: each octet must be 0-255
+            octets = ip.split('.')
+            if all(0 <= int(octet) <= 255 for octet in octets):
                 return ip
-    
     return "Unable to determine"
-def _run(cmd: list | str, check=False, capture=False, cwd: Optional[str] = None) -> Tuple[int, str, str]:
+
+def _run(cmd: list | str, check=True, capture=True, cwd: Optional[str] = None) -> Tuple[str, str]:
     import subprocess
     if isinstance(cmd, list):
         cmd_str = " ".join(cmd)
@@ -81,26 +72,16 @@ def _run(cmd: list | str, check=False, capture=False, cwd: Optional[str] = None)
         capture_output=capture,
     )
     if check and result.returncode != 0:
-        raise RuntimeError(f"Command failed ({result.returncode}): {cmd_str}\n{result.stderr}")
-    return result.returncode, (result.stdout or ""), (result.stderr or "")
+        raise RuntimeError(
+            f"Command failed ({result.returncode}): {cmd_str}\n"
+            f"--- stdout ---\n{(result.stdout or '')[:4000]}\n"
+            f"--- stderr ---\n{(result.stderr or '')[:4000]}"
+        )
+    return (result.stdout or ""), (result.stderr or "")
 
 
 def _exists(cmd: str) -> bool:
     return shutil.which(cmd) is not None
-
-
-def _port_is_free(port: int) -> bool:
-    try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.settimeout(0.25)
-            return s.connect_ex(("127.0.0.1", port)) != 0
-    except Exception:
-        return True  # if we cannot check, assume free
-
-
-def _validate_hotkey(hotkey: str) -> bool:
-    # Very light sanity: SS58 are typically 47–49 chars base58 with prefixes; don’t overfit.
-    return bool(re.fullmatch(r"[1-9A-HJ-NP-Za-km-z]{40,60}", hotkey))
 
 
 def _show_setup_summary():
@@ -120,72 +101,38 @@ def _show_setup_summary():
 # --------------------------
 # Actions
 # --------------------------
-def _clone_or_update_repo(target_dir: Path, branch: str, allow_update: bool) -> bool:
+def _clone_or_update_repo(target_dir: Path, branch: str):
     if target_dir.exists():
         if (target_dir / ".git").exists():
-            if allow_update:
-                # Don't print during spinner - just do the work
-                code, out, err = _run("git fetch --all", capture=True, cwd=str(target_dir))
-                if code != 0:
-                    return False
-                _run(f"git checkout {branch}", capture=True, cwd=str(target_dir))
-                code, out, err = _run(f"git pull origin {branch}", capture=True, cwd=str(target_dir))
-                if code != 0:
-                    return False
-                return True
-            else:
-                # Directory exists, just return true
-                return True
-        else:
-            # Not a git repo
-            return False
+            _run("git fetch --all", cwd=str(target_dir))
+            _run(f"git checkout {branch}", cwd=str(target_dir))
+            _run(f"git pull origin {branch}", cwd=str(target_dir))
 
-    # Clone new repo
-    code, out, err = _run(
-        f"git clone --branch {branch} https://github.com/Datura-ai/lium-io.git {target_dir}",
-        capture=True,
-    )
-    if code != 0:
-        return False
-    return True
+    else:
+        _run(f"git clone --branch {branch} https://github.com/Datura-ai/lium-io.git {target_dir}")
 
 
-def _check_prereqs(interactive: bool) -> bool:
-    # GPU is REQUIRED - check first
+def _check_prereqs():
     if not _exists("nvidia-smi"):
-        # The timed_step_status will handle line clearing when it exits
-        return False
-    
-    # Verify GPU is working
-    code, out, err = _run("nvidia-smi --query-gpu=name --format=csv,noheader", capture=True)
-    if code != 0 or not out.strip():
-        return False
-    
+        raise Exception("NVIDIA GPU driver not found (nvidia-smi missing)")
+
+    _run("nvidia-smi --query-gpu=name --format=csv,noheader")
+
     if not _exists("nvidia-container-cli"):
-        return False
-    
-    # Check Docker
+        raise Exception("NVIDIA Container Toolkit not found (required for Docker GPU access)")
+
     if not _exists("docker"):
-        return False
-    
-    # test docker can talk to daemon
-    code, out, err = _run("docker info", capture=True)
-    if code != 0:
-        return False
-    
-    return True
+        raise Exception("Docker not found")
+
+    _run("docker info")
 
 
-def _install_executor_tools(compute_dir: Path, noninteractive: bool) -> bool:
+def _install_executor_tools(compute_dir: Path):
     script = compute_dir / "scripts" / "install_executor_on_ubuntu.sh"
     if not script.exists():
-        # Skip silently if script not found
-        return True
+        raise Exception(f"Install script not found at {script}")
 
-    _run(f"chmod +x {script}", capture=True)
-    code, out, err = _run(str(script), capture=True)
-    # Don't print anything - let the spinner handle the output
-    return code == 0
+    _run(f"bash {script}")
 
 
 def _setup_executor_env(
@@ -197,9 +144,9 @@ def _setup_executor_env(
     ssh_port: int = 2200,
     ssh_public_port: str = "",
     port_range: str = "",
-) -> bool:
+):
     """
-    Render neur ons/executor/.env from .env.template with provided values.
+    Render neurons/executor/.env from .env.template with provided values.
 
     - Never prompts.
     - Preserves unknown lines/keys from the template.
@@ -210,22 +157,20 @@ def _setup_executor_env(
     env_f = executor_dir / ".env"
 
     if not env_t.exists():
-        console.error(f".env.template not found at {env_t}")
-        return False
+        raise Exception(f"Template file not found at {env_t}")
 
     # light sanity checks (don't be strict)
     def _valid_port(p: int) -> bool:
         return isinstance(p, int) and 1 <= p <= 65535
 
     if not re.fullmatch(r"[1-9A-HJ-NP-Za-km-z]{40,60}", hotkey or ""):
-        console.warning("Hotkey format looks unusual; continuing anyway.")
+        raise Exception(f"Invalid hotkey format: {hotkey}")
 
     for p, name in [(internal_port, "INTERNAL_PORT"),
                     (external_port, "EXTERNAL_PORT"),
                     (ssh_port, "SSH_PORT")]:
         if not _valid_port(p):
-            console.error(f"{name} must be in 1–65535.")
-            return False
+            raise Exception(f"Invalid port {name}={p} (must be 1-65535)")
 
     # read, rewrite, preserve
     src_lines = env_t.read_text().splitlines()
@@ -277,46 +222,34 @@ def _setup_executor_env(
             out_lines.append(f"{k}={v}")
 
     env_f.write_text("\n".join(map(str, out_lines)) + "\n")
-    # Don't print anything - let the spinner handle the output
-    return True
 
 
-def _start_executor(executor_dir: Path, wait_secs: int = 180) -> bool:
+def _start_executor(executor_dir: Path, wait_secs: int = 180):
     # Start using the default docker-compose.yml
-    code, out, err = _run("docker compose up -d", capture=True, cwd=str(executor_dir))
-    if code != 0:
-        return False
+    _run("docker compose up -d", capture=True, cwd=str(executor_dir))
 
     # Wait for the executor service to be fully healthy
     start = time.time()
     
     while time.time() - start < wait_secs:
         # Get the container name/ID for the executor service
-        code, out, _ = _run("docker compose -f docker-compose.app.yml ps -q executor", capture=True, cwd=str(executor_dir))
-        if code != 0 or not out.strip():
+        out, _ = _run("docker compose -f docker-compose.app.yml ps -q executor", cwd=str(executor_dir))
+        if not out.strip():
             time.sleep(2)
             continue
             
         container_id = out.strip()
         
         # Check the health status directly using docker inspect
-        code, out, _ = _run(f"docker inspect --format='{{{{.State.Health.Status}}}}' {container_id}", capture=True)
+        out, _ = _run(f"docker inspect --format='{{{{.State.Health.Status}}}}' {container_id}")
         
-        if code == 0 and out.strip():
+        if out.strip():
             health_status = out.strip()
             # Only return true if explicitly healthy
             if health_status == "healthy":
-                return True
-            # If there's no healthcheck defined, check if container is at least running
-            elif health_status == "<no value>":
-                code2, out2, _ = _run(f"docker inspect --format='{{{{.State.Status}}}}' {container_id}", capture=True)
-                if code2 == 0 and out2.strip() == "running":
-                    # No healthcheck defined, but container is running - consider it ready
-                    return True
-        
+                return
         time.sleep(3)
-    
-    return False
+    raise Exception(f"Executor health check timed out after {wait_secs}s")
 
 def _apply_env_overrides(
     executor_dir: Path,
@@ -345,15 +278,9 @@ def _apply_env_overrides(
 def _gather_inputs(
     hotkey: Optional[str],
     auto: bool,
-    yes: bool,
 ) -> dict:
     """Ask everything up-front; return a dict of resolved inputs."""
     answers = {}
-
-    # Always install dependencies and start - that's the point of the command
-    answers["run_installer"] = True
-    answers["start_now"] = True
-
     if auto:
         # Auto mode - use all defaults
         answers["hotkey"] = hotkey or ""
@@ -402,28 +329,20 @@ def _gather_inputs(
     return answers
 
 
-def _validate_executor() -> tuple[bool, str]:
+def _validate_executor():
     """
     Validate the executor using the Lium validator Docker image.
     Returns (passed, message) tuple.
     """
-    try:
-        _, out, _ = _run(
-            "docker run --rm --gpus all daturaai/lium-validator:latest",
-            capture=True
-        )
+    out, _ = _run("docker run --rm --gpus all daturaai/lium-validator:latest", check=False)
 
-        # Parse JSON output
-        result = json.loads(out.strip())
-        passed = result.get("passed", False)
-        message = result.get("message", "")
+    # Parse JSON output
+    result = json.loads(out.strip())
+    passed = result.get("passed", False)
+    message = result.get("message", "")
 
-        return passed, message
-
-    except json.JSONDecodeError as e:
-        return False, f"Failed to parse validator output: {e}"
-    except Exception as e:
-        return False, f"Validation error: {e}"
+    if not passed:
+        raise Exception(message)
 
 
 # --------------------------
@@ -433,96 +352,56 @@ def _validate_executor() -> tuple[bool, str]:
 @click.option("--hotkey", "-k", help="Miner hotkey SS58 address")
 @click.option("--dir", "-d", "dir_", default="compute-subnet", help="Target directory")
 @click.option("--branch", "-b", default="main")
-@click.option("--update/--no-update", default=True)
-@click.option("--no-start", is_flag=True)
 @click.option("--auto", "-a", is_flag=True)
-@click.option("--yes", "-y", is_flag=True)
 @click.option("--verbose", "-v", is_flag=True, help="Show the plan banner")
 @handle_errors
-def mine_command(hotkey, dir_, branch, update, no_start, auto, yes, verbose):
-    # No need for ensure_config() - this command doesn't use Lium API
-
+def mine_command(hotkey, dir_, branch, auto, verbose):
     if verbose:
         _show_setup_summary()   # keep the banner only when asked
 
-    # 👉 All questions happen here, before spinners:
-    answers = _gather_inputs(hotkey, auto, yes)
-
-    # Steps below are non-interactive:
+    answers = _gather_inputs(hotkey, auto)
     target_dir = Path(dir_).absolute()
 
-    with timed_step_status(1, 5, "Ensuring repository"):
-        if not _clone_or_update_repo(target_dir, branch, allow_update=update):
-            return
+    TOTAL_STEPS = 6
 
     try:
-        with timed_step_status(2, 5, "Checking prerequisites"):
-            if not _check_prereqs(interactive=False):
-                # Determine the specific error
-                if not _exists("nvidia-smi"):
-                    raise PrerequisiteError("nvidia-smi not found. GPU driver is required for mining.")
-                elif not _run("nvidia-smi --query-gpu=name --format=csv,noheader", capture=True)[1].strip():
-                    raise PrerequisiteError("No GPU detected. A working NVIDIA GPU is required for mining.")
-                elif not _exists("nvidia-container-cli"):
-                    raise PrerequisiteError("nvidia-container-toolkit not found. Required for GPU passthrough.")
-                elif not _exists("docker"):
-                    raise PrerequisiteError("Docker is not installed or not on PATH.")
-                else:
-                    raise PrerequisiteError("Docker daemon not reachable. Is the service running?")
-    except PrerequisiteError as e:
-        # The timed_step_status will show "failed" in red
+        with timed_step_status(1, TOTAL_STEPS, "Ensuring repository"):
+            _clone_or_update_repo(target_dir, branch)
+
+        with timed_step_status(2, TOTAL_STEPS, "Checking prerequisites"):
+            _check_prereqs()
+
+        with timed_step_status(3, TOTAL_STEPS, "Installing executor tools"):
+            _install_executor_tools(target_dir)
+
+        with timed_step_status(4, TOTAL_STEPS, "Configuring environment"):
+            executor_dir = target_dir / "neurons" / "executor"
+            if not executor_dir.exists():
+                raise Exception(f"Executor directory not found at {executor_dir}")
+
+            _setup_executor_env(
+                str(executor_dir),
+                hotkey=answers["hotkey"],
+            )
+
+            _apply_env_overrides(
+                executor_dir,
+                internal=answers["internal_port"],
+                external=answers["external_port"],
+                ssh=answers["ssh_port"],
+                ssh_pub=answers["ssh_public_port"],
+                rng=answers["port_range"],
+            )
+
+        with timed_step_status(5, TOTAL_STEPS, "Starting executor"):
+            _start_executor(executor_dir)
+
+        with timed_step_status(6, TOTAL_STEPS, "Validating executor"):
+            _validate_executor()
+
+    except Exception as e:
         console.error(f"❌ {e}")
         return
-
-    if answers["run_installer"]:
-        with timed_step_status(3, 5, "Installing executor tools"):
-            if not _install_executor_tools(target_dir, noninteractive=True):
-                console.error("Installer failed."); return
-
-    executor_dir = target_dir / "neurons" / "executor"
-    if not executor_dir.exists():
-        console.error(f"Executor directory not found at {executor_dir}")
-        return
-
-    with timed_step_status(4, 5, "Configuring environment"):
-        if not _setup_executor_env(
-            str(executor_dir),
-            hotkey=answers["hotkey"],
-            # pass ports so _setup_executor_env doesn't prompt:
-        ):
-            return
-        # write ports directly after reading template:
-        _apply_env_overrides(
-            executor_dir,
-            internal=answers["internal_port"],
-            external=answers["external_port"],
-            ssh=answers["ssh_port"],
-            ssh_pub=answers["ssh_public_port"],
-            rng=answers["port_range"],
-        )
-
-    if no_start:
-        console.info("Skipping start (--no-start).")
-    else:
-        with timed_step_status(5, 6, "Starting executor"):
-            started = _start_executor(executor_dir)
-
-        if not started:
-            console.warning("⚠️  Executor started but health check failed")
-            console.info("\nTroubleshooting:")
-            console.info(f"  cd {executor_dir}")
-            console.info("  docker compose logs -f  # View logs")
-            console.info("  docker compose ps       # Check status")
-            return
-
-        # Step 6: Validate executor configuration
-        with timed_step_status(6, 6, "Validating executor"):
-            validation_passed, validation_message = _validate_executor()
-
-        if not validation_passed:
-            console.warning(f"⚠️  Executor validation failed: {validation_message}")
-        else:
-            console.success("✓ Executor validation passed")
 
     # Get executor details for summary
     gpu_info = _get_gpu_info()
@@ -533,9 +412,6 @@ def mine_command(hotkey, dir_, branch, update, no_start, auto, yes, verbose):
     
     console.success("\n✨ Executor setup complete!")
     console.print()
-    
-    # Show executor details
-    from rich.table import Table
     
     details_table = Table(show_header=False, box=None)
     details_table.add_column("Key", style="cyan")

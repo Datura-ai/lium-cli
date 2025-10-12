@@ -123,7 +123,7 @@ def _update_spinner_display(step_prefix: str, message: str, start_time: float, r
         time.sleep(0.1)
 
 
-def _handle_step_completion(step_prefix: str, message: str, elapsed: float, exception: Exception = None):
+def _handle_step_completion(step_prefix: str, message: str, elapsed: float, exception: Optional[Exception] = None):
     """Internal function to handle step completion display."""
     import sys
     
