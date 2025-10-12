@@ -89,8 +89,8 @@ def _show_setup_summary():
     table.add_column("Step", style="cyan", no_wrap=True)
     table.add_column("What happens")
     table.add_row("1", "Clone or update compute-subnet repo")
-    table.add_row("2", "Prerequisite check (Docker, NVIDIA GPU)")
-    table.add_row("3", "Install executor dependencies")
+    table.add_row("2", "Install executor dependencies")
+    table.add_row("3", "Prerequisite check (Docker, NVIDIA GPU)")
     table.add_row("4", "Configure executor .env (ports, hotkey)")
     table.add_row("5", "Start executor with docker compose")
     table.add_row("6", "Validate executor configuration")
@@ -368,11 +368,11 @@ def mine_command(hotkey, dir_, branch, auto, verbose):
         with timed_step_status(1, TOTAL_STEPS, "Ensuring repository"):
             _clone_or_update_repo(target_dir, branch)
 
-        with timed_step_status(2, TOTAL_STEPS, "Checking prerequisites"):
-            _check_prereqs()
-
-        with timed_step_status(3, TOTAL_STEPS, "Installing executor tools"):
+        with timed_step_status(2, TOTAL_STEPS, "Installing executor tools"):
             _install_executor_tools(target_dir)
+
+        with timed_step_status(3, TOTAL_STEPS, "Checking prerequisites"):
+            _check_prereqs()
 
         with timed_step_status(4, TOTAL_STEPS, "Configuring environment"):
             executor_dir = target_dir / "neurons" / "executor"
