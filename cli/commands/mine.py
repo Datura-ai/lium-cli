@@ -402,104 +402,31 @@ def _gather_inputs(
     return answers
 
 
-def _validate_executor(executor_dir: Path, answers: dict, public_ip: str) -> bool:
+def _validate_executor() -> tuple[bool, str]:
     """
-    Validate the executor configuration by connecting via SSH and running checks.
-    Returns True if all critical checks pass, False otherwise.
+    Validate the executor using the Lium validator Docker image.
+    Returns (passed, message) tuple.
     """
     try:
-        # Import validation module
-        import asyncio
+        code, out, err = _run(
+            "docker run --rm --gpus all daturaai/lium-validator:latest",
+            capture=True
+        )
 
-        from validators import validate_executor
-        from validators.models import CheckStatus
+        if code != 0:
+            return False, f"Validator failed to run: {err}"
 
-        # Get SSH connection info
-        ssh_port = int(answers.get("ssh_port", "2200"))
+        # Parse JSON output
+        result = json.loads(out.strip())
+        passed = result.get("passed", False)
+        message = result.get("message", "")
 
-        # Find SSH private key for the executor
-        # The executor should have generated an SSH key pair
-        executor_ssh_key = executor_dir / ".ssh" / "id_rsa"
-        if not executor_ssh_key.exists():
-            # Try common SSH key locations
-            home = Path.home()
-            for key_path in [home / ".ssh/id_rsa", home / ".ssh/id_ed25519"]:
-                if key_path.exists():
-                    executor_ssh_key = key_path
-                    break
+        return passed, message
 
-        if not executor_ssh_key.exists():
-            console.warning("SSH key not found, skipping validation")
-            return True
-
-        # Run validation
-        result = asyncio.run(validate_executor(
-            host="localhost",
-            username="root",
-            private_key_path=str(executor_ssh_key),
-            port=ssh_port,
-            root_dir="/root/app",
-            python_path="/usr/bin/python3",
-            run_matrix_test=False,  # Skip slow matrix test for quick setup validation
-        ))
-
-        # Display compact results
-        console.print()
-        _display_validation_summary(result)
-        console.print()
-
-        return result.is_ready_to_join()
-
-    except ImportError:
-        # Validation module not available, skip silently
-        return True
+    except json.JSONDecodeError as e:
+        return False, f"Failed to parse validator output: {e}"
     except Exception as e:
-        console.warning(f"Validation check failed: {e}")
-        return True  # Don't block setup if validation fails
-
-
-def _display_validation_summary(result):
-    """Display a compact validation summary."""
-    from validators.models import CheckStatus
-
-    stats = result.get_summary_stats()
-
-    # Status indicator
-    if result.is_ready_to_join():
-        status_icon = "✓"
-        status_color = "green"
-        status_text = "Ready to join subnet"
-    else:
-        status_icon = "✗"
-        status_color = "red"
-        status_text = "Configuration issues detected"
-
-    console.print(f"[{status_color}]{status_icon} Validation: {status_text}[/{status_color}]")
-
-    # Quick stats
-    console.print(
-        f"  [green]{stats['passed']} passed[/green] · "
-        f"[red]{stats['failed']} failed[/red] · "
-        f"[yellow]{stats['warnings']} warnings[/yellow]"
-    )
-
-    # Show critical failures
-    failed = result.get_failed_checks()
-    if failed:
-        console.print("\n  [bold red]Critical issues:[/bold red]")
-        for check in failed[:3]:  # Show max 3 failures
-            console.print(f"    • {check.name}: {check.message}")
-        if len(failed) > 3:
-            console.print(f"    ... and {len(failed) - 3} more")
-
-    # Show important warnings
-    warnings = result.get_warnings()
-    if warnings:
-        console.print("\n  [bold yellow]Warnings:[/bold yellow]")
-        for check in warnings[:2]:  # Show max 2 warnings
-            console.print(f"    • {check.name}: {check.message}")
-        if len(warnings) > 2:
-            console.print(f"    ... and {len(warnings) - 2} more")
+        return False, f"Validation error: {e}"
 
 
 # --------------------------
@@ -593,11 +520,12 @@ def mine_command(hotkey, dir_, branch, update, no_start, auto, yes, verbose):
 
         # Step 6: Validate executor configuration
         with timed_step_status(6, 6, "Validating executor"):
-            validation_result = _validate_executor(executor_dir, answers, public_ip)
+            validation_passed, validation_message = _validate_executor()
 
-        if not validation_result:
-            console.warning("⚠️  Executor validation completed with warnings")
-            console.info("Review the validation report above for details")
+        if not validation_passed:
+            console.warning(f"⚠️  Executor validation failed: {validation_message}")
+        else:
+            console.success("✓ Executor validation passed")
 
     # Get executor details for summary
     gpu_info = _get_gpu_info()

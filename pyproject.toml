@@ -45,7 +45,6 @@ dependencies = [
     "docker>=7.1.0",
     "bittensor>=9.8.3",
     "lium-sdk>=0.2.7",
-    "validators @ git+https://github.com/Datura-ai/lium-io.git@feature/executor-validation#subdirectory=neurons/validators",
 ]
 
 [project.optional-dependencies]
@@ -53,9 +52,6 @@ dev = ["pytest", "black", "wheel"]
 
 [project.scripts]
 lium = "cli.cli:main"
-
-[tool.hatch.metadata]
-allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["cli"]
