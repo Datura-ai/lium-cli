@@ -408,13 +408,10 @@ def _validate_executor() -> tuple[bool, str]:
     Returns (passed, message) tuple.
     """
     try:
-        code, out, err = _run(
+        _, out, _ = _run(
             "docker run --rm --gpus all daturaai/lium-validator:latest",
             capture=True
         )
-
-        if code != 0:
-            return False, f"Validator failed to run: {err}"
 
         # Parse JSON output
         result = json.loads(out.strip())
