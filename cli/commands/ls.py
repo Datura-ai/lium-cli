@@ -92,7 +92,7 @@ def _first_gpu_detail(specs: Optional[Dict]) -> Dict:
 def _specs_row(specs: Optional[Dict]) -> Dict[str, str]:
     """Extract display fields from specs."""
     if not specs:
-        return {k: "—" for k in ["VRAM", "RAM", "Disk", "PCIe", "Mem", "TFLOPs", "Upload", "Download"]}
+        return {k: "—" for k in ["VRAM", "RAM", "Disk", "PCIe", "Mem", "TFLOPs", "Upload", "Download", "Ports"]}
     
     d = _first_gpu_detail(specs)
     ram = specs.get("ram", {})
@@ -107,6 +107,7 @@ def _specs_row(specs: Optional[Dict]) -> Dict[str, str]:
         "PCIe": _maybe_int(d.get("pcie_speed")),
         "Upload": _maybe_int(net.get("upload_speed")),
         "Download": _maybe_int(net.get("download_speed")),
+        "Ports": _maybe_int(specs.get("available_port_count")),
     }
 
 
@@ -143,6 +144,7 @@ def _add_long_columns(t: Table) -> None:
     t.add_column("Disk (Gb)",    justify="right", width=11, no_wrap=True)
     t.add_column("Upload (Mbps)",   justify="right", width=14, no_wrap=True)
     t.add_column("Download (Mbps)", justify="right", width=16, no_wrap=True)
+    t.add_column("Ports", justify="left", ratio=3, min_width=5, overflow="fold")
 
 
 
@@ -154,6 +156,7 @@ def show_executors(
     sort_by: str = "price_gpu",
     limit: Optional[int] = None,
     show_pareto: bool = True,
+    show_ports: bool = False,
 ) -> List[ExecutorInfo]:
     if not executors:
         return []
@@ -224,6 +227,7 @@ def show_executors(
             s["Disk"],
             s["Upload"],
             s["Download"],
+            s["Ports"]
         )
 
     console.info(table)
