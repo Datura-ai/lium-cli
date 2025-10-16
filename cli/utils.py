@@ -17,6 +17,63 @@ T = TypeVar("T")
 console = ThemedConsole()
 
 
+# Text formatting helpers
+
+def mid_ellipsize(s: str, width: int = 28) -> str:
+    """Truncate string with middle ellipsis if too long."""
+    if not s:
+        return "—"
+    if len(s) <= width:
+        return s
+    keep = width - 1
+    left = keep // 2
+    right = keep - left
+    return f"{s[:left]}…{s[-right:]}"
+
+
+def parse_timestamp(timestamp: str) -> Optional[datetime]:
+    """Parse ISO format timestamp."""
+    from datetime import datetime, timezone
+    try:
+        if timestamp.endswith('Z'):
+            return datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+        elif '+' not in timestamp and '-' not in timestamp[10:]:
+            return datetime.fromisoformat(timestamp).replace(tzinfo=timezone.utc)
+        else:
+            return datetime.fromisoformat(timestamp)
+    except (ValueError, AttributeError):
+        return None
+
+
+def format_date(timestamp: str) -> str:
+    """Format timestamp as relative or absolute date."""
+    from datetime import datetime, timezone
+    if not timestamp:
+        return "—"
+
+    dt = parse_timestamp(timestamp)
+    if not dt:
+        return "—"
+
+    now = datetime.now(timezone.utc)
+    delta = now - dt
+
+    # If less than 24 hours, show relative time
+    if delta.total_seconds() < 86400:  # 24 hours
+        hours = delta.total_seconds() / 3600
+        if hours < 1:
+            mins = delta.total_seconds() / 60
+            return f"{mins:.0f}m ago"
+        else:
+            return f"{hours:.1f}h ago"
+    # If less than 7 days, show days
+    elif delta.days < 7:
+        return f"{delta.days}d ago"
+    # Otherwise show date
+    else:
+        return dt.strftime("%Y-%m-%d")
+
+
 def _prompt_value(
     prompt_text: str,
     default_value: T,
