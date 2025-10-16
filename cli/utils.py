@@ -424,6 +424,128 @@ def get_last_executor_selection() -> Optional[Dict[str, Any]]:
     return None
 
 
+def store_volume_selection(volumes: List) -> None:
+    """Store the last volume selection for HUID-based lookup."""
+    from .config import config
+
+    selection_data = {
+        'timestamp': datetime.now().isoformat(),
+        'volumes': []
+    }
+
+    for volume in volumes:
+        # Handle VolumeInfo objects
+        selection_data['volumes'].append({
+            'id': volume.id,
+            'huid': volume.huid,
+            'name': volume.name,
+            'description': volume.description,
+            'current_size_gb': volume.current_size_gb,
+        })
+
+    # Store in config directory
+    config_file = config.config_dir / "last_volumes.json"
+    with open(config_file, 'w') as f:
+        json.dump(selection_data, f, indent=2)
+
+
+def get_last_volume_selection() -> Optional[Dict[str, Any]]:
+    """Retrieve the last volume selection."""
+    from .config import config
+
+    config_file = config.config_dir / "last_volumes.json"
+    if config_file.exists():
+        try:
+            with open(config_file, 'r') as f:
+                return json.load(f)
+        except (json.JSONDecodeError, IOError):
+            return None
+    return None
+
+
+def resolve_volume_huid(huid: str) -> Optional[str]:
+    """
+    Resolve volume HUID to database ID from cached selection.
+    Returns database ID or None if not found.
+    """
+    last_selection = get_last_volume_selection()
+    if not last_selection:
+        return None
+
+    volumes = last_selection.get('volumes', [])
+    for volume in volumes:
+        if volume.get('huid') == huid:
+            return volume.get('id')
+
+    return None
+
+
+def parse_volume_spec(volume_spec: str) -> Tuple[Optional[str], Optional[Dict[str, str]], Optional[str]]:
+    """
+    Parse volume specification.
+
+    Formats:
+      - id:<HUID>                        -> resolve HUID to database ID
+      - new[:name=X[,desc=Y]]            -> create new volume
+
+    Returns:
+        (volume_id, create_params, error_message)
+        - volume_id: existing volume database ID
+        - create_params: dict with 'name' and 'description' for new volume
+        - error_message: error description if parsing failed
+    """
+    spec = volume_spec.strip()
+
+    # Format: id:<HUID>
+    if spec.startswith('id:'):
+        huid = spec[3:].strip()
+        if not huid:
+            return None, None, "Volume HUID is missing after 'id:'"
+
+        volume_id = resolve_volume_huid(huid)
+        if not volume_id:
+            return None, None, f"Volume with HUID '{huid}' not found. Run 'lium volumes' first."
+
+        return volume_id, None, None
+
+    # Format: new[:name=X,desc=Y] or just new
+    if spec.startswith('new'):
+        create_params = {'name': '', 'description': ''}
+
+        # Check if there are parameters
+        if len(spec) > 3:
+            if not spec[3] == ':':
+                return None, None, f"Invalid format: expected 'new' or 'new:name=...' but got '{spec}'"
+
+            params_str = spec[4:].strip()
+            if params_str:
+                # Parse key=value pairs
+                for param in params_str.split(','):
+                    param = param.strip()
+                    if '=' not in param:
+                        return None, None, f"Invalid parameter format: '{param}'. Expected 'key=value'"
+
+                    key, value = param.split('=', 1)
+                    key = key.strip()
+                    value = value.strip()
+
+                    if key == 'name':
+                        create_params['name'] = value
+                    elif key == 'desc':
+                        create_params['description'] = value
+                    else:
+                        return None, None, f"Unknown parameter: '{key}'. Use 'name' or 'desc'"
+
+        # Name is required for new volumes
+        if not create_params['name']:
+            return None, None, "Volume name is required. Use 'new:name=<NAME>' or 'new:name=<NAME>,desc=<DESC>'"
+
+        return None, create_params, None
+
+    # Unknown format
+    return None, None, f"Invalid volume format: '{spec}'. Use 'id:<HUID>' or 'new:name=<NAME>[,desc=<DESC>]'"
+
+
 def resolve_executor_indices(indices: List[str]) -> Tuple[List[str], Optional[str]]:
     """
     Resolve executor indices from the last selection.

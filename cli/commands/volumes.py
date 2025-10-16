@@ -6,7 +6,7 @@ from rich.table import Table
 from rich.text import Text
 
 from lium_sdk import Lium, VolumeInfo
-from ..utils import console, handle_errors, loading_status, ensure_config, mid_ellipsize, format_date
+from ..utils import console, handle_errors, loading_status, ensure_config, mid_ellipsize, format_date, store_volume_selection
 
 
 # Helper Functions
@@ -14,7 +14,7 @@ from ..utils import console, handle_errors, loading_status, ensure_config, mid_e
 
 def _format_size(size_gb: float) -> str:
     """Format size in GB with appropriate precision."""
-    if size_gb == 0:
+    if size_gb is None or size_gb == 0:
         return "0"
     elif size_gb < 0.01:
         return f"{size_gb * 1024:.1f} MB"
@@ -26,7 +26,7 @@ def _format_size(size_gb: float) -> str:
 
 def _format_file_count(count: int) -> str:
     """Format file count with K/M suffix if needed."""
-    if count == 0:
+    if count is None or count == 0:
         return "0"
     elif count < 1000:
         return str(count)
@@ -103,3 +103,7 @@ def volumes_command():
         volumes = Lium().volumes()
 
     show_volumes(volumes)
+
+    # Store volume selection for HUID-based lookup in other commands
+    if volumes:
+        store_volume_selection(volumes)
