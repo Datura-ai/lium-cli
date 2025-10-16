@@ -82,7 +82,7 @@ def show_volumes(volumes: List[VolumeInfo]) -> None:
 
     console.info(table)
     console.info("")
-    console.info(f"Tip: {console.get_styled('lium up <executor> --volume <index>', 'success')} {console.get_styled('# attach volume to pod', 'dim')}")
+    console.info(f"Tip: {console.get_styled('lium up <executor> --volume id:<HUID>', 'success')} {console.get_styled('# attach volume to pod', 'dim')}")
 
 
 # Command Definitions
@@ -109,6 +109,33 @@ def volumes_list_command():
     # Store volume selection for HUID-based lookup in other commands
     if volumes:
         store_volume_selection(volumes)
+
+
+@click.command("new")
+@click.argument("name")
+@click.option("--desc", "-d", help="Volume description")
+@handle_errors
+def volumes_new_command(name: str, desc: Optional[str]):
+    """\b
+    Create a new volume.
+
+    \b
+    NAME: Volume name
+
+    \b
+    Examples:
+      lium volumes new my-data                      # Create volume with name
+      lium volumes new training-data --desc "ML datasets"  # With description
+    """
+    ensure_config()
+    lium = Lium()
+
+    description = desc or ""
+
+    with loading_status(f"Creating volume '{name}'", ""):
+        new_volume = lium.volume_create(name=name, description=description)
+
+    console.success(f"Volume created: {new_volume.huid} ({new_volume.name})")
 
 
 @click.command("rm")
@@ -180,6 +207,7 @@ def volumes_command(ctx):
     \b
     Commands:
       list - List all volumes (default)
+      new  - Create a new volume
       rm   - Remove a volume
     """
     # If no subcommand is provided, default to list
@@ -189,4 +217,5 @@ def volumes_command(ctx):
 
 # Add subcommands to the volumes group
 volumes_command.add_command(volumes_list_command)
+volumes_command.add_command(volumes_new_command)
 volumes_command.add_command(volumes_rm_command)
