@@ -1,12 +1,13 @@
-"""List volumes command."""
-from typing import List
+"""Volume management commands."""
+from typing import List, Optional
 
 import click
+from rich.prompt import Confirm
 from rich.table import Table
 from rich.text import Text
 
 from lium_sdk import Lium, VolumeInfo
-from ..utils import console, handle_errors, loading_status, ensure_config, mid_ellipsize, format_date, store_volume_selection
+from ..utils import console, handle_errors, loading_status, ensure_config, mid_ellipsize, format_date, store_volume_selection, get_last_volume_selection
 
 
 # Helper Functions
@@ -84,18 +85,19 @@ def show_volumes(volumes: List[VolumeInfo]) -> None:
     console.info(f"Tip: {console.get_styled('lium up <executor> --volume <index>', 'success')} {console.get_styled('# attach volume to pod', 'dim')}")
 
 
-# Command Definition
+# Command Definitions
 
-@click.command("volumes")
+@click.command("list")
 @handle_errors
-def volumes_command():
+def volumes_list_command():
     """\b
     List all volumes for the current user.
 
     Volumes are persistent storage that can be attached to pods.
     \b
     Examples:
-      lium volumes             # List all volumes
+      lium volumes list        # List all volumes
+      lium volumes             # Same as list (default)
     """
     ensure_config()
 
@@ -107,3 +109,84 @@ def volumes_command():
     # Store volume selection for HUID-based lookup in other commands
     if volumes:
         store_volume_selection(volumes)
+
+
+@click.command("rm")
+@click.argument("index")
+@click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt")
+@handle_errors
+def volumes_rm_command(index: str, yes: bool):
+    """\b
+    Remove a volume by index from last 'lium volumes' list.
+
+    \b
+    INDEX: Volume index from 'lium volumes' list (1, 2, 3, ...)
+
+    \b
+    Examples:
+      lium volumes rm 1        # Remove volume #1 from list
+      lium volumes rm 2 --yes  # Remove without confirmation
+    """
+    ensure_config()
+    lium = Lium()
+
+    # Get cached volumes
+    last_selection = get_last_volume_selection()
+    if not last_selection:
+        console.error("No volumes cached. Run 'lium volumes' first.")
+        return
+
+    volumes_data = last_selection.get('volumes', [])
+    if not volumes_data:
+        console.error("No volumes in cache. Run 'lium volumes' first.")
+        return
+
+    # Parse index
+    try:
+        idx = int(index)
+        if idx < 1 or idx > len(volumes_data):
+            console.error(f"Index {index} out of range (1..{len(volumes_data)})")
+            console.info("Tip: Run 'lium volumes' to see available volumes")
+            return
+    except ValueError:
+        console.error(f"Invalid index: {index}. Must be a number.")
+        return
+
+    # Get volume data
+    volume_data = volumes_data[idx - 1]
+    volume_id = volume_data['id']
+    volume_huid = volume_data['huid']
+    volume_name = volume_data['name']
+
+    # Confirm deletion
+    if not yes:
+        display_name = f"{volume_huid} ({volume_name})" if volume_name else volume_huid
+        if not Confirm.ask(f"Remove volume {display_name}?"):
+            console.warning("Cancelled")
+            return
+
+    # Delete volume
+    with loading_status(f"Removing volume", ""):
+        lium.volume_delete(volume_id)
+
+    console.success(f"Volume removed: {volume_huid}")
+
+
+@click.group(invoke_without_command=True)
+@click.pass_context
+def volumes_command(ctx):
+    """Manage persistent volumes.
+
+    \b
+    Commands:
+      list - List all volumes (default)
+      rm   - Remove a volume
+    """
+    # If no subcommand is provided, default to list
+    if ctx.invoked_subcommand is None:
+        ctx.invoke(volumes_list_command)
+
+
+# Add subcommands to the volumes group
+volumes_command.add_command(volumes_list_command)
+volumes_command.add_command(volumes_rm_command)
