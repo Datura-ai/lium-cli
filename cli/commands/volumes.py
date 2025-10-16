@@ -139,20 +139,21 @@ def volumes_new_command(name: str, desc: Optional[str]):
 
 
 @click.command("rm")
-@click.argument("index")
+@click.argument("indices")
 @click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt")
 @handle_errors
-def volumes_rm_command(index: str, yes: bool):
+def volumes_rm_command(indices: str, yes: bool):
     """\b
-    Remove a volume by index from last 'lium volumes' list.
+    Remove volumes by index from last 'lium volumes' list.
 
     \b
-    INDEX: Volume index from 'lium volumes' list (1, 2, 3, ...)
+    INDICES: Volume index or comma-separated indices (1, 2, 3, or 1,2,3)
 
     \b
     Examples:
-      lium volumes rm 1        # Remove volume #1 from list
-      lium volumes rm 2 --yes  # Remove without confirmation
+      lium volumes rm 1          # Remove volume #1
+      lium volumes rm 1,2,3      # Remove volumes #1, #2, and #3
+      lium volumes rm 2 --yes    # Remove without confirmation
     """
     ensure_config()
     lium = Lium()
@@ -168,35 +169,51 @@ def volumes_rm_command(index: str, yes: bool):
         console.error("No volumes in cache. Run 'lium volumes' first.")
         return
 
-    # Parse index
-    try:
-        idx = int(index)
-        if idx < 1 or idx > len(volumes_data):
-            console.error(f"Index {index} out of range (1..{len(volumes_data)})")
-            console.info("Tip: Run 'lium volumes' to see available volumes")
-            return
-    except ValueError:
-        console.error(f"Invalid index: {index}. Must be a number.")
-        return
+    # Parse comma-separated indices
+    index_list = [idx.strip() for idx in indices.split(',')]
+    volumes_to_remove = []
 
-    # Get volume data
-    volume_data = volumes_data[idx - 1]
-    volume_id = volume_data['id']
-    volume_huid = volume_data['huid']
-    volume_name = volume_data['name']
+    for index_str in index_list:
+        try:
+            idx = int(index_str)
+            if idx < 1 or idx > len(volumes_data):
+                console.error(f"Index {index_str} out of range (1..{len(volumes_data)})")
+                console.info("Tip: Run 'lium volumes' to see available volumes")
+                return
+            volumes_to_remove.append((idx, volumes_data[idx - 1]))
+        except ValueError:
+            console.error(f"Invalid index: {index_str}. Must be a number.")
+            return
 
     # Confirm deletion
     if not yes:
-        display_name = f"{volume_huid} ({volume_name})" if volume_name else volume_huid
-        if not Confirm.ask(f"Remove volume {display_name}?"):
-            console.warning("Cancelled")
-            return
+        if len(volumes_to_remove) == 1:
+            volume_data = volumes_to_remove[0][1]
+            display_name = f"{volume_data['huid']} ({volume_data['name']})" if volume_data['name'] else volume_data['huid']
+            if not Confirm.ask(f"Remove volume {display_name}?"):
+                console.warning("Cancelled")
+                return
+        else:
+            console.info(f"Volumes to remove:")
+            for idx, vol_data in volumes_to_remove:
+                display_name = f"{vol_data['huid']} ({vol_data['name']})" if vol_data['name'] else vol_data['huid']
+                console.info(f"  [{idx}] {display_name}")
+            if not Confirm.ask(f"Remove {len(volumes_to_remove)} volumes?"):
+                console.warning("Cancelled")
+                return
 
-    # Delete volume
-    with loading_status(f"Removing volume", ""):
-        lium.volume_delete(volume_id)
+    # Delete volumes
+    for idx, volume_data in volumes_to_remove:
+        volume_id = volume_data['id']
+        volume_huid = volume_data['huid']
 
-    console.success(f"Volume removed: {volume_huid}")
+        with loading_status(f"Removing volume {volume_huid}", ""):
+            lium.volume_delete(volume_id)
+
+        console.success(f"Volume removed: {volume_huid}")
+
+    if len(volumes_to_remove) > 1:
+        console.success(f"Removed {len(volumes_to_remove)} volumes")
 
 
 @click.group(invoke_without_command=True)
