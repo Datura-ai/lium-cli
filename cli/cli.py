@@ -21,6 +21,7 @@ from .commands.fund import fund_command
 from .commands.backup import bk_command
 from .commands.mine import mine_command
 from .commands.volumes import volumes_command
+from .commands.schedule import schedule_terminate_command, cancel_schedule_command
 from .plugins import load_plugins
 
 
@@ -67,6 +68,8 @@ cli.add_command(fund_command)
 cli.add_command(bk_command, name="bk")
 cli.add_command(mine_command)
 cli.add_command(volumes_command)
+cli.add_command(schedule_terminate_command)
+cli.add_command(cancel_schedule_command)
 
 # Add compose placeholder (will be overridden if plugin is installed)
 # cli.add_command(compose_command)  # Disabled for beta.1
