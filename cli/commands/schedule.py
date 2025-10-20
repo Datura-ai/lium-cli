@@ -173,19 +173,34 @@ def schedule_terminate_command(target: Optional[str], time: Optional[str], yes: 
     if selected_pod.executor and selected_pod.executor.price_per_hour:
         price_info = f" (${selected_pod.executor.price_per_hour:.2f}/h)"
     console.info(f"  {selected_pod.huid} - {selected_pod.status}{price_info}")
-    console.info(f"\nTermination time: {time_str}")
+
+    # Show existing schedule if present
+    removal_scheduled_at = getattr(selected_pod, 'removal_scheduled_at', None)
+    if removal_scheduled_at:
+        try:
+            existing_time = datetime.fromisoformat(removal_scheduled_at.replace('Z', '+00:00'))
+            existing_str = existing_time.strftime("%Y-%m-%d %H:%M UTC")
+            console.warning(f"\n⚠ Pod already scheduled for termination at: {existing_str}")
+            console.dim("Setting a new schedule will override the existing one")
+        except Exception:
+            console.warning(f"\n⚠ Pod already has a scheduled termination")
+
+    console.info(f"\nNew termination time: {time_str}")
     console.dim(f"({hours_until:.1f} hours from now)")
 
     # Confirm unless -y flag
     if not yes:
-        if not Confirm.ask(f"\nSet Schedule termination?", default=False):
+        prompt_text = "\nReschedule termination?" if removal_scheduled_at else "\nSchedule termination?"
+        if not Confirm.ask(prompt_text, default=False):
             console.warning("Cancelled")
             return
 
     # Schedule termination
     try:
         with loading_status("Scheduling termination", "✓ Termination scheduled"):
-            lium.schedule_termination(selected_pod.id, removal_time)
+            # Convert datetime to ISO format string
+            termination_time_str = removal_time.isoformat()
+            lium.schedule_termination(selected_pod.id, termination_time_str)
         console.success(f"Pod {selected_pod.huid} scheduled for termination at {time_str}")
     except Exception as e:
         console.error(f"Failed to schedule termination: {e}")
@@ -231,9 +246,30 @@ def cancel_schedule_command(target: Optional[str], yes: bool):
         selected_pods = parse_targets(target, all_pods)
         selected_pod = selected_pods[0]
 
+    # Check if pod has a scheduled termination
+    removal_scheduled_at = getattr(selected_pod, 'removal_scheduled_at', None)
+    if not removal_scheduled_at:
+        console.warning(f"Pod {selected_pod.huid} does not have a scheduled termination")
+        return
+
     # Show what will be cancelled
     console.info(f"\nPod to cancel scheduled termination:")
     console.info(f"  {selected_pod.huid} - {selected_pod.status}")
+
+    # Show scheduled termination time
+    try:
+        scheduled_time = datetime.fromisoformat(removal_scheduled_at.replace('Z', '+00:00'))
+        scheduled_str = scheduled_time.strftime("%Y-%m-%d %H:%M UTC")
+        time_delta = scheduled_time - datetime.now(timezone.utc)
+        hours_until = time_delta.total_seconds() / 3600
+
+        console.info(f"\nScheduled termination: {scheduled_str}")
+        if hours_until > 0:
+            console.dim(f"({hours_until:.1f} hours from now)")
+        else:
+            console.dim("(overdue)")
+    except Exception:
+        console.info(f"\nScheduled termination: {removal_scheduled_at}")
 
     # Confirm unless -y flag
     if not yes:
