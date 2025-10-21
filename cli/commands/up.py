@@ -31,15 +31,21 @@ from .ssh import get_ssh_method_and_pod, ssh_to_pod
 def _apply_executor_filters(
     executors: List[ExecutorInfo],
     gpu_count: Optional[int] = None,
-    country_code: Optional[str] = None
+    country_code: Optional[str] = None,
+    ports: Optional[int] = None
 ) -> List[ExecutorInfo]:
     """Apply filters to executor list."""
     if gpu_count:
         executors = [e for e in executors if e.gpu_count == gpu_count]
     if country_code:
         executors = [
-            e for e in executors 
+            e for e in executors
             if e.location and e.location.get('country_code', '').upper() == country_code.upper()
+        ]
+    if ports:
+        executors = [
+            e for e in executors
+            if e.available_port_count and e.available_port_count >= ports
         ]
     return executors
 
@@ -47,7 +53,8 @@ def _apply_executor_filters(
 def _build_filter_description(
     gpu: Optional[str] = None,
     count: Optional[int] = None,
-    country: Optional[str] = None
+    country: Optional[str] = None,
+    ports: Optional[int] = None
 ) -> str:
     """Build a description of active filters."""
     filters = []
@@ -57,6 +64,8 @@ def _build_filter_description(
         filters.append(f"GPU count={count}")
     if country:
         filters.append(f"country={country}")
+    if ports:
+        filters.append(f"min ports={ports}")
     return ', '.join(filters)
 
 
@@ -73,7 +82,7 @@ def _get_executor_id(executor_id: str) -> Optional[str]:
     return executor_id
 
 
-def _find_executor_by_id(lium: Lium, executor_id: str) -> Optional[ExecutorInfo]:
+def _find_executor_by_id(lium: Lium, executor_id: str, ports: Optional[int] = None) -> Optional[ExecutorInfo]:
     """Find executor by ID with retry logic."""
     original_id = executor_id
     
@@ -97,7 +106,17 @@ def _find_executor_by_id(lium: Lium, executor_id: str) -> Optional[ExecutorInfo]
                 console.error(f"No executor found with ID '{original_id}'")
                 console.info(f"Tip: {console.get_styled('lium ls', 'success')}")
                 return None
-    
+
+    # Validate port count if specified
+    if ports:
+        if not executor.available_port_count or executor.available_port_count < ports:
+            available = executor.available_port_count or 0
+            console.error(
+                f"Executor {executor.huid} has insufficient ports "
+                f"(available: {available}, required: {ports})"
+            )
+            return None
+
     return executor
 
 
@@ -105,34 +124,35 @@ def _auto_select_executor(
     lium: Lium,
     gpu: Optional[str] = None,
     count: Optional[int] = None,
-    country: Optional[str] = None
+    country: Optional[str] = None,
+    ports: Optional[int] = None
 ) -> Optional[ExecutorInfo]:
     """Automatically select best executor based on filters."""
     from .ls import ls_store_executor
 
     with loading_status("Finding best executor", ""):
         executors = lium.ls(gpu_type=gpu)
-        executors = _apply_executor_filters(executors, gpu_count=count, country_code=country)
-        
+        executors = _apply_executor_filters(executors, gpu_count=count, country_code=country, ports=ports)
+
         if not executors:
-            if gpu not in lium.gpu_types():
+            if gpu is not None and gpu not in lium.gpu_types():
                 console.error(f"GPU '{gpu}' Not recognized")
             else:
-                filter_desc = _build_filter_description(gpu, count, country)
+                filter_desc = _build_filter_description(gpu, count, country, ports)
                 console.error(f"All matching GPUs are currently rented out. (filters: {filter_desc})")
             console.info(f"Tip: {console.get_styled('lium ls', 'success')}")
             return None
-        
+
         # Store for potential index reference
         ls_store_executor(gpu_type=gpu)
-        
+
         # Calculate Pareto frontier to get the best executors
         pareto_flags = calculate_pareto_frontier(executors)
         pareto_executors = [e for e, is_pareto in zip(executors, pareto_flags) if is_pareto]
-        
+
         # Pick the best executor
         executor = pareto_executors[0] if pareto_executors else executors[0]
-    
+
     console.success(
         f"Selected: {executor.huid} ({executor.gpu_count}×{executor.gpu_type}) "
         f"at ${executor.price_per_hour:.2f}/h"
@@ -143,35 +163,36 @@ def _auto_select_executor(
 def select_executor(
     gpu_type: Optional[str] = None,
     gpu_count: Optional[int] = None,
-    country_code: Optional[str] = None
+    country_code: Optional[str] = None,
+    ports: Optional[int] = None
 ) -> Optional[ExecutorInfo]:
     """Interactive executor selection with optional filters."""
     from .ls import show_executors
-    
+
     console.warning("Select executor:")
-    
+
     lium = Lium()
     with loading_status("Loading Executors", "Executors loaded"):
         executors = lium.ls(gpu_type=gpu_type)
-    
-    executors = _apply_executor_filters(executors, gpu_count=gpu_count, country_code=country_code)
-    
+
+    executors = _apply_executor_filters(executors, gpu_count=gpu_count, country_code=country_code, ports=ports)
+
     if not executors:
-        filter_desc = _build_filter_description(gpu_type, gpu_count, country_code)
+        filter_desc = _build_filter_description(gpu_type, gpu_count, country_code, ports)
         if filter_desc:
             console.error(f"No executors available with filters: {filter_desc}")
         else:
             console.error("No executors available")
         return None
-    
+
     showed_executors = show_executors(executors, limit=20)
-    
+
     choice = Prompt.ask(
         "[cyan]Select executor by number[/cyan]",
         choices=[str(i) for i in range(1, len(showed_executors) + 1)],
         default="1"
     )
-    
+
     chosen_executor = showed_executors[int(choice) - 1]
     console.success(f"Selected: {chosen_executor.huid}")
     return chosen_executor
@@ -234,7 +255,8 @@ def _create_and_connect_pod(
     template_id: Optional[str],
     volume_id: Optional[str],
     volume_create_params: Optional[Dict[str, str]],
-    interactive_mode: bool = False
+    interactive_mode: bool = False,
+    initial_port_count: Optional[int] = None
 ) -> None:
     """Create pod and connect via SSH."""
     # Set defaults
@@ -263,7 +285,7 @@ def _create_and_connect_pod(
 
         # Create pod
         with loading_status(f"Creating pod {name}", ""):
-            pod_info = lium.up(executor_id=executor.id, pod_name=name, template_id=template.id, volume_id=volume_id)
+            pod_info = lium.up(executor_id=executor.id, pod_name=name, template_id=template.id, volume_id=volume_id, initial_port_count=initial_port_count)
 
         # Wait for pod to be ready
         with loading_status("Waiting for pod to be ready..."):
@@ -290,7 +312,7 @@ def _create_and_connect_pod(
 
         with timed_step_status(current_step, total_steps, "Renting machine"):
             template = lium.get_template(get_pytorch_template_id())
-            pod_info = lium.up(executor_id=executor.id, pod_name=name, template_id=template.id, volume_id=volume_id)
+            pod_info = lium.up(executor_id=executor.id, pod_name=name, template_id=template.id, volume_id=volume_id, initial_port_count=initial_port_count)
 
         with timed_step_status(current_step + 1, total_steps, "Loading image"):
             pod_id = pod_info.get('id') or pod_info.get('name', '')
@@ -312,6 +334,7 @@ def _create_and_connect_pod(
 @click.option("--gpu", help="Filter executors by GPU type (e.g., H200, A6000)", shell_complete=get_gpu_completions)
 @click.option("--count", "-c", type=int, help="Number of GPUs per pod")
 @click.option("--country", help="Filter executors by ISO country code (e.g., US, FR)")
+@click.option("--ports", "-p", type=int, help="Minimum number of available ports required")
 @handle_errors
 def up_command(
     executor_id: Optional[str],
@@ -322,7 +345,8 @@ def up_command(
     interactive: bool,
     gpu: Optional[str],
     count: Optional[int],
-    country: Optional[str]
+    country: Optional[str],
+    ports: Optional[int]
 ):
     """\b
     Create a new GPU pod on an executor.
@@ -339,6 +363,7 @@ def up_command(
       lium up --gpu A6000 -c 2              # Filter by GPU type and count
       lium up --country US                  # Filter by country code
       lium up --gpu H200 --country FR       # Combine multiple filters
+      lium up --ports 5             # Filter by minimum available ports + set this amount of ports on up.
       lium up 1 --volume id:brave-fox-3a    # Attach existing volume by HUID
       lium up 1 --volume new:name=my-data   # Create and attach new volume
       lium up 1 --volume new:name=my-data,desc="Training data"  # With description
@@ -368,16 +393,15 @@ def up_command(
             console.error("Cannot use filters (--gpu, --count, --country) when specifying an executor ID")
             return
 
-        executor = _find_executor_by_id(lium, executor_id)
+        executor = _find_executor_by_id(lium, executor_id, ports=ports)
         if not executor:
             return
     else:
         # No executor provided - use filters or interactive selection
         if gpu or count or country:
-            executor = _auto_select_executor(lium, gpu, count, country)
+            executor = _auto_select_executor(lium, gpu, count, country, ports)
         else:
-            executor = select_executor()
-
+            executor = select_executor(ports=ports)
         if not executor:
             return
 
@@ -386,4 +410,4 @@ def up_command(
         return
 
     # Create pod and connect
-    _create_and_connect_pod(lium, executor, name, template_id, volume_id, volume_create_params, interactive_mode=interactive)
+    _create_and_connect_pod(lium, executor, name, template_id, volume_id, volume_create_params, interactive_mode=interactive, initial_port_count=ports)
