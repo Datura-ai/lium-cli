@@ -312,7 +312,7 @@ def _create_and_connect_pod(
 
         with timed_step_status(current_step, total_steps, "Renting machine"):
             template = lium.get_template(get_pytorch_template_id())
-            pod_info = lium.up(executor_id=executor.id, pod_name=name, template_id=template.id, volume_id=volume_id)
+            pod_info = lium.up(executor_id=executor.id, pod_name=name, template_id=template.id, volume_id=volume_id, initial_port_count=initial_port_count)
 
         with timed_step_status(current_step + 1, total_steps, "Loading image"):
             pod_id = pod_info.get('id') or pod_info.get('name', '')
