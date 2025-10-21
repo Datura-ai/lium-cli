@@ -210,6 +210,18 @@ def select_template(filter_text: Optional[str] = None) -> Optional[Template]:
     return chosen_template
 
 
+def _schedule_termination_if_needed(lium: Lium, pod_id: str, termination_time) -> None:
+    with loading_status("Scheduling termination", ""):
+        termination_time_str = termination_time.isoformat()
+        lium.schedule_termination(pod_id, termination_time_str)
+
+    from datetime import datetime, timezone
+    time_str = termination_time.strftime("%Y-%m-%d %H:%M UTC")
+    time_delta = termination_time - datetime.now(timezone.utc)
+    hours_until = time_delta.total_seconds() / 3600
+    console.success(f"Scheduled termination at {time_str} ({hours_until:.1f}h from now)")
+
+
 def _confirm_pod_creation(executor: ExecutorInfo, skip_confirm: bool = False) -> bool:
     """Confirm pod creation with user."""
     if skip_confirm:
@@ -273,15 +285,7 @@ def _create_and_connect_pod(
 
         # Schedule termination if requested
         if termination_time:
-            with loading_status("Scheduling termination", ""):
-                termination_time_str = termination_time.isoformat()
-                lium.schedule_termination(pod_id, termination_time_str)
-
-            from datetime import datetime, timezone
-            time_str = termination_time.strftime("%Y-%m-%d %H:%M UTC")
-            time_delta = termination_time - datetime.now(timezone.utc)
-            hours_until = time_delta.total_seconds() / 3600
-            console.success(f"Scheduled termination at {time_str} ({hours_until:.1f}h from now)")
+            _schedule_termination_if_needed(lium, pod_id, termination_time)
 
         # Connect via SSH
         with loading_status("Connecting ssh"):
@@ -311,15 +315,7 @@ def _create_and_connect_pod(
 
         # Schedule termination if requested
         if termination_time:
-            with loading_status("Scheduling termination", ""):
-                termination_time_str = termination_time.isoformat()
-                lium.schedule_termination(pod_id, termination_time_str)
-
-            from datetime import datetime, timezone
-            time_str = termination_time.strftime("%Y-%m-%d %H:%M UTC")
-            time_delta = termination_time - datetime.now(timezone.utc)
-            hours_until = time_delta.total_seconds() / 3600
-            console.success(f"Scheduled termination at {time_str} ({hours_until:.1f}h from now)")
+            _schedule_termination_if_needed(lium, pod_id, termination_time)
 
         with timed_step_status(current_step + 2, total_steps, "Connecting ssh"):
             ssh_cmd, pod = get_ssh_method_and_pod(name)
