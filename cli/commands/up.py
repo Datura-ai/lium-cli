@@ -231,6 +231,18 @@ def select_template(filter_text: Optional[str] = None) -> Optional[Template]:
     return chosen_template
 
 
+def _schedule_termination_if_needed(lium: Lium, pod_id: str, termination_time) -> None:
+    with loading_status("Scheduling termination", ""):
+        termination_time_str = termination_time.isoformat()
+        lium.schedule_termination(pod_id, termination_time_str)
+
+    from datetime import datetime, timezone
+    time_str = termination_time.strftime("%Y-%m-%d %H:%M UTC")
+    time_delta = termination_time - datetime.now(timezone.utc)
+    hours_until = time_delta.total_seconds() / 3600
+    console.success(f"Scheduled termination at {time_str} ({hours_until:.1f}h from now)")
+
+
 def _confirm_pod_creation(executor: ExecutorInfo, skip_confirm: bool = False) -> bool:
     """Confirm pod creation with user."""
     if skip_confirm:
@@ -256,7 +268,8 @@ def _create_and_connect_pod(
     volume_id: Optional[str],
     volume_create_params: Optional[Dict[str, str]],
     interactive_mode: bool = False,
-    initial_port_count: Optional[int] = None
+    initial_port_count: Optional[int] = None,
+    termination_time = None
 ) -> None:
     """Create pod and connect via SSH."""
     # Set defaults
@@ -292,6 +305,10 @@ def _create_and_connect_pod(
             pod_id = pod_info.get('id') or pod_info.get('name', '')
             pod = wait_ready_no_timeout(lium, pod_id)
 
+        # Schedule termination if requested
+        if termination_time:
+            _schedule_termination_if_needed(lium, pod_id, termination_time)
+
         # Connect via SSH
         with loading_status("Connecting ssh"):
             ssh_cmd, pod = get_ssh_method_and_pod(name)
@@ -318,6 +335,10 @@ def _create_and_connect_pod(
             pod_id = pod_info.get('id') or pod_info.get('name', '')
             pod = wait_ready_no_timeout(lium, pod_id)
 
+        # Schedule termination if requested
+        if termination_time:
+            _schedule_termination_if_needed(lium, pod_id, termination_time)
+
         with timed_step_status(current_step + 2, total_steps, "Connecting ssh"):
             ssh_cmd, pod = get_ssh_method_and_pod(name)
 
@@ -335,6 +356,8 @@ def _create_and_connect_pod(
 @click.option("--count", "-c", type=int, help="Number of GPUs per pod")
 @click.option("--country", help="Filter executors by ISO country code (e.g., US, FR)")
 @click.option("--ports", "-p", type=int, help="Minimum number of available ports required")
+@click.option("--ttl", help="Auto-terminate after duration (e.g., 6h, 45m, 2d)")
+@click.option("--until", help="Auto-terminate at time in local timezone (e.g., 'today 23:00', 'tomorrow 01:00', '2025-10-20 15:30')")
 @handle_errors
 def up_command(
     executor_id: Optional[str],
@@ -346,7 +369,9 @@ def up_command(
     gpu: Optional[str],
     count: Optional[int],
     country: Optional[str],
-    ports: Optional[int]
+    ports: Optional[int],
+    ttl: Optional[str],
+    until: Optional[str]
 ):
     """\b
     Create a new GPU pod on an executor.
@@ -367,9 +392,45 @@ def up_command(
       lium up 1 --volume id:brave-fox-3a    # Attach existing volume by HUID
       lium up 1 --volume new:name=my-data   # Create and attach new volume
       lium up 1 --volume new:name=my-data,desc="Training data"  # With description
+      lium up 1 --ttl 6h                    # Auto-terminate after 6 hours
+      lium up 1 --until "today 23:00"       # Auto-terminate at 23:00 local time today
+      lium up 1 --until "tomorrow 01:00"    # Auto-terminate at 01:00 local time tomorrow
     """
     ensure_config()
     lium = Lium()
+
+    # Validate TTL/until options (mutually exclusive)
+    if ttl and until:
+        console.error("Cannot specify both --ttl and --until")
+        return
+
+    # Parse TTL/until to get termination time
+    termination_time = None
+    if ttl:
+        from .schedule import parse_duration
+        from datetime import datetime, timezone
+        duration = parse_duration(ttl)
+        if not duration:
+            console.error(f"Invalid TTL format: '{ttl}'. Use format like '6h', '45m', '2d'")
+            return
+        termination_time = datetime.now(timezone.utc) + duration
+
+    if until:
+        from .schedule import parse_time_spec
+        termination_time = parse_time_spec(until)
+        if not termination_time:
+            # Check if it's a "today" time that has passed
+            if until.strip().lower().startswith('today '):
+                console.error(f"Time '{until}' has already passed today. Use 'tomorrow HH:MM' or a future time.")
+            else:
+                console.error(f"Invalid time format: '{until}'. Use 'today HH:MM', 'tomorrow HH:MM', or 'YYYY-MM-DD HH:MM'")
+            return
+
+        # Validate it's in the future
+        from datetime import datetime, timezone
+        if termination_time <= datetime.now(timezone.utc):
+            console.error("Termination time must be in the future")
+            return
 
     # Parse volume specification if provided
     volume_id = None
@@ -410,4 +471,4 @@ def up_command(
         return
 
     # Create pod and connect
-    _create_and_connect_pod(lium, executor, name, template_id, volume_id, volume_create_params, interactive_mode=interactive, initial_port_count=ports)
+    _create_and_connect_pod(lium, executor, name, template_id, volume_id, volume_create_params, interactive_mode=interactive, initial_port_count=ports, termination_time=termination_time)

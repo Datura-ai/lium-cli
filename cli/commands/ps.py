@@ -89,6 +89,25 @@ def _format_ports(ports: dict) -> str:
     return ", ".join(port_pairs)
 
 
+def _format_scheduled_termination(removal_scheduled_at: Optional[str]) -> str:
+    """Format scheduled termination time."""
+    if not removal_scheduled_at:
+        return "None"
+
+    try:
+        scheduled_time = _parse_timestamp(removal_scheduled_at)
+        if not scheduled_time:
+            return "Yes"
+
+        # Convert to local timezone
+        local_time = scheduled_time.astimezone()
+
+        # Format as "Oct 20, 2025 6:00 AM"
+        return local_time.strftime("%b %d, %Y %-I:%M %p")
+    except Exception:
+        return "Yes"
+
+
 def show_pods(pods: List[PodInfo], short: bool = False) -> None:
     """Display pods in a tight, well-engineered table."""
     if not pods:
@@ -116,6 +135,7 @@ def show_pods(pods: List[PodInfo], short: bool = False) -> None:
     table.add_column("$/h", justify="right", width=6, no_wrap=True)
     table.add_column("Spent", justify="right", width=8, no_wrap=True)
     table.add_column("Uptime", justify="right", width=7, no_wrap=True)
+    table.add_column("Scheduled Terminate", justify="left", width=23, overflow="ellipsis")
     table.add_column("Ports", justify="left", ratio=3, min_width=15, overflow="fold") if not short else None
     table.add_column("Name", justify="left", ratio=2, min_width=15, overflow="fold")
 
@@ -136,6 +156,11 @@ def show_pods(pods: List[PodInfo], short: bool = False) -> None:
         # Format template name and port mappings for this GPU pod
         template_name = _format_template_name(pod.template)
         ports_display = _format_ports(pod.ports)
+
+        # Get scheduled termination status (support both field names)
+        removal_scheduled_at = getattr(pod, 'removal_scheduled_at', None) or getattr(pod, 'removal_rescheduled_at', None)
+        schedule_display = _format_scheduled_termination(removal_scheduled_at)
+
         row = [
             console.get_styled(pod.huid, 'pod_id'),
             status_text,
@@ -144,6 +169,7 @@ def show_pods(pods: List[PodInfo], short: bool = False) -> None:
             price_str,
             _format_cost(pod.created_at, price_per_hour),
             _format_uptime(pod.created_at),
+            console.get_styled(schedule_display, 'warning' if removal_scheduled_at else 'dim'),
             console.get_styled(ports_display, 'info'),
             console.get_styled(pod.name or "—", 'info'),
         ]
