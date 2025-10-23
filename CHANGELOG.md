@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.3] - 2025-10-23
+
+### Added
+- `lium reboot` command to reboot pods individually or in batches.
+- `lium scp` downloads via the new `--download / -d` flag with smarter defaults.
+
+### Changed
+- Updated dependency to `lium-sdk` 0.2.12 to access the reboot helper.
+
 ## [0.3.0] - 2025-01-23
 
 ### Added
