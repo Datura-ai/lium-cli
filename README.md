@@ -68,6 +68,7 @@ lium rm <pod-name>
 - `lium scp <POD> <LOCAL_FILE> [REMOTE_PATH]` - Copy files to pods (add `-d` to download from pods)
 - `lium rsync <POD> <LOCAL_DIR> [REMOTE_PATH]` - Sync directories to pods
 - `lium rm <POD>` - Remove/stop a pod
+- `lium reboot <POD>` - Reboot a pod
 - `lium templates [SEARCH]` - List available Docker templates
 - `lium image <IMAGE_NAME> <PATH>` - Build and deploy Docker image as template
 - `lium fund` - Fund account with TAO from Bittensor wallet
@@ -92,6 +93,12 @@ lium scp 1 ./data.csv /root/data/             # Copy to specific directory
 lium scp all ./config.json                    # Copy to all pods
 lium scp 1,2,3 ./model.py /root/models/       # Copy to multiple pods
 lium scp my-pod /root/output.log ./downloads -d  # Download into ./downloads directory
+
+# Reboot pods
+lium reboot my-pod                           # Reboot a single pod
+lium reboot 1,2 --yes                        # Reboot pods 1 and 2 without confirmation
+lium reboot all                              # Reboot all active pods
+lium reboot my-pod --volume-id <VOLUME_ID>   # Reboot with a specific volume ID
 
 # Sync directories to pods
 lium rsync my-pod ./project                    # Sync to /root/project
