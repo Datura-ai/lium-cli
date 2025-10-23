@@ -11,6 +11,7 @@ from .commands.ps import ps_command
 from .commands.exec import exec_command
 from .commands.ssh import ssh_command
 from .commands.rm import rm_command
+from .commands.reboot import reboot_command
 from .commands.scp import scp_command
 from .commands.rsync import rsync_command
 from .commands.theme import theme_command
@@ -59,6 +60,7 @@ cli.add_command(ps_command)
 cli.add_command(exec_command)
 cli.add_command(ssh_command)
 cli.add_command(rm_command)
+cli.add_command(reboot_command)
 cli.add_command(scp_command)
 cli.add_command(rsync_command)
 cli.add_command(theme_command)
