@@ -108,6 +108,22 @@ def _format_scheduled_termination(removal_scheduled_at: Optional[str]) -> str:
         return "Yes"
 
 
+def _format_jupyter_status(pod: PodInfo) -> str:
+    """Format Jupyter installation status."""
+    if not hasattr(pod, 'jupyter_installation_status') or not pod.jupyter_installation_status:
+        return "—"
+
+    status = pod.jupyter_installation_status
+    if status == "SUCCESS":
+        return "Yes"
+    elif status == "INSTALLING":
+        return "Installing"
+    elif status == "FAILED":
+        return "Failed"
+    else:
+        return status[:8]  # Abbreviated status
+
+
 def show_pods(pods: List[PodInfo], short: bool = False) -> None:
     """Display pods in a tight, well-engineered table."""
     if not pods:
@@ -136,6 +152,7 @@ def show_pods(pods: List[PodInfo], short: bool = False) -> None:
     table.add_column("Spent", justify="right", width=8, no_wrap=True)
     table.add_column("Uptime", justify="right", width=7, no_wrap=True)
     table.add_column("Scheduled Terminate", justify="left", width=23, overflow="ellipsis")
+    table.add_column("Jupyter", justify="center", width=11, no_wrap=True)
     table.add_column("Ports", justify="left", ratio=3, min_width=15, overflow="fold") if not short else None
     table.add_column("Name", justify="left", ratio=2, min_width=15, overflow="fold")
 
@@ -161,6 +178,10 @@ def show_pods(pods: List[PodInfo], short: bool = False) -> None:
         removal_scheduled_at = getattr(pod, 'removal_scheduled_at', None) or getattr(pod, 'removal_rescheduled_at', None)
         schedule_display = _format_scheduled_termination(removal_scheduled_at)
 
+        # Get Jupyter status
+        jupyter_display = _format_jupyter_status(pod)
+        jupyter_color = "green" if jupyter_display == "Yes" else ("yellow" if jupyter_display == "Installing" else ("red" if jupyter_display == "Failed" else "dim"))
+
         row = [
             console.get_styled(pod.huid, 'pod_id'),
             status_text,
@@ -170,6 +191,7 @@ def show_pods(pods: List[PodInfo], short: bool = False) -> None:
             _format_cost(pod.created_at, price_per_hour),
             _format_uptime(pod.created_at),
             console.get_styled(schedule_display, 'warning' if removal_scheduled_at else 'dim'),
+            console.get_styled(jupyter_display, jupyter_color),
             console.get_styled(ports_display, 'info'),
             console.get_styled(pod.name or "—", 'info'),
         ]
@@ -184,8 +206,9 @@ def show_pods(pods: List[PodInfo], short: bool = False) -> None:
 
 @click.command("ps")
 @click.argument("pod_id", required=False)
+@click.option("--details", "-d", is_flag=True, help="Show detailed information including Jupyter URLs")
 @handle_errors
-def ps_command(pod_id: Optional[str]):
+def ps_command(pod_id: Optional[str], details: bool):
     """\b
     List active GPU pods.
     POD_ID: Optional specific pod ID/name to show details for
@@ -193,6 +216,7 @@ def ps_command(pod_id: Optional[str]):
     Examples:
       lium ps                # Show all active pods
       lium ps eager-wolf-aa  # Show specific pod details
+      lium ps --details      # Show all pods with detailed info
     """
     ensure_config()
 
@@ -204,7 +228,18 @@ def ps_command(pod_id: Optional[str]):
         pod = next((p for p in pods if p.id == pod_id or p.huid == pod_id or p.name == pod_id), None)
         if pod:
             show_pods([pod])
+            # Show Jupyter URL if available and details flag or specific pod
+            if hasattr(pod, 'jupyter_url') and pod.jupyter_url:
+                console.info(f"\nJupyter URL: {pod.jupyter_url}")
         else:
             console.error(f"Pod '{pod_id}' not found")
     else:
         show_pods(pods)
+
+        # Show Jupyter URLs for all pods if details flag is set
+        if details:
+            jupyter_pods = [p for p in pods if hasattr(p, 'jupyter_url') and p.jupyter_url]
+            if jupyter_pods:
+                console.info("\nJupyter URLs:")
+                for pod in jupyter_pods:
+                    console.info(f"  {console.get_styled(pod.huid, 'pod_id')}: {pod.jupyter_url}")
