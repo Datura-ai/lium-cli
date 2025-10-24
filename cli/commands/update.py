@@ -1,6 +1,8 @@
 """Update pod configuration command."""
 import os
 import sys
+import json
+import re
 from typing import Optional
 
 import click
@@ -62,7 +64,32 @@ def update_command(target: str, jupyter: Optional[int]):
 
     # Install Jupyter if requested
     if jupyter:
-        with loading_status(f"Installing Jupyter Notebook on {pod.huid}", ""):
+        try:
+            # Install Jupyter without loading status to avoid showing raw errors
             result = lium.install_jupyter(pod, jupyter)
 
-        console.success(f"Jupyter Notebook installing... you can check the status with 'lium ps --details' ({pod.huid} (port {jupyter})")
+            all_pods = lium.ps()
+            updated_pod = next((p for p in all_pods if p.id == pod.id), None)
+
+            # Display Jupyter information
+            if updated_pod and hasattr(updated_pod, 'jupyter_url') and updated_pod.jupyter_url:
+                console.info(f"Jupyter URL: {updated_pod.jupyter_url}")
+
+            if updated_pod and hasattr(updated_pod, 'jupyter_installation_status') and updated_pod.jupyter_installation_status:
+                status_color = "green" if updated_pod.jupyter_installation_status == "SUCCESS" else "yellow"
+                console.info(f"Installation Status: [{status_color}]{updated_pod.jupyter_installation_status}[/{status_color}]")
+
+        except Exception as e:
+            # Try to extract clean error message from API response
+            error_msg = str(e)
+
+            # Look for JSON in the error message and extract the "message" field
+            json_match = re.search(r'"message"\s*:\s*"([^"]+)"', error_msg)
+            if json_match:
+                clean_message = json_match.group(1)
+                console.error(clean_message)
+            else:
+                # Fallback to generic message if we can't parse it
+                console.error("Failed to install Jupyter Notebook. Ensure port is avaialble on the pod")
+
+            return
