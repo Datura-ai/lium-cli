@@ -2,6 +2,7 @@
 
 import os
 import sys
+import json
 from typing import Dict, List, Optional
 
 import click
@@ -243,6 +244,74 @@ def _schedule_termination_if_needed(lium: Lium, pod_id: str, termination_time) -
     console.success(f"Scheduled termination at {time_str} ({hours_until:.1f}h from now)")
 
 
+def _install_jupyter_if_needed(lium: Lium, pod_id: str, jupyter_port: Optional[int]) -> None:
+    """Install Jupyter Notebook on pod if requested."""
+    if not jupyter_port:
+        return
+
+    import time
+
+    console.info(f"Installing Jupyter Notebook on port {jupyter_port}...")
+
+    try:
+        # Start installation
+        lium.install_jupyter(pod_id, jupyter_port)
+
+        # Poll for completion
+        max_wait = 120  # 2 minutes
+        wait_interval = 3  # Check every 3 seconds
+        elapsed = 0
+
+        with loading_status("Waiting for Jupyter installation to complete", ""):
+            while elapsed < max_wait:
+                time.sleep(wait_interval)
+                elapsed += wait_interval
+
+                all_pods = lium.ps()
+                updated_pod = next((p for p in all_pods if p.id == pod_id or p.huid == pod_id or p.name == pod_id), None)
+
+                if updated_pod and hasattr(updated_pod, 'jupyter_installation_status'):
+                    if updated_pod.jupyter_installation_status == "SUCCESS":
+                        break
+                    elif updated_pod.jupyter_installation_status == "FAILED":
+                        console.error("Jupyter installation failed")
+                        return
+
+        # Get final pod info
+        all_pods = lium.ps()
+        updated_pod = next((p for p in all_pods if p.id == pod_id or p.huid == pod_id or p.name == pod_id), None)
+
+        # Display success and URL
+        if updated_pod and hasattr(updated_pod, 'jupyter_url') and updated_pod.jupyter_url:
+            console.success("Jupyter Notebook installed successfully!")
+            console.info(f"Jupyter URL: {updated_pod.jupyter_url}")
+        else:
+            console.warning("Jupyter installation timed out. Run 'lium ps' to check status")
+
+    except Exception as e:
+        # Try to extract clean error message from API response
+        error_msg = str(e)
+
+        try:
+            # Try to parse the error message as JSON
+            error_json = json.loads(error_msg)
+            if isinstance(error_json, dict) and 'message' in error_json:
+                console.error(error_json['message'])
+            else:
+                console.error("Failed to install Jupyter Notebook. Ensure port is available on the pod")
+        except (json.JSONDecodeError, TypeError):
+            # Fallback to regex parsing if JSON parsing fails
+            json_match = re.search(r'"message"\s*:\s*"([^"]+)"', error_msg)
+            if json_match:
+                clean_message = json_match.group(1)
+                console.error(clean_message)
+            else:
+                # Fallback to generic message if we can't parse it
+                console.error("Failed to install Jupyter Notebook. Ensure port is available on the pod")
+
+        return
+
+
 def _confirm_pod_creation(executor: ExecutorInfo, skip_confirm: bool = False) -> bool:
     """Confirm pod creation with user."""
     if skip_confirm:
@@ -269,7 +338,8 @@ def _create_and_connect_pod(
     volume_create_params: Optional[Dict[str, str]],
     interactive_mode: bool = False,
     initial_port_count: Optional[int] = None,
-    termination_time = None
+    termination_time = None,
+    jupyter_port: Optional[int] = None
 ) -> None:
     """Create pod and connect via SSH."""
     # Set defaults
@@ -309,6 +379,9 @@ def _create_and_connect_pod(
         if termination_time:
             _schedule_termination_if_needed(lium, pod_id, termination_time)
 
+        # Install Jupyter if requested
+        _install_jupyter_if_needed(lium, pod_id, jupyter_port)
+
         # Connect via SSH
         with loading_status("Connecting ssh"):
             ssh_cmd, pod = get_ssh_method_and_pod(name)
@@ -339,6 +412,9 @@ def _create_and_connect_pod(
         if termination_time:
             _schedule_termination_if_needed(lium, pod_id, termination_time)
 
+        # Install Jupyter if requested
+        _install_jupyter_if_needed(lium, pod_id, jupyter_port)
+
         with timed_step_status(current_step + 2, total_steps, "Connecting ssh"):
             ssh_cmd, pod = get_ssh_method_and_pod(name)
 
@@ -358,6 +434,7 @@ def _create_and_connect_pod(
 @click.option("--ports", "-p", type=int, help="Minimum number of available ports required")
 @click.option("--ttl", help="Auto-terminate after duration (e.g., 6h, 45m, 2d)")
 @click.option("--until", help="Auto-terminate at time in local timezone (e.g., 'today 23:00', 'tomorrow 01:00', '2025-10-20 15:30')")
+@click.option("--jupyter", type=int, help="Install Jupyter Notebook on specified internal port")
 @handle_errors
 def up_command(
     executor_id: Optional[str],
@@ -371,7 +448,8 @@ def up_command(
     country: Optional[str],
     ports: Optional[int],
     ttl: Optional[str],
-    until: Optional[str]
+    until: Optional[str],
+    jupyter: Optional[int]
 ):
     """\b
     Create a new GPU pod on an executor.
@@ -395,6 +473,7 @@ def up_command(
       lium up 1 --ttl 6h                    # Auto-terminate after 6 hours
       lium up 1 --until "today 23:00"       # Auto-terminate at 23:00 local time today
       lium up 1 --until "tomorrow 01:00"    # Auto-terminate at 01:00 local time tomorrow
+      lium up 1 --jupyter 8888              # Install Jupyter Notebook on port 8888
     """
     ensure_config()
     lium = Lium()
@@ -471,4 +550,4 @@ def up_command(
         return
 
     # Create pod and connect
-    _create_and_connect_pod(lium, executor, name, template_id, volume_id, volume_create_params, interactive_mode=interactive, initial_port_count=ports, termination_time=termination_time)
+    _create_and_connect_pod(lium, executor, name, template_id, volume_id, volume_create_params, interactive_mode=interactive, initial_port_count=ports, termination_time=termination_time, jupyter_port=jupyter)
