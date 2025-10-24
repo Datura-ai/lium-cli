@@ -65,31 +65,62 @@ def update_command(target: str, jupyter: Optional[int]):
     # Install Jupyter if requested
     if jupyter:
         try:
-            # Install Jupyter without loading status to avoid showing raw errors
+            # Install Jupyter
             result = lium.install_jupyter(pod, jupyter)
 
+            console.info(f"Installing Jupyter Notebook on {pod.huid} (port {jupyter})...")
+
+            # Poll for installation completion
+            import time
+            max_wait = 120  # 2 minutes timeout
+            wait_interval = 3  # Check every 3 seconds
+            elapsed = 0
+
+            with loading_status("Waiting for Jupyter installation to complete", ""):
+                while elapsed < max_wait:
+                    time.sleep(wait_interval)
+                    elapsed += wait_interval
+
+                    all_pods = lium.ps()
+                    updated_pod = next((p for p in all_pods if p.id == pod.id), None)
+
+                    if updated_pod and hasattr(updated_pod, 'jupyter_installation_status'):
+                        if updated_pod.jupyter_installation_status == "SUCCESS":
+                            break
+                        elif updated_pod.jupyter_installation_status == "FAILED":
+                            console.error("Jupyter installation failed")
+                            return
+
+            # Get final pod info
             all_pods = lium.ps()
             updated_pod = next((p for p in all_pods if p.id == pod.id), None)
 
             # Display Jupyter information
             if updated_pod and hasattr(updated_pod, 'jupyter_url') and updated_pod.jupyter_url:
+                console.success("Jupyter Notebook installed successfully!")
                 console.info(f"Jupyter URL: {updated_pod.jupyter_url}")
-
-            if updated_pod and hasattr(updated_pod, 'jupyter_installation_status') and updated_pod.jupyter_installation_status:
-                status_color = "green" if updated_pod.jupyter_installation_status == "SUCCESS" else "yellow"
-                console.info(f"Installation Status: [{status_color}]{updated_pod.jupyter_installation_status}[/{status_color}]")
+            else:
+                console.warning("Jupyter installation timed out. Run 'lium ps' to check status")
 
         except Exception as e:
             # Try to extract clean error message from API response
             error_msg = str(e)
 
-            # Look for JSON in the error message and extract the "message" field
-            json_match = re.search(r'"message"\s*:\s*"([^"]+)"', error_msg)
-            if json_match:
-                clean_message = json_match.group(1)
-                console.error(clean_message)
-            else:
-                # Fallback to generic message if we can't parse it
-                console.error("Failed to install Jupyter Notebook. Ensure port is avaialble on the pod")
+            try:
+                # Try to parse the error message as JSON
+                error_json = json.loads(error_msg)
+                if isinstance(error_json, dict) and 'message' in error_json:
+                    console.error(error_json['message'])
+                else:
+                    console.error("Failed to install Jupyter Notebook. Ensure port is available on the pod")
+            except (json.JSONDecodeError, TypeError):
+                # Fallback to regex parsing if JSON parsing fails
+                json_match = re.search(r'"message"\s*:\s*"([^"]+)"', error_msg)
+                if json_match:
+                    clean_message = json_match.group(1)
+                    console.error(clean_message)
+                else:
+                    # Fallback to generic message if we can't parse it
+                    console.error("Failed to install Jupyter Notebook. Ensure port is available on the pod")
 
             return
