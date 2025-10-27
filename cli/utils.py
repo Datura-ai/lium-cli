@@ -205,8 +205,8 @@ def timed_step_status(step: int = 0, total_steps: int = 0, message: str = ""):
     import sys
     
     start_time = time.time()
-    # Only show step prefix if steps > 0
-    step_prefix = f"[{step}/{total_steps}] " if step > 0 and total_steps > 0 else ""
+    # Only show step prefix if steps > 0 (with bullet for visual separation)
+    step_prefix = f"● [{step}/{total_steps}] " if step > 0 and total_steps > 0 else ""
     running = [True]  # Use list for mutable reference
     
     # Hide cursor during animation

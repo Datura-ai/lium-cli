@@ -29,6 +29,19 @@ from ..utils import (
 )
 from .ssh import get_ssh_method_and_pod, ssh_to_pod
 
+# Pipeline imports
+from ..core import UpOptions, UpContext, run_pipeline, Reporter
+from ..core.actions import (
+    ResolveExecutor,
+    ConfirmCreation,
+    CreateVolumeIfNeeded,
+    RentPod,
+    WaitReady,
+    ScheduleTerminationIfNeeded,
+    InstallJupyterIfNeeded,
+    ConnectSSH,
+)
+
 
 def _apply_executor_filters(
     executors: List[ExecutorInfo],
@@ -547,7 +560,6 @@ def up_command(
       LIUM_DEBUG=1 lium up 1 --jupyter      # Show debug information
     """
     ensure_config()
-    lium = Lium()
 
     # Validate TTL/until options (mutually exclusive)
     if ttl and until:
@@ -568,21 +580,11 @@ def up_command(
     if until:
         from .schedule import parse_time_spec
         termination_time = parse_time_spec(until)
-        if not termination_time:
-            # Check if it's a "today" time that has passed
-            if until.strip().lower().startswith('today '):
-                console.error(f"Time '{until}' has already passed today. Use 'tomorrow HH:MM' or a future time.")
-            else:
-                console.error(f"Invalid time format: '{until}'. Use 'today HH:MM', 'tomorrow HH:MM', or 'YYYY-MM-DD HH:MM'")
+        if not termination_time or termination_time <= datetime.now(timezone.utc):
+            console.error("Invalid or past termination time")
             return
 
-        # Validate it's in the future
-        from datetime import datetime, timezone
-        if termination_time <= datetime.now(timezone.utc):
-            console.error("Termination time must be in the future")
-            return
-
-    # Parse volume specification if provided
+    # Parse volume specification
     volume_id = None
     volume_create_params = None
     if volume:
@@ -590,35 +592,40 @@ def up_command(
         if error_msg:
             console.error(error_msg)
             return
+        volume_id, volume_create_params = vol_id, create_params
 
-        # Store whether we need to create a volume or use existing
-        if create_params:
-            volume_create_params = create_params
-        else:
-            volume_id = vol_id
-
-    # Resolve executor
-    if executor_id:
-        # Validate that filters aren't used with explicit executor ID
-        if gpu or count or country:
-            console.error("Cannot use filters (--gpu, --count, --country) when specifying an executor ID")
-            return
-
-        executor = _find_executor_by_id(lium, executor_id, ports=ports)
-        if not executor:
-            return
-    else:
-        # No executor provided - use filters or interactive selection
-        if gpu or count or country:
-            executor = _auto_select_executor(lium, gpu, count, country, ports)
-        else:
-            executor = select_executor(ports=ports)
-        if not executor:
-            return
-
-    # Confirm creation
-    if not _confirm_pod_creation(executor, skip_confirm=yes):
+    # Validate executor ID and filters
+    if executor_id and (gpu or count or country):
+        console.error("Cannot use filters (--gpu, --count, --country) when specifying an executor ID")
         return
 
-    # Create pod and connect
-    _create_and_connect_pod(lium, executor, name, template_id, volume_id, volume_create_params, interactive_mode=interactive, initial_port_count=ports, termination_time=termination_time, enable_jupyter=jupyter)
+    # Build options
+    opts = UpOptions(
+        executor_id=executor_id,
+        gpu=gpu,
+        count=count,
+        country=country,
+        ports=ports,
+        name=name,
+        template_id=template_id,
+        volume_id=volume_id,
+        volume_create_params=volume_create_params,
+        skip_confirm=yes,
+        interactive=interactive,
+        termination_time=termination_time,
+        jupyter=jupyter,
+    )
+
+    # Build context and run pipeline
+    ctx = UpContext(lium=Lium(), opts=opts, reporter=Reporter())
+
+    run_pipeline(ctx, [
+        ResolveExecutor(),
+        ConfirmCreation(),
+        CreateVolumeIfNeeded(),
+        RentPod(),
+        WaitReady(),
+        ScheduleTerminationIfNeeded(),
+        InstallJupyterIfNeeded(),
+        ConnectSSH(),
+    ])
