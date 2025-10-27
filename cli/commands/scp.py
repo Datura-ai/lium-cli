@@ -7,7 +7,7 @@ from typing import Optional
 
 import click
 
-from lium_sdk import Lium, PodInfo
+from cli.lium_sdk import Lium, PodInfo
 from ..utils import console, handle_errors, loading_status, parse_targets
 
 

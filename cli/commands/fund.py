@@ -12,7 +12,7 @@ import click
 from rich.prompt import Prompt, Confirm
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from lium_sdk import Lium
+from cli.lium_sdk import Lium
 from ..utils import console, handle_errors, loading_status
 from ..config import config
 
@@ -83,7 +83,7 @@ def fund_command(wallet: Optional[str], amount: Optional[str], yes: bool):
 
     if debug:
         try:
-            import lium_sdk
+            import cli.lium_sdk
             console.print(f"[DEBUG] Lium SDK version: {lium_sdk.__version__}", style="dim")
         except (ImportError, AttributeError):
             console.print("[DEBUG] Lium SDK version: unknown", style="dim")

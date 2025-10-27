@@ -11,7 +11,7 @@ from rich.text import Text
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from lium_sdk import Lium, PodInfo
+from cli.lium_sdk import Lium, PodInfo
 from ..utils import console, handle_errors, loading_status, ensure_config
 
 

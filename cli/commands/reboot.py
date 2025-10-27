@@ -6,7 +6,7 @@ from typing import Optional, List
 import click
 from rich.prompt import Confirm
 
-from lium_sdk import Lium, PodInfo
+from cli.lium_sdk import Lium, PodInfo
 from ..utils import console, handle_errors, loading_status, parse_targets
 from .rm import select_targets_interactive
 

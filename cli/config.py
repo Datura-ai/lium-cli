@@ -134,7 +134,7 @@ class ConfigManager:
         from .utils import console  # Local import to avoid circular dependency
         
         try:
-            from lium_sdk import Lium
+            from cli.lium_sdk import Lium
             client = Lium()
             templates = client.list_templates()
             

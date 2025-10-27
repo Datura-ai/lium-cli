@@ -5,7 +5,7 @@ import subprocess
 from pathlib import Path
 
 import click
-from lium_sdk import Lium, Template
+from cli.lium_sdk import Lium, Template
 
 from ..utils import console, handle_errors, loading_status
 from ..config import config

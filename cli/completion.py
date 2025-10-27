@@ -5,7 +5,7 @@ from functools import cache
 from pathlib import Path
 from typing import Dict, Tuple, List
 
-from lium_sdk import Lium
+from cli.lium_sdk import Lium
 
 # Shell configurations: (config_file, completion_script)
 SHELLS: Dict[str, Tuple[str, str]] = {

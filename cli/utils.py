@@ -7,7 +7,7 @@ from pathlib import Path
 from cli.config import config
 from datetime import datetime
 from rich.status import Status
-from lium_sdk import LiumError, ExecutorInfo, PodInfo,Lium
+from cli.lium_sdk import LiumError, ExecutorInfo, PodInfo,Lium
 from .themed_console import ThemedConsole
 from dataclasses import dataclass
 from rich.prompt import Prompt

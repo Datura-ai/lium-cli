@@ -8,7 +8,7 @@ import click
 from rich.prompt import Confirm
 from rich.table import Table
 
-from lium_sdk import Lium, BackupConfig
+from cli.lium_sdk import Lium, BackupConfig
 from cli.config import config
 from ..utils import console, handle_errors, loading_status, ensure_config, parse_targets
 

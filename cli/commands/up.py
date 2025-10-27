@@ -14,7 +14,7 @@ from ..completion import get_gpu_completions
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from lium_sdk import ExecutorInfo, Lium, Template
+from cli.lium_sdk import ExecutorInfo, Lium, Template
 from ..utils import (
     calculate_pareto_frontier,
     console,

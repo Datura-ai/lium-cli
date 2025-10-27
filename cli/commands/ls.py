@@ -13,7 +13,7 @@ from ..completion import get_gpu_completions
 # Add parent directory to path for lium_sdk import
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from lium_sdk import ExecutorInfo, Lium
+from cli.lium_sdk import ExecutorInfo, Lium
 from ..utils import (calculate_pareto_frontier, console, handle_errors,
                      loading_status, store_executor_selection)
 

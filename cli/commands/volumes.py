@@ -6,7 +6,7 @@ from rich.prompt import Confirm
 from rich.table import Table
 from rich.text import Text
 
-from lium_sdk import Lium, VolumeInfo
+from cli.lium_sdk import Lium, VolumeInfo
 from ..utils import console, handle_errors, loading_status, ensure_config, mid_ellipsize, format_date, store_volume_selection, get_last_volume_selection
 
 

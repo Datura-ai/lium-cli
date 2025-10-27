@@ -10,7 +10,7 @@ from typing import Optional, List, Tuple
 import click
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from lium_sdk import Lium, PodInfo
+from cli.lium_sdk import Lium, PodInfo
 from ..utils import handle_errors, loading_status, console, parse_targets
 
 def get_ssh_method_and_pod(target: str) -> Tuple[str, PodInfo]:
