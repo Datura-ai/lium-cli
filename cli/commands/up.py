@@ -30,17 +30,18 @@ from ..utils import (
 from .ssh import get_ssh_method_and_pod, ssh_to_pod
 
 # Pipeline imports
-from ..core import UpOptions, UpContext, run_pipeline, Reporter
+from ..core import UpOptions, UpContext, run_pipeline, run_preflight_phase, Reporter
 from ..core.actions import (
     ResolveExecutor,
-    ConfirmCreation,
+    ResolveTemplate,
     CreateVolumeIfNeeded,
     RentPod,
     WaitReady,
     ScheduleTerminationIfNeeded,
     InstallJupyterIfNeeded,
-    ConnectSSH,
+    PrepareSSH,
 )
+from .up_summary import UpSummaryBuilder
 
 
 def _apply_executor_filters(
@@ -616,16 +617,48 @@ def up_command(
         jupyter=jupyter,
     )
 
-    # Build context and run pipeline
+    # Build context and summary builder
     ctx = UpContext(lium=Lium(), opts=opts, reporter=Reporter())
+    summary_builder = UpSummaryBuilder()
 
-    run_pipeline(ctx, [
+    # Show "Preparing launch..." immediately
+    ctx.reporter.print()
+    ctx.reporter.print("🚀 Preparing launch...", style="bold cyan")
+    ctx.reporter.print()
+
+    # Phase 1: Pre-flight (silent information gathering)
+    preflight_ok = run_preflight_phase(ctx, [
         ResolveExecutor(),
-        ConfirmCreation(),
+        ResolveTemplate(),
+    ])
+
+    if not preflight_ok:
+        return
+
+    # Show pre-flight summary and confirm
+    items = summary_builder.build_preflight(ctx)
+    ctx.reporter.preflight_block(items)
+
+    if not ctx.opts.skip_confirm:
+        if not ctx.reporter.confirm("Continue?", default=True):
+            ctx.reporter.warning("Cancelled")
+            return
+        ctx.reporter.print()
+
+    # Phase 2: Execution (clean pipeline with progress steps)
+    run_pipeline(ctx, [
         CreateVolumeIfNeeded(),
         RentPod(),
         WaitReady(),
         ScheduleTerminationIfNeeded(),
         InstallJupyterIfNeeded(),
-        ConnectSSH(),
+        PrepareSSH(),
     ])
+
+    # Phase 3: Summary (show completion info)
+    title, items = summary_builder.build_completion(ctx)
+    ctx.reporter.summary_block(title, items)
+
+    # Connect to SSH (if interactive mode or user wants to connect)
+    if ctx.ssh_cmd and ctx.pod:
+        ssh_to_pod(ctx.ssh_cmd, ctx.pod)

@@ -6,6 +6,35 @@ from .context import UpContext
 from .actions.base import BaseAction
 
 
+def run_preflight_phase(ctx: UpContext, actions: List[BaseAction]) -> bool:
+    """Execute pre-flight actions silently to gather information.
+
+    Pre-flight actions should NOT display progress indicators - they gather
+    information that will be shown in the pre-flight summary block.
+
+    Args:
+        ctx: The context object (will be populated with gathered info)
+        actions: List of pre-flight actions to execute
+
+    Returns:
+        True if all actions succeeded, False if any action failed
+    """
+    for action in actions:
+        if not action.should_run(ctx):
+            continue
+
+        try:
+            result = action.execute(ctx)
+            if result is False:
+                # Action failed - stop pre-flight
+                return False
+        except Exception as e:
+            ctx.reporter.error(f"Pre-flight failed: {e}")
+            raise
+
+    return True
+
+
 def run_pipeline(ctx: UpContext, actions: List[BaseAction]) -> None:
     """Execute a sequence of actions with the given context.
 

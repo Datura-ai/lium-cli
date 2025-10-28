@@ -14,71 +14,60 @@ from rich.prompt import Confirm
 
 
 class ResolveExecutor(BaseAction):
-    """Resolve which executor to use for the pod."""
+    """Resolve which executor to use for the pod.
 
-    def counts_as_step(self, ctx: UpContext) -> bool:
-        """Only counts as step for non-interactive executor resolution."""
-        opts = ctx.opts
-        # Only count as step if using filters (shows "Finding best executor")
-        return opts.executor_id is not None or opts.gpu or opts.count or opts.country
+    This is a pre-flight action that gathers executor information silently.
+    The selected executor will be shown in the pre-flight summary block.
+    """
 
     def execute(self, ctx: UpContext) -> Optional[bool]:
         """Resolve executor from ID, filters, or interactive selection."""
         opts = ctx.opts
 
-        if opts.executor_id:
-            # Explicit executor ID provided
-            with ctx.reporter.step("Finding executor"):
+        try:
+            if opts.executor_id:
+                # Explicit executor ID provided
                 executor = _find_executor_by_id(ctx.lium, opts.executor_id, opts.ports)
-            if not executor:
-                return False  # Stop pipeline
-        elif opts.gpu or opts.count or opts.country:
-            # Use filters to auto-select
-            with ctx.reporter.step("Finding best executor"):
+                if not executor:
+                    return False
+            elif opts.gpu or opts.count or opts.country:
+                # Use filters to auto-select
                 executor = _auto_select_executor(
                     ctx.lium, opts.gpu, opts.count, opts.country, opts.ports
                 )
-            if not executor:
-                return False  # Stop pipeline
-            # Show selection after step completes
-            ctx.reporter.success(
-                f"Selected: {executor.huid} ({executor.gpu_count}×{executor.gpu_type}) "
-                f"at ${executor.price_per_hour:.2f}/h"
-            )
-        else:
-            # Interactive selection (no step wrapper for interactive)
-            executor = select_executor(ctx.lium, ports=opts.ports)
-            if not executor:
-                return False  # Stop pipeline
-            # Show confirmation
-            ctx.reporter.success(f"Selected: {executor.huid}")
+                if not executor:
+                    return False
+            else:
+                # Interactive selection
+                executor = select_executor(ctx.lium, ports=opts.ports)
+                if not executor:
+                    return False
 
-        ctx.executor = executor
-        return True
+            ctx.executor = executor
+            return True
+
+        except Exception as e:
+            ctx.reporter.error(f"Failed to resolve executor: {e}")
+            return False
 
 
-class ConfirmCreation(BaseAction):
-    """Confirm pod creation with the user (unless --yes flag is set)."""
+class ResolveTemplate(BaseAction):
+    """Resolve template information for the pod.
+
+    This is a pre-flight action that loads template details silently.
+    The template info will be shown in the pre-flight summary block.
+    """
 
     def should_run(self, ctx: UpContext) -> bool:
-        """Only run if confirmation is needed."""
-        return not ctx.opts.skip_confirm
-
-    def counts_as_step(self, ctx: UpContext) -> bool:
-        """Confirmation doesn't count as a progress step."""
-        return False
+        """Only run if template_id is specified."""
+        return ctx.opts.template_id is not None
 
     def execute(self, ctx: UpContext) -> Optional[bool]:
-        """Ask user to confirm pod creation."""
-        executor = ctx.executor
-        confirm_msg = (
-            f"Proceed to rent {executor.huid} "
-            f"({executor.gpu_count}×{executor.gpu_type}) "
-            f"at ${executor.price_per_hour:.2f}/h?"
-        )
-
-        if not Confirm.ask(confirm_msg, default=True):
-            ctx.reporter.warning("Cancelled")
-            return False  # Stop pipeline
-
-        return True
+        """Load template information."""
+        try:
+            template = ctx.lium.get_template(ctx.opts.template_id)
+            ctx.template = template
+            return True
+        except Exception as e:
+            ctx.reporter.error(f"Failed to load template: {e}")
+            return False
