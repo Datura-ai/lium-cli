@@ -7,7 +7,7 @@ from .commands.init import init_command
 from .ls import ls_command
 from .commands.templates import templates_command
 from .commands.up import up_command
-from .commands.ps import ps_command
+from .ps import ps_command
 from .commands.exec import exec_command
 from .commands.ssh import ssh_command
 from .rm import rm_command
