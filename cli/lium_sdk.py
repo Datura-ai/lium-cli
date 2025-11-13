@@ -512,10 +512,7 @@ class Lium:
         """Stop a pod."""
         pod_info = self._resolve_pod(pod)
 
-        if not pod_info.executor:
-            raise ValueError(f"No executor info for pod {pod_info.name}")
-
-        return self._request("DELETE", f"/executors/{pod_info.executor.id}/rent").json()
+        return self._request("DELETE", f"/pods/{pod_info.id}").json()
 
     def rm(self, pod: Union[str, PodInfo]) -> Dict[str, Any]:
         """Remove pod (alias for down)."""
