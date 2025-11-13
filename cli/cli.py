@@ -13,7 +13,7 @@ from .commands.ssh import ssh_command
 from .rm import rm_command
 from .reboot import reboot_command
 from .commands.scp import scp_command
-from .commands.rsync import rsync_command
+from .rsync import rsync_command
 from .commands.theme import theme_command
 # from .commands.compose import compose_command  # Disabled for beta.1
 from .commands.config import config_command
