@@ -81,7 +81,7 @@ def format_header(pod_count: int) -> str:
     return f"Pods  ({pod_count} active)"
 
 
-def build_pods_table(pods: List[PodInfo], short: bool = False) -> tuple[Table, str]:
+def build_pods_table(pods: List[PodInfo], short: bool = False) -> tuple[Table | None, str]:
     """Build pods table, returns (table, header)."""
 
     if not pods:
