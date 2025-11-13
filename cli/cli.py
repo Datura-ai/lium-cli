@@ -22,7 +22,7 @@ from .commands.fund import fund_command
 from .commands.backup import bk_command
 from .commands.mine import mine_command
 from .commands.volumes import volumes_command
-from .commands.schedule import schedules_command
+from .schedules import schedules_command
 from .commands.update import update_command
 from .plugins import load_plugins
 
