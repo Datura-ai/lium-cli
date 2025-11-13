@@ -6,10 +6,12 @@ import sys
 from typing import Optional, List
 
 import click
-from rich.prompt import Confirm, Prompt
+from rich.prompt import Prompt
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from cli.lium_sdk import Lium, PodInfo
+from cli.actions.rm import RemovePodsAction
+from cli.actions.schedule import ScheduleRemovalAction
 from ..utils import console, handle_errors, loading_status, parse_targets
 from .ps import show_pods
 
@@ -34,11 +36,10 @@ def select_targets_interactive(all_pods: List[PodInfo]) -> str:
 @click.command("rm")
 @click.argument("targets", required=False)
 @click.option("--all", "-a", is_flag=True, help="Remove all active pods")
-@click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt")
 @click.option("--in", "in_duration", help="Schedule removal after duration (e.g., 45m, 6h, 2d)")
 @click.option("--at", "at_time", help="Schedule removal at time in local timezone (e.g., 'today 23:00', 'tomorrow 01:00', '2025-10-20 15:30')")
 @handle_errors
-def rm_command(targets: Optional[str], all: bool, yes: bool, in_duration: Optional[str], at_time: Optional[str]):
+def rm_command(targets: Optional[str], all: bool, in_duration: Optional[str], at_time: Optional[str]):
     """Remove (terminate) GPU pods.
     
     \b
@@ -55,7 +56,6 @@ def rm_command(targets: Optional[str], all: bool, yes: bool, in_duration: Option
       lium rm 1,2,3                    # Remove multiple pods
       lium rm all                      # Remove all pods
       lium rm --all                    # Remove all pods (alternative)
-      lium rm 1 -y                     # Remove without confirmation
       lium rm 1 --in 45m               # Schedule removal in 45 minutes
       lium rm 1 --at "today 23:00"     # Schedule removal at 23:00 local time today
       lium rm 1 --at "tomorrow 01:00"  # Schedule removal at 01:00 local time tomorrow
@@ -115,108 +115,31 @@ def rm_command(targets: Optional[str], all: bool, yes: bool, in_duration: Option
     if not selected_pods:
         console.error(f"No pods match targets: {targets}")
         return
-    
-    # Calculate total cost
-    total_cost = 0
-    for pod in selected_pods:
-        if pod.executor and pod.executor.price_per_hour and pod.created_at:
-            try:
-                from datetime import datetime, timezone
-                if pod.created_at.endswith('Z'):
-                    dt_created = datetime.fromisoformat(pod.created_at.replace('Z', '+00:00'))
-                else:
-                    dt_created = datetime.fromisoformat(pod.created_at)
-                    if not dt_created.tzinfo:
-                        dt_created = dt_created.replace(tzinfo=timezone.utc)
-                
-                now_utc = datetime.now(timezone.utc)
-                hours = (now_utc - dt_created).total_seconds() / 3600
-                total_cost += hours * pod.executor.price_per_hour
-            except Exception:
-                pass
-    
-    # Show what will be removed
-    console.info(f"\nPods to remove:")
-    for pod in selected_pods:
-        price_info = ""
-        if pod.executor and pod.executor.price_per_hour:
-            price_info = f" (${pod.executor.price_per_hour:.2f}/h)"
-        console.info(f"  {pod.huid} - {pod.status}{price_info}")
-    
-    if total_cost > 0:
-        console.dim(f"\nTotal spent: ${total_cost:.2f}")
-    
+
     # If scheduling removal, use schedule_termination instead of immediate removal
     if termination_time:
-        from datetime import datetime, timezone
-        time_str = termination_time.strftime("%Y-%m-%d %H:%M UTC")
-        time_delta = termination_time - datetime.now(timezone.utc)
-        hours_until = time_delta.total_seconds() / 3600
+        termination_time_str = termination_time.isoformat()
 
-        # Show what will be scheduled
-        console.info(f"\nPods to schedule for removal:")
-        for pod in selected_pods:
-            price_info = ""
-            if pod.executor and pod.executor.price_per_hour:
-                price_info = f" (${pod.executor.price_per_hour:.2f}/h)"
-            console.info(f"  {pod.huid} - {pod.status}{price_info}")
+        action = ScheduleRemovalAction()
+        result = action.run({
+            "pods": selected_pods,
+            "lium": lium,
+            "termination_time": termination_time_str
+        })
 
-        console.info(f"\nScheduled removal time: {time_str}")
-        console.dim(f"({hours_until:.1f} hours from now)")
-
-        # Confirm unless -y flag
-        if not yes:
-            confirm_msg = f"\nSchedule removal of {len(selected_pods)} pod{'s' if len(selected_pods) > 1 else ''}?"
-            if not Confirm.ask(confirm_msg, default=False):
-                console.warning("Cancelled")
-                return
-
-        # Schedule removal
-        success_count = 0
-        failed_pods = []
-
-        for pod in selected_pods:
-            try:
-                termination_time_str = termination_time.isoformat()
-                lium.schedule_termination(pod.id, termination_time_str)
-                console.success(f"✓ Scheduled removal: {pod.huid}")
-                success_count += 1
-            except Exception as e:
-                console.error(f"✗ Failed to schedule {pod.huid}: {e}")
-                failed_pods.append(pod.huid)
-
-        # Summary
-        if len(selected_pods) > 1:
-            console.dim(f"\nScheduled {success_count}/{len(selected_pods)} pods for removal")
-
-        if failed_pods:
-            console.error(f"Failed: {', '.join(failed_pods)}")
+        if result.ok:
+            from datetime import datetime, timezone
+            time_str = termination_time.strftime("%Y-%m-%d %H:%M UTC")
+            console.success(f"Scheduled removal of {len(selected_pods)} pod{'s' if len(selected_pods) > 1 else ''} at {time_str}")
+        else:
+            console.error(result.error)
 
     else:
         # Immediate removal
-        # Confirm unless -y flag
-        if not yes:
-            confirm_msg = f"\nRemove {len(selected_pods)} pod{'s' if len(selected_pods) > 1 else ''}?"
-            if not Confirm.ask(confirm_msg, default=False):
-                console.warning("Cancelled")
-                return
+        action = RemovePodsAction()
+        result = action.run({"pods": selected_pods, "lium": lium})
 
-        # Remove pods
-        success_count = 0
-        failed_pods = []
-
-        for pod in selected_pods:
-            try:
-                lium.rm(pod)
-                console.success(f"✓ Removed {pod.huid}")
-                success_count += 1
-            except Exception as e:
-                console.error(f"✗ Failed to remove {pod.huid}: {e}")
-                failed_pods.append(pod.huid)
-
-        # Summary
-        if len(selected_pods) > 1:
-            console.dim(f"\nRemoved {success_count}/{len(selected_pods)} pods")
-
-        if failed_pods:
-            console.error(f"Failed: {', '.join(failed_pods)}")
+        if result.ok:
+            console.success(f"Removed {len(selected_pods)} pod{'s' if len(selected_pods) > 1 else ''}")
+        else:
+            console.error(result.error)
