@@ -290,10 +290,10 @@ def extract_executor_metrics(executor: ExecutorInfo) -> Dict[str, float]:
         'pcie_speed': gpu_details.get("pcie_speed", 0),
         'memory_bandwidth': gpu_details.get("memory_speed", 0),
         'tflops': gpu_details.get("graphics_speed", 0),
-        'net_up': network.get("upload_speed", 0),
-        'net_down': network.get("download_speed", 0),
+        'net_up': network.get("upload_speed") or 0,
+        'net_down': network.get("download_speed") or 0,
         'location_score': 1.0 if is_us else 0.0,  # US locations get higher score
-        'total_bandwidth': network.get("upload_speed", 0) + network.get("download_speed", 0),  # Combined bandwidth
+        'total_bandwidth': (network.get("upload_speed") or 0) + (network.get("download_speed") or 0),  # Combined bandwidth
     }
 
 
