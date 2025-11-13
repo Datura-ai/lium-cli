@@ -4,7 +4,7 @@ import os
 from importlib.metadata import version, PackageNotFoundError
 from .themed_console import ThemedConsole
 from .commands.init import init_command
-from .commands.ls import ls_command
+from .ls import ls_command
 from .commands.templates import templates_command
 from .commands.up import up_command
 from .commands.ps import ps_command
