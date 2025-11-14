@@ -162,7 +162,7 @@ class VolumeInfo:
 class Config:
     api_key: str
     base_url: str = "https://lium.io/api"
-    base_pay_url: str = "https://pay-api.lium.io"
+    base_pay_url: str = "https://pay-api.celiumcompute.ai"
     ssh_key_path: Optional[Path] = None
 
     @classmethod
@@ -191,7 +191,7 @@ class Config:
         return cls(
             api_key=api_key,
             base_url=os.getenv("LIUM_BASE_URL", "https://lium.io/api"),
-            base_pay_url=os.getenv("LIUM_PAY_URL", "https://pay-api.lium.io"),
+            base_pay_url=os.getenv("LIUM_PAY_URL", "https://pay-api.celiumcompute.ai"),
             ssh_key_path=ssh_key
         )
 
@@ -936,17 +936,18 @@ class Lium:
     def wallets(self) -> List[Dict[str, Any]]:
         """Get user's funding wallets."""
         user = self._request("GET", "/users/me").json()
+        pay_headers = {"X-API-KEY": "6RhXQ788J9BdnqeLua8z7ZSkXBDahclxhwjMB17qW1M"}
         resp = self._request(
             "GET",
             f"/wallet/available-wallets/{user['stripe_customer_id']}",
             base_url=self.config.base_pay_url,
-            headers={"X-Api-Key": "admin-test-key"},
+            headers=pay_headers,
         )
         return resp.json()
 
     def add_wallet(self, bt_wallet: Any) -> None:
         """Link Bittensor wallet with user account."""
-        pay_headers = {"X-Api-Key": "admin-test-key"}
+        pay_headers = {"X-API-KEY": "6RhXQ788J9BdnqeLua8z7ZSkXBDahclxhwjMB17qW1M"}
         access_key = self._request(
             "GET", "/token/generate", base_url=self.config.base_pay_url, headers=pay_headers
         ).json()["access_key"]
