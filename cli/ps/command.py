@@ -7,6 +7,7 @@ from cli.lium_sdk import Lium
 from cli import ui
 from cli.utils import handle_errors, ensure_config
 from . import display
+from .actions import GetPodsAction
 
 
 @click.command("ps")
@@ -19,7 +20,16 @@ def ps_command(pod_id: Optional[str]):
 
     # Load data
     lium = Lium()
-    pods = ui.load("Loading pods", lambda: lium.ps())
+    ctx = {"lium": lium}
+
+    action = GetPodsAction()
+    result = ui.load("Loading pods", lambda: action.execute(ctx))
+
+    if not result.ok:
+        ui.error(result.error)
+        return
+
+    pods = result.data["pods"]
 
     # Check if empty
     if not pods:

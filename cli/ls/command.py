@@ -8,6 +8,7 @@ from cli import ui
 from cli.utils import handle_errors, store_executor_selection
 from cli.completion import get_gpu_completions
 from . import validation, display
+from .actions import GetExecutorsAction
 
 
 @click.command("ls")
@@ -25,14 +26,23 @@ def ls_command(gpu_type: Optional[str], sort_by: str, limit: Optional[int]):
     """List available GPU executors."""
 
     # Validate
-    valid, error = validation.validate(sort_by, limit)
-    if not valid:
+    _, error = validation.validate(sort_by, limit)
+    if error:
         ui.error(error)
         return
 
     # Load data
     lium = Lium()
-    executors = ui.load("Loading executors", lambda: lium.ls(gpu_type=gpu_type))
+    ctx = {"lium": lium, "gpu_type": gpu_type}
+
+    action = GetExecutorsAction()
+    result = ui.load("Loading executors", lambda: action.execute(ctx))
+
+    if not result.ok:
+        ui.error(result.error)
+        return
+
+    executors = result.data["executors"]
 
     # Check if empty
     if not executors:
