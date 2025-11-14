@@ -659,16 +659,18 @@ def get_pytorch_template_id() -> Optional[str]:
 
 
 def ensure_config():
-    from .commands.init import setup_api_key, setup_ssh_key
+    from .init.actions import SetupApiKeyAction, SetupSshKeyAction
     from cli.settings import config
 
     if not config.get('api.api_key'):
         # Setup API key
-        setup_api_key()
+        action = SetupApiKeyAction()
+        action.execute({})
 
     if not config.get('ssh.key_path'):
         # Setup SSH key
-        setup_ssh_key()
+        action = SetupSshKeyAction()
+        action.execute({})
 
 
 def ensure_backup_params(
