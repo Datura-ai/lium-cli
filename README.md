@@ -3,7 +3,7 @@
 Command-line interface for managing GPU pods on the Lium platform.
 
 <p align="center">
-  <img src="web-app-manifest-512x512.png" alt="Lium CLI Logo" width="120" />
+  <img src="assets/web-app-logo.png" alt="Lium CLI Logo" width="120" />
 </p>
 
 <h1 align="center">Lium</h1>
@@ -35,8 +35,11 @@ lium init
 # List available executors (GPU machines)
 lium ls
 
-# Create a pod
+# Create a pod using executor index
 lium up 1  # Use executor #1 from previous ls
+
+# Or create a pod using filters
+lium up --gpu A100  # Auto-select best A100 executor
 
 # List your pods
 lium ps
@@ -61,7 +64,7 @@ lium rm <pod-name>
 
 - `lium init` - Initialize configuration (API key, SSH keys)
 - `lium ls [GPU_TYPE]` - List available executors
-- `lium up [EXECUTOR]` - Create a pod on an executor
+- `lium up [EXECUTOR_ID]` - Create a pod (use executor ID or filters like `--gpu`, `--count`, `--country`)
 - `lium ps` - List active pods
 - `lium ssh <POD>` - SSH into a pod
 - `lium exec <POD> <COMMAND>` - Execute command on pod
@@ -69,9 +72,44 @@ lium rm <pod-name>
 - `lium rsync <POD> <LOCAL_DIR> [REMOTE_PATH]` - Sync directories to pods
 - `lium rm <POD>` - Remove/stop a pod
 - `lium reboot <POD>` - Reboot a pod
+- `lium update <POD>` - Install Jupyter on a pod
 - `lium templates [SEARCH]` - List available Docker templates
-- `lium image <IMAGE_NAME> <PATH>` - Build and deploy Docker image as template
 - `lium fund` - Fund account with TAO from Bittensor wallet
+
+### Volume Commands
+
+- `lium volumes list` - List all volumes
+- `lium volumes new <NAME>` - Create a new volume
+- `lium volumes rm <VOLUME>` - Remove a volume
+
+### Backup Commands
+
+- `lium bk show <POD>` - Show backup configuration for a pod
+- `lium bk set <POD> <PATH>` - Configure automatic backups
+- `lium bk logs <POD>` - View backup logs
+- `lium bk now <POD>` - Trigger immediate backup
+- `lium bk restore <POD> <BACKUP_ID>` - Restore from backup
+- `lium bk rm <POD>` - Remove backup configuration
+
+### Schedule Commands
+
+- `lium schedules list` - List scheduled terminations
+- `lium schedules rm <POD>` - Cancel scheduled termination
+
+### Configuration Commands
+
+- `lium config show` - Show all configuration
+- `lium config get <KEY>` - Get configuration value
+- `lium config set <KEY> <VALUE>` - Set configuration value
+- `lium config unset <KEY>` - Remove configuration key
+- `lium config edit` - Edit configuration file
+- `lium config path` - Show configuration file path
+- `lium config reset` - Reset all configuration
+
+### Other Commands
+
+- `lium theme [THEME]` - Get or set UI theme (light/dark/auto)
+- `lium mine` - Mining-related commands
 
 ### Command Examples
 
@@ -80,8 +118,26 @@ lium rm <pod-name>
 lium ls H100
 lium ls A100
 
-# Create pod with specific options
-lium up --name my-pod --template pytorch --yes
+# Create pod with executor index
+lium up 1 --name my-pod --yes
+
+# Create pod with filters (auto-selects best executor)
+lium up --gpu A100 --count 8 --name my-pod --yes
+lium up --gpu H200 --country US
+
+# Create pod with specific template
+lium up 1 --template_id <TEMPLATE_ID> --yes
+
+# Create pod with volume
+lium up 1 --volume id:<VOLUME_HUID>
+lium up 1 --volume new:name=mydata,desc="My dataset"
+
+# Create pod with auto-termination
+lium up 1 --ttl 6h                    # Terminate after 6 hours
+lium up 1 --until "today 23:00"       # Terminate at 11 PM today
+
+# Create pod with Jupyter
+lium up 1 --jupyter --yes
 
 # Execute commands
 lium exec my-pod "nvidia-smi"
@@ -110,11 +166,36 @@ lium rsync 1,2,3 ./code /root/workspace/      # Sync to multiple pods
 lium rm my-pod-1 my-pod-2
 lium rm all  # Remove all pods
 
-# Build and deploy Docker images
-lium image my-app .                                   # Build from current directory
-lium image my-model ./models                          # Build from models directory  
-lium image web-server ./app --ports 22,8080          # Custom ports
-lium image my-app . --ports 22,8000 --start-command "/start.sh"  # With start command
+# Install Jupyter on existing pod
+lium update my-pod
+
+# Manage volumes
+lium volumes list
+lium volumes new mydata --description "My dataset"
+lium volumes rm <VOLUME_HUID>
+
+# Manage backups
+lium bk show my-pod
+lium bk set my-pod /root/data --frequency 24 --retention 7
+lium bk logs my-pod
+lium bk now my-pod --name manual-backup
+lium bk restore my-pod <BACKUP_ID> /root/restore
+lium bk rm my-pod
+
+# Manage schedules
+lium schedules list
+lium schedules rm my-pod
+
+# Configuration management
+lium config show
+lium config get api.api_key
+lium config set ssh.key_path /path/to/key
+lium config edit
+
+# Theme management
+lium theme          # Show current theme
+lium theme dark     # Set to dark theme
+lium theme auto     # Auto-detect based on system
 
 # Fund account with TAO
 lium fund                           # Interactive mode
@@ -125,12 +206,16 @@ lium fund -w mywal -a 0.5 -y       # Skip confirmation
 ## Features
 
 - **Pareto Optimization**: `ls` command shows optimal executors with ★ indicator
-- **Index Selection**: Use numbers from `ls` output in `up` command
+- **Flexible Pod Creation**: Use executor index or auto-select with filters (GPU type, count, country)
+- **Index Selection**: Use numbers from `ls` output in commands
 - **Full-Width Tables**: Clean, readable terminal output
 - **Cost Tracking**: See spending and hourly rates in `ps`
 - **Interactive Setup**: `init` command for easy onboarding
-- **Docker Integration**: Build and deploy custom Docker images as templates
-- **Cross-Platform Builds**: Automatic `linux/amd64` builds for server compatibility
+- **Volume Management**: Create and attach persistent storage volumes
+- **Backup & Restore**: Automated backups with configurable frequency and retention
+- **Auto-Termination**: Schedule pods to terminate after duration or at specific time
+- **Jupyter Integration**: One-command Jupyter installation on pods
+- **Theme Support**: Light, dark, or auto-detect themes for better visibility
 
 ## Configuration
 
@@ -152,7 +237,6 @@ export LIUM_API_KEY=your-api-key-here
 ## Requirements
 
 - Python 3.9+
-- lium-sdk >= 0.2.0
 
 ## Development
 

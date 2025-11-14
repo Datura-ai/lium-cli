@@ -74,7 +74,7 @@ def compose_up(ctx, file: str, detach: bool):
     # Parse models from config
     models = config.get('models', {})
     
-    from lium_sdk import Lium
+    from cli.lium_sdk import Lium
     lium = Lium()
     
     for model_name, model_config in models.items():
@@ -115,7 +115,7 @@ def compose_down(ctx, file: str):
     with open(compose_file) as f:
         config = yaml.safe_load(f)
     
-    from lium_sdk import Lium
+    from cli.lium_sdk import Lium
     lium = Lium()
     
     # Stop all pods matching names in config
@@ -142,7 +142,7 @@ def compose_ps(file: str):
     with open(compose_file) as f:
         config = yaml.safe_load(f)
     
-    from lium_sdk import Lium
+    from cli.lium_sdk import Lium
     lium = Lium()
     
     # List pods matching config

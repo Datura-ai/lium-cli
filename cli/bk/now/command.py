@@ -1,0 +1,59 @@
+"""Bk now command implementation."""
+
+from typing import Optional
+
+import click
+
+from cli.lium_sdk import Lium
+from cli import ui
+from cli.utils import handle_errors, ensure_config
+from . import validation, parsing
+from .actions import TriggerBackupAction
+
+
+@click.command("now")
+@click.argument("pod_id")
+@click.option("-n", "--name", help="Backup name (e.g., 'pre-release')")
+@click.option("-d", "--description", help="Backup description (e.g., 'before deploy')")
+@handle_errors
+def bk_now_command(pod_id: str, name: Optional[str], description: Optional[str]):
+    """Trigger an immediate backup for a pod."""
+    ensure_config()
+
+    # Validate
+    valid, error = validation.validate(pod_id)
+    if not valid:
+        ui.error(error)
+        return
+
+    # Load data
+    lium = Lium()
+    all_pods = ui.load("Loading pods", lambda: lium.ps())
+
+    if not all_pods:
+        ui.warning("No active pods")
+        return
+
+    # Parse
+    parsed, error = parsing.parse(pod_id, name, description, all_pods)
+    if error:
+        ui.error(error)
+        return
+
+    pod_name = parsed.get("pod_name")
+    backup_name = parsed.get("name")
+    backup_description = parsed.get("description")
+
+    # Execute
+    ctx = {
+        "lium": lium,
+        "pod_name": pod_name,
+        "name": backup_name,
+        "description": backup_description
+    }
+
+    action = TriggerBackupAction()
+    result = ui.load(f"Triggering backup '{backup_name}'", lambda: action.execute(ctx))
+
+    if not result.ok:
+        ui.error(result.error)

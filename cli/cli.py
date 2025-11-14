@@ -3,27 +3,27 @@ import click
 import os
 from importlib.metadata import version, PackageNotFoundError
 from .themed_console import ThemedConsole
-from .commands.init import init_command
-from .commands.ls import ls_command
-from .commands.templates import templates_command
-from .commands.up import up_command
-from .commands.ps import ps_command
+from .init.command import init_command
+from .ls import ls_command
+from .templates import templates_command
+from .up import up_command
+from .ps import ps_command
 from .commands.exec import exec_command
-from .commands.ssh import ssh_command
-from .commands.rm import rm_command
-from .commands.reboot import reboot_command
-from .commands.scp import scp_command
-from .commands.rsync import rsync_command
-from .commands.theme import theme_command
+from .ssh.command import ssh_command
+from .rm import rm_command
+from .reboot import reboot_command
+from .scp.command import scp_command
+from .rsync import rsync_command
+from .theme import theme_command
 # from .commands.compose import compose_command  # Disabled for beta.1
-from .commands.config import config_command
+from .config import config_command
 # from .commands.image import image_command  # Disabled for beta.1
-from .commands.fund import fund_command
-from .commands.backup import bk_command
+from .fund import fund_command
+from .bk import bk_command
 from .commands.mine import mine_command
-from .commands.volumes import volumes_command
-from .commands.schedule import schedules_command
-from .commands.update import update_command
+from .volumes import volumes_command
+from .schedules import schedules_command
+from .update.command import update_command
 from .plugins import load_plugins
 
 

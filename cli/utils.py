@@ -4,10 +4,10 @@ from contextlib import contextmanager
 from typing import List, Dict, Any, Tuple, Optional, Callable, TypeVar
 import json
 from pathlib import Path
-from cli.config import config
+from cli.settings import config
 from datetime import datetime
 from rich.status import Status
-from lium_sdk import LiumError, ExecutorInfo, PodInfo,Lium
+from cli.lium_sdk import LiumError, ExecutorInfo, PodInfo,Lium
 from .themed_console import ThemedConsole
 from dataclasses import dataclass
 from rich.prompt import Prompt
@@ -205,8 +205,8 @@ def timed_step_status(step: int = 0, total_steps: int = 0, message: str = ""):
     import sys
     
     start_time = time.time()
-    # Only show step prefix if steps > 0
-    step_prefix = f"[{step}/{total_steps}] " if step > 0 and total_steps > 0 else ""
+    # Only show step prefix if steps > 0 (with bullet for visual separation)
+    step_prefix = f"● [{step}/{total_steps}] " if step > 0 and total_steps > 0 else ""
     running = [True]  # Use list for mutable reference
     
     # Hide cursor during animation
@@ -290,10 +290,10 @@ def extract_executor_metrics(executor: ExecutorInfo) -> Dict[str, float]:
         'pcie_speed': gpu_details.get("pcie_speed", 0),
         'memory_bandwidth': gpu_details.get("memory_speed", 0),
         'tflops': gpu_details.get("graphics_speed", 0),
-        'net_up': network.get("upload_speed", 0),
-        'net_down': network.get("download_speed", 0),
+        'net_up': network.get("upload_speed") or 0,
+        'net_down': network.get("download_speed") or 0,
         'location_score': 1.0 if is_us else 0.0,  # US locations get higher score
-        'total_bandwidth': network.get("upload_speed", 0) + network.get("download_speed", 0),  # Combined bandwidth
+        'total_bandwidth': (network.get("upload_speed") or 0) + (network.get("download_speed") or 0),  # Combined bandwidth
     }
 
 
@@ -387,7 +387,7 @@ def calculate_pareto_frontier(executors: List[ExecutorInfo]) -> List[bool]:
 
 def store_executor_selection(executors: List[ExecutorInfo]) -> None:
     """Store the last executor selection for index-based selection."""
-    from .config import config
+    from cli.settings import config
     
     selection_data = {
         'timestamp': datetime.now().isoformat(),
@@ -412,7 +412,7 @@ def store_executor_selection(executors: List[ExecutorInfo]) -> None:
 
 def get_last_executor_selection() -> Optional[Dict[str, Any]]:
     """Retrieve the last executor selection."""
-    from .config import config
+    from cli.settings import config
     
     config_file = config.config_dir / "last_selection.json"
     if config_file.exists():
@@ -426,7 +426,7 @@ def get_last_executor_selection() -> Optional[Dict[str, Any]]:
 
 def store_volume_selection(volumes: List) -> None:
     """Store the last volume selection for HUID-based lookup."""
-    from .config import config
+    from cli.settings import config
 
     selection_data = {
         'timestamp': datetime.now().isoformat(),
@@ -451,7 +451,7 @@ def store_volume_selection(volumes: List) -> None:
 
 def get_last_volume_selection() -> Optional[Dict[str, Any]]:
     """Retrieve the last volume selection."""
-    from .config import config
+    from cli.settings import config
 
     config_file = config.config_dir / "last_volumes.json"
     if config_file.exists():
@@ -659,16 +659,18 @@ def get_pytorch_template_id() -> Optional[str]:
 
 
 def ensure_config():
-    from .commands.init import setup_api_key, setup_ssh_key
-    from .config import config
+    from .init.actions import SetupApiKeyAction, SetupSshKeyAction
+    from cli.settings import config
 
     if not config.get('api.api_key'):
         # Setup API key
-        setup_api_key()
+        action = SetupApiKeyAction()
+        action.execute({})
 
     if not config.get('ssh.key_path'):
         # Setup SSH key
-        setup_ssh_key()
+        action = SetupSshKeyAction()
+        action.execute({})
 
 
 def ensure_backup_params(
