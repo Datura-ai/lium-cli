@@ -24,5 +24,5 @@ def config_reset_command(confirm: bool):
     action = ResetConfigAction()
     result = action.execute(ctx)
 
-    if result.error and not result.ok:
-        ui.error(result.error)
+    if result.error:
+        ui.warning(result.error)

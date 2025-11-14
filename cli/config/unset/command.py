@@ -19,8 +19,5 @@ def config_unset_command(key: str):
     action = UnsetConfigAction()
     result = action.execute(ctx)
 
-    if not result.ok:
+    if result.error:
         ui.warning(result.error)
-        return
-
-    ui.success(f"Removed {key}")
