@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from cli.core import ActionResult
+from cli.actions import ActionResult
 
 
 class GetTemplatesAction:

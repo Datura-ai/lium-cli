@@ -3,7 +3,7 @@
 import time
 from typing import Any
 
-from cli.core import ActionResult
+from cli.actions import ActionResult
 
 
 class LoadWalletAction:

@@ -1,7 +1,7 @@
 from typing import Optional, Dict, List
 import time
 
-from cli.core import ActionResult
+from cli.actions import ActionResult
 from cli.lium_sdk import ExecutorInfo, Template, Lium
 from cli.utils import (
     calculate_pareto_frontier,

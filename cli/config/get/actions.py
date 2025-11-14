@@ -1,6 +1,6 @@
 """Actions for config get command."""
 
-from cli.core import ActionResult
+from cli.actions import ActionResult
 from cli.settings import config
 
 

@@ -2,7 +2,7 @@
 
 from typing import List
 
-from cli.core import ActionResult
+from cli.actions import ActionResult
 from cli.lium_sdk import Lium, PodInfo
 from cli import ui
 

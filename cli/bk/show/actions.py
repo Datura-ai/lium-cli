@@ -2,7 +2,7 @@
 
 from datetime import datetime, timedelta
 
-from cli.core import ActionResult
+from cli.actions import ActionResult
 from cli.lium_sdk import Lium
 
 

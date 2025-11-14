@@ -3,7 +3,7 @@
 import subprocess
 from pathlib import Path
 
-from cli.core import ActionResult
+from cli.actions import ActionResult
 from .auth import browser_auth
 from cli.settings import config
 
