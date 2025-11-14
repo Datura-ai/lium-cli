@@ -9,7 +9,7 @@ from .commands.templates import templates_command
 from .commands.up import up_command
 from .ps import ps_command
 from .commands.exec import exec_command
-from .commands.ssh import ssh_command
+from .ssh.command import ssh_command
 from .rm import rm_command
 from .reboot import reboot_command
 from .scp.command import scp_command
