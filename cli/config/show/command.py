@@ -25,5 +25,5 @@ def config_show_command(all: bool):
     show_all = result.data.get("show_all")
 
     path, content = display.format_config(config_data, str(config_path), show_all)
-    ui.dim(path)
+    ui.dim(f"# {path}")
     ui.info(content)

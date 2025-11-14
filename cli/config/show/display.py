@@ -15,7 +15,6 @@ def format_config(config_data: dict, config_path: str, show_all: bool) -> tuple[
     for section_name in section_order:
         if section_name in config_data and section_name not in skip_sections:
             values = config_data[section_name]
-            lines.append(f"[{section_name}]")
             for key, value in values.items():
                 if key in ['api_key'] and value:
                     display_value = value[:8] + '...' + value[-4:] if len(value) > 12 else '***'
@@ -29,7 +28,6 @@ def format_config(config_data: dict, config_path: str, show_all: bool) -> tuple[
     for section, values in config_data.items():
         if section in skip_sections or section in shown_sections:
             continue
-        lines.append(f"[{section}]")
         for key, value in values.items():
             if key == 'data' and len(str(value)) > 100:
                 display_value = str(value)[:100] + '...'
