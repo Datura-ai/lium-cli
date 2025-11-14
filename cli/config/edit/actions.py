@@ -1,10 +1,11 @@
 """Actions for config edit command."""
 
-import os
-import sys
-import subprocess
+from config import config
 
-from cli.config import config
+
+from cli import config as config_module
+
+config = config_module.config
 
 
 class ActionResult:

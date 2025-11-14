@@ -7,7 +7,7 @@ import click
 from rich.prompt import Prompt
 
 from ..auth import browser_auth
-from ..config import config
+from config import config
 from ..utils import console, handle_errors
 
 

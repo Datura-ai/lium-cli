@@ -1,6 +1,7 @@
 """Actions for config reset command."""
 
-from cli.config import config
+from config import config
+
 
 
 class ActionResult:

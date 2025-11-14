@@ -8,7 +8,7 @@ import click
 from cli.lium_sdk import Lium, Template
 
 from ..utils import console, handle_errors, loading_status
-from ..config import config
+from config import config
 
 
 

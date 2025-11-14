@@ -14,7 +14,7 @@ from rich.prompt import Prompt, Confirm
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from cli.lium_sdk import Lium
 from ..utils import console, handle_errors, loading_status
-from ..config import config
+from config import config
 
 logger = logging.getLogger(__name__)
 

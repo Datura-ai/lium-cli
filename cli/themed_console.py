@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Dict, Any
 from rich.console import Console as RichConsole
 
-from .config import config
+from config import config
 
 
 class ThemedConsole(RichConsole):

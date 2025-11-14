@@ -7,7 +7,7 @@ from typing import Optional
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from ..config import config
+from config import config
 from ..utils import console, handle_errors
 
 

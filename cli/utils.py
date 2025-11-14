@@ -4,7 +4,7 @@ from contextlib import contextmanager
 from typing import List, Dict, Any, Tuple, Optional, Callable, TypeVar
 import json
 from pathlib import Path
-from cli.config import config
+from config import config
 from datetime import datetime
 from rich.status import Status
 from cli.lium_sdk import LiumError, ExecutorInfo, PodInfo,Lium
@@ -387,7 +387,7 @@ def calculate_pareto_frontier(executors: List[ExecutorInfo]) -> List[bool]:
 
 def store_executor_selection(executors: List[ExecutorInfo]) -> None:
     """Store the last executor selection for index-based selection."""
-    from .config import config
+    from config import config
     
     selection_data = {
         'timestamp': datetime.now().isoformat(),
@@ -412,7 +412,7 @@ def store_executor_selection(executors: List[ExecutorInfo]) -> None:
 
 def get_last_executor_selection() -> Optional[Dict[str, Any]]:
     """Retrieve the last executor selection."""
-    from .config import config
+    from config import config
     
     config_file = config.config_dir / "last_selection.json"
     if config_file.exists():
@@ -426,7 +426,7 @@ def get_last_executor_selection() -> Optional[Dict[str, Any]]:
 
 def store_volume_selection(volumes: List) -> None:
     """Store the last volume selection for HUID-based lookup."""
-    from .config import config
+    from config import config
 
     selection_data = {
         'timestamp': datetime.now().isoformat(),
@@ -451,7 +451,7 @@ def store_volume_selection(volumes: List) -> None:
 
 def get_last_volume_selection() -> Optional[Dict[str, Any]]:
     """Retrieve the last volume selection."""
-    from .config import config
+    from config import config
 
     config_file = config.config_dir / "last_volumes.json"
     if config_file.exists():
@@ -660,7 +660,7 @@ def get_pytorch_template_id() -> Optional[str]:
 
 def ensure_config():
     from .commands.init import setup_api_key, setup_ssh_key
-    from .config import config
+    from config import config
 
     if not config.get('api.api_key'):
         # Setup API key
