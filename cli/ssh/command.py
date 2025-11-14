@@ -48,8 +48,6 @@ def ssh_command(target: str):
 
     pod = parsed.get("pod")
 
-    ui.dim(f"Connecting to {pod.huid}...")
-
     # Execute
     ctx = {"lium": lium, "pod": pod}
 
