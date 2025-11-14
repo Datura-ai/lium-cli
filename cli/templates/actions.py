@@ -1,5 +1,3 @@
-"""Templates command actions."""
-
 from typing import Optional
 
 from cli.actions import ActionResult

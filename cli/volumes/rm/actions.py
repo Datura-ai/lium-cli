@@ -1,5 +1,3 @@
-"""Volumes rm actions."""
-
 from cli.actions import ActionResult
 
 

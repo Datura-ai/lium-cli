@@ -1,5 +1,3 @@
-"""Actions for config show command."""
-
 from cli.actions import ActionResult
 from cli.settings import config
 

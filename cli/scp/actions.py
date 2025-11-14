@@ -1,5 +1,3 @@
-"""Actions for scp command."""
-
 from pathlib import Path
 from typing import List
 

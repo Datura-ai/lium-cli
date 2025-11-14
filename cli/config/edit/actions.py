@@ -1,5 +1,3 @@
-"""Actions for config edit command."""
-
 import os
 import sys
 import subprocess

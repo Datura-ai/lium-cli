@@ -1,5 +1,3 @@
-"""Actions for bk show command."""
-
 from datetime import datetime, timedelta
 
 from cli.actions import ActionResult

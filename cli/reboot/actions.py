@@ -1,5 +1,3 @@
-"""Actions for reboot command."""
-
 from typing import List
 
 from cli.actions import ActionResult

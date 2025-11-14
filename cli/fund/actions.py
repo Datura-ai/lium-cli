@@ -1,5 +1,3 @@
-"""Fund command actions."""
-
 import time
 from typing import Any
 

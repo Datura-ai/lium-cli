@@ -1,5 +1,3 @@
-"""Actions for rsync command."""
-
 from pathlib import Path
 from typing import List
 

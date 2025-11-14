@@ -1,5 +1,3 @@
-"""Volumes new actions."""
-
 from cli.actions import ActionResult
 
 

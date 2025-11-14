@@ -1,5 +1,3 @@
-"""Actions for bk restore command."""
-
 from cli.actions import ActionResult
 from cli.lium_sdk import Lium
 

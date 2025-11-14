@@ -1,5 +1,3 @@
-"""Actions for init command."""
-
 import subprocess
 from pathlib import Path
 

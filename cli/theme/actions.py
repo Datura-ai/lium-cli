@@ -1,5 +1,3 @@
-"""Theme command actions."""
-
 from cli.actions import ActionResult
 
 

@@ -1,5 +1,3 @@
-"""Actions for schedules rm command."""
-
 from typing import List
 
 from cli.actions import ActionResult

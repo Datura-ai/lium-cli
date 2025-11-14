@@ -1,5 +1,3 @@
-"""PS command actions."""
-
 from typing import List
 
 from cli.actions import ActionResult

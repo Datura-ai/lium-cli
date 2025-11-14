@@ -1,5 +1,3 @@
-"""Actions for ssh command."""
-
 import subprocess
 
 from cli.actions import ActionResult

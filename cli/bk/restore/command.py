@@ -1,5 +1,3 @@
-"""Bk restore command implementation."""
-
 import click
 
 from cli.lium_sdk import Lium
@@ -16,19 +14,7 @@ from .actions import RestoreBackupAction
 @click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt")
 @handle_errors
 def bk_restore_command(pod_id: str, backup_id: str, restore_path: str, yes: bool):
-    """Restore a backup to a pod.
-
-    \b
-    POD_ID: Pod identifier - can be:
-      - Pod name/ID (eager-wolf-aa)
-      - Index from 'lium ps' (1, 2, 3)
-
-    \b
-    Examples:
-      lium bk restore 1 --id <backup-uuid>              # Restore to default /root
-      lium bk restore 1 --id <backup-uuid> --to /home   # Restore to specific path
-      lium bk restore eager-wolf --id <backup-uuid> -y  # Skip confirmation
-    """
+    """Restore a backup to a pod."""
     ensure_config()
 
     # Validate

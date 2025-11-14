@@ -1,5 +1,3 @@
-"""Actions for update command."""
-
 import time
 
 from cli.actions import ActionResult
