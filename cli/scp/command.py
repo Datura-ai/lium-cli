@@ -72,22 +72,6 @@ def scp_command(
     pods = parsed.get("pods")
     download_mode = parsed.get("download")
 
-    # Display info
-    if not download_mode:
-        local_file = parsed.get("local_file")
-        remote_path = parsed.get("remote_path")
-        ui.info(f"Uploading: {local_file.name}")
-        ui.info(f"To: {remote_path}")
-    else:
-        remote_path = parsed.get("remote_path")
-        destination_map = parsed.get("destination_map")
-        ui.info(f"Downloading: {remote_path}")
-        if len(pods) == 1:
-            _, local_dest = destination_map[pods[0].huid]
-            ui.info(f"To: {local_dest}")
-
-    ui.info(f"Pods: {len(pods)}")
-
     # Execute
     ctx = {
         "lium": lium,
