@@ -55,9 +55,7 @@ def update_command(target: str, jupyter: Optional[int]):
     ctx = {"lium": lium, "pod": pod, "port": jupyter}
 
     action = InstallJupyterAction()
-
-    with ui.loading("Installing Jupyter Notebook"):
-        result = action.execute(ctx)
+    result = ui.load("Installing Jupyter Notebook", lambda: action.execute(ctx))
 
     if not result.ok:
         ui.error(result.error or "Failed to install Jupyter Notebook")
@@ -65,5 +63,4 @@ def update_command(target: str, jupyter: Optional[int]):
 
     jupyter_url = result.data.get("jupyter_url")
     if jupyter_url:
-        ui.success("Jupyter Notebook installed successfully")
-        ui.info(f"URL: {jupyter_url}")
+        ui.info(f"Jupyter installed: {jupyter_url}")
