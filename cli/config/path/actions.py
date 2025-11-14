@@ -1,6 +1,6 @@
 """Actions for config path command."""
 
-from config import config
+from cli.settings import config
 
 
 

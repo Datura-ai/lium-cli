@@ -9,7 +9,7 @@ from rich.prompt import Confirm
 from rich.table import Table
 
 from cli.lium_sdk import Lium, BackupConfig
-from config import config
+from cli.settings import config
 from ..utils import console, handle_errors, loading_status, ensure_config, parse_targets
 
 

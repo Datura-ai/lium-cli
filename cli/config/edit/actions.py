@@ -1,6 +1,6 @@
 """Actions for config edit command."""
 
-from config import config
+from cli.settings import config
 
 
 from cli import config as config_module

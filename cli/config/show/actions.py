@@ -1,6 +1,6 @@
 """Actions for config show command."""
 
-from config import config
+from cli.settings import config
 
 
 

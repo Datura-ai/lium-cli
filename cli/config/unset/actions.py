@@ -1,6 +1,6 @@
 """Actions for config unset command."""
 
-from config import config
+from cli.settings import config
 
 
 

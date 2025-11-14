@@ -1,6 +1,6 @@
 """Actions for config reset command."""
 
-from config import config
+from cli.settings import config
 
 
 
