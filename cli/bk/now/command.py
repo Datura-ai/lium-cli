@@ -17,19 +17,7 @@ from .actions import TriggerBackupAction
 @click.option("-d", "--description", help="Backup description (e.g., 'before deploy')")
 @handle_errors
 def bk_now_command(pod_id: str, name: Optional[str], description: Optional[str]):
-    """Trigger an immediate backup for a pod.
-
-    \b
-    POD_ID: Pod identifier - can be:
-      - Pod name/ID (eager-wolf-aa)
-      - Index from 'lium ps' (1, 2, 3)
-
-    \b
-    Examples:
-      lium bk now 1                                    # Trigger backup for pod #1
-      lium bk now 1 -n "pre-release"                   # With custom name
-      lium bk now 1 -n "v2.0" -d "before deployment"   # With name and description
-    """
+    """Trigger an immediate backup for a pod."""
     ensure_config()
 
     # Validate

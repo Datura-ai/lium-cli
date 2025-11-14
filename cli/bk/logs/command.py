@@ -1,5 +1,3 @@
-"""Bk logs command implementation."""
-
 from typing import Optional
 
 import click
@@ -16,19 +14,7 @@ from .actions import GetBackupLogsAction
 @click.option("--id", "backup_id", help="Specific backup ID to show details")
 @handle_errors
 def bk_logs_command(pod_id: Optional[str], backup_id: Optional[str]):
-    """Show backup logs for a pod or specific backup.
-
-    \b
-    POD_ID: Pod identifier - can be:
-      - Pod name/ID (eager-wolf-aa)
-      - Index from 'lium ps' (1, 2, 3)
-
-    \b
-    Examples:
-      lium bk logs 1                 # Show recent logs for pod #1
-      lium bk logs eager-wolf        # Show logs by pod name
-      lium bk logs --id abc123       # Show details for specific backup
-    """
+    """Show backup logs for a pod or specific backup."""
     ensure_config()
 
     # Validate
@@ -40,9 +26,6 @@ def bk_logs_command(pod_id: Optional[str], backup_id: Optional[str]):
     lium = Lium()
 
     if backup_id:
-        # Show specific backup details
-        ui.info(f"Backup ID: {backup_id}")
-
         ctx = {"lium": lium, "backup_id": backup_id}
 
         action = GetBackupLogsAction()

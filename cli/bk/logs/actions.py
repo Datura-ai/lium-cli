@@ -1,14 +1,9 @@
-"""Actions for bk logs command."""
-
 from cli.actions import ActionResult
 from cli.lium_sdk import Lium
 
 
 class GetBackupLogsAction:
-    """Get backup logs."""
-
     def execute(self, ctx: dict) -> ActionResult:
-        """Execute backup logs fetch."""
         lium: Lium = ctx["lium"]
         pod_name: str | None = ctx.get("pod_name")
         backup_id: str | None = ctx.get("backup_id")
@@ -30,7 +25,7 @@ class GetBackupLogsAction:
                                     "log": log
                                 }
                             )
-                return ActionResult(ok=False, error=f"Backup '{backup_id}' not found")
+                return ActionResult(ok=False, error=f"Backup '{backup_id}' not found", data={})
 
             # Get logs for specific pod
             backup_logs = lium.backup_logs(pod=pod_name)
@@ -40,4 +35,4 @@ class GetBackupLogsAction:
 
             return ActionResult(ok=True, data={"logs": backup_logs[:10]})
         except Exception as e:
-            return ActionResult(ok=False, error=str(e))
+            return ActionResult(ok=False, error=str(e), data={})

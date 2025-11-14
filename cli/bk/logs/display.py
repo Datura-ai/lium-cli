@@ -1,9 +1,5 @@
-"""Display formatting for bk logs command."""
-
 from datetime import datetime
 from rich.table import Table
-
-from cli.utils import console
 
 
 def format_logs_table(logs: list) -> Table:
