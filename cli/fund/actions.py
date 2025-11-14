@@ -1,16 +1,9 @@
 """Fund command actions."""
 
 import time
-from dataclasses import dataclass
 from typing import Any
 
-
-@dataclass
-class ActionResult:
-    """Result from an action."""
-    ok: bool
-    data: dict
-    error: str = ""
+from cli.core import ActionResult
 
 
 class LoadWalletAction:

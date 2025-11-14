@@ -1,13 +1,6 @@
 """Theme command actions."""
 
-from dataclasses import dataclass
-
-
-@dataclass
-class ActionResult:
-    ok: bool
-    data: dict
-    error: str = ""
+from cli.core import ActionResult
 
 
 class GetThemeAction:

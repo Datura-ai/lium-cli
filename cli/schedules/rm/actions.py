@@ -2,17 +2,9 @@
 
 from typing import List
 
+from cli.core import ActionResult
 from cli.lium_sdk import Lium, PodInfo
 from cli import ui
-
-
-class ActionResult:
-    """Result of an action execution."""
-
-    def __init__(self, ok: bool, data: dict | None = None, error: str | None = None):
-        self.ok = ok
-        self.data = data or {}
-        self.error = error
 
 
 class CancelSchedulesAction:

@@ -2,16 +2,8 @@
 
 from datetime import datetime, timedelta
 
+from cli.core import ActionResult
 from cli.lium_sdk import Lium
-
-
-class ActionResult:
-    """Result of an action execution."""
-
-    def __init__(self, ok: bool, data: dict | None = None, error: str | None = None):
-        self.ok = ok
-        self.data = data or {}
-        self.error = error
 
 
 class ShowBackupAction:

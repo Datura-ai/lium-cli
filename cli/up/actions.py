@@ -1,7 +1,7 @@
-from dataclasses import dataclass
 from typing import Optional, Dict, List
 import time
 
+from cli.core import ActionResult
 from cli.lium_sdk import ExecutorInfo, Template, Lium
 from cli.utils import (
     calculate_pareto_frontier,
@@ -9,13 +9,6 @@ from cli.utils import (
     get_pytorch_template_id,
     wait_ready_no_timeout,
 )
-
-
-@dataclass
-class ActionResult:
-    ok: bool
-    data: dict
-    error: str = ""
 
 
 class ResolveExecutorAction:

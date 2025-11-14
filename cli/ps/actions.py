@@ -1,15 +1,8 @@
 """PS command actions."""
 
-from dataclasses import dataclass
 from typing import List
 
-
-@dataclass
-class ActionResult:
-    """Result from an action."""
-    ok: bool
-    data: dict
-    error: str = ""
+from cli.core import ActionResult
 
 
 class GetPodsAction:

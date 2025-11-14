@@ -1,14 +1,8 @@
 """Templates command actions."""
 
-from dataclasses import dataclass
 from typing import Optional
 
-
-@dataclass
-class ActionResult:
-    ok: bool
-    data: dict
-    error: str = ""
+from cli.core import ActionResult
 
 
 class GetTemplatesAction:
