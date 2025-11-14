@@ -49,7 +49,7 @@ def browser_auth() -> Optional[str]:
         browser_url, session_id = init_auth()
 
         # Clear messaging about what's happening
-        console.info("Opening browser for authentication...")
+        console.info("Browser opened, waiting for authentication...")
 
         with quiet_fds():
             result = webbrowser.open(browser_url)
