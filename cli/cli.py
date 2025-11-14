@@ -14,7 +14,7 @@ from .rm import rm_command
 from .reboot import reboot_command
 from .scp.command import scp_command
 from .rsync import rsync_command
-from .commands.theme import theme_command
+from .theme import theme_command
 # from .commands.compose import compose_command  # Disabled for beta.1
 from .config import config_command
 # from .commands.image import image_command  # Disabled for beta.1
