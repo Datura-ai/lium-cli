@@ -441,17 +441,7 @@ def bk_restore_command(pod_id: str, backup_id: str, restore_path: str, yes: bool
 
 @click.group()
 def bk_command():
-    """Manage pod backup configurations.
-    
-    \b
-    Commands:
-      show    - Display backup configuration for a pod
-      rm      - Remove backup configuration
-      set     - Set or update backup configuration
-      now     - Trigger immediate backup
-      logs    - Show backup logs
-      restore - Restore a backup to a pod
-    """
+    """Manage pod backup configurations."""
     pass
 
 

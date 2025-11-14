@@ -282,13 +282,7 @@ def schedules_rm_command(indices: str, yes: bool):
 @click.group(invoke_without_command=True)
 @click.pass_context
 def schedules_command(ctx):
-    """Manage scheduled pod terminations.
-
-    \b
-    Commands:
-      list - List all scheduled terminations (default)
-      rm   - Cancel scheduled terminations by index
-    """
+    """Manage scheduled pod terminations."""
     # If no subcommand is provided, default to list
     if ctx.invoked_subcommand is None:
         ctx.invoke(schedules_list_command)

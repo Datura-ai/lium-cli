@@ -219,14 +219,7 @@ def volumes_rm_command(indices: str, yes: bool):
 @click.group(invoke_without_command=True)
 @click.pass_context
 def volumes_command(ctx):
-    """Manage persistent volumes.
-
-    \b
-    Commands:
-      list - List all volumes (default)
-      new  - Create a new volume
-      rm   - Remove a volume
-    """
+    """Manage persistent volumes."""
     # If no subcommand is provided, default to list
     if ctx.invoked_subcommand is None:
         ctx.invoke(volumes_list_command)

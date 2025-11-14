@@ -59,28 +59,29 @@ def bk_logs_command(pod_id: Optional[str], backup_id: Optional[str]):
         ui.print(output)
         return
 
-    # Load data
-    all_pods = ui.load("Loading pods", lambda: lium.ps())
+    # Execute - load and parse in one go
+    def load_logs():
+        all_pods = lium.ps()
+        if not all_pods:
+            return None, "No active pods"
 
-    if not all_pods:
-        ui.warning("No active pods")
-        return
+        parsed, error = parsing.parse(pod_id, all_pods)
+        if error:
+            return None, error
 
-    # Parse
-    parsed, error = parsing.parse(pod_id, all_pods)
+        pod_name = parsed.get("pod_name")
+        ctx = {"lium": lium, "pod_name": pod_name}
+
+        action = GetBackupLogsAction()
+        return action.execute(ctx), None
+
+    result, error = ui.load("Loading backup logs", load_logs)
+
     if error:
         ui.error(error)
         return
 
-    pod_name = parsed.get("pod_name")
-
-    # Execute
-    ctx = {"lium": lium, "pod_name": pod_name}
-
-    action = GetBackupLogsAction()
-    result = ui.load(f"Loading backup logs", lambda: action.execute(ctx))
-
-    if not result.ok:
+    if result and result.error:
         ui.error(result.error)
         return
 
