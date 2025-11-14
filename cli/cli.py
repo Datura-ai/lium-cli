@@ -19,7 +19,7 @@ from .commands.theme import theme_command
 from .config import config_command
 # from .commands.image import image_command  # Disabled for beta.1
 from .commands.fund import fund_command
-from .commands.backup import bk_command
+from .bk import bk_command
 from .commands.mine import mine_command
 from .commands.volumes import volumes_command
 from .schedules import schedules_command
