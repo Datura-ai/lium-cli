@@ -21,7 +21,7 @@ from .config import config_command
 from .fund import fund_command
 from .bk import bk_command
 from .commands.mine import mine_command
-from .commands.volumes import volumes_command
+from .volumes import volumes_command
 from .schedules import schedules_command
 from .update.command import update_command
 from .plugins import load_plugins
