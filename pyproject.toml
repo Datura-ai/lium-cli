@@ -58,7 +58,7 @@ dev = ["pytest", "black", "wheel"]
 lium = "cli.cli:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["cli"]
+packages = ["cli", "lium_sdk.py"]
 
 
 [project.urls]
