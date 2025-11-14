@@ -993,11 +993,8 @@ class Lium:
         """Create backup configuration for pod."""
         pod_info = self._resolve_pod(pod)
         
-        if not pod_info.executor:
-            raise ValueError(f"Pod {pod_info.name} has no executor information")
-        
         payload = {
-            "pod_executor_id": pod_info.executor.id,
+            "pod_id": pod_info.id,
             "backup_frequency_hours": frequency_hours,
             "retention_days": retention_days,
             "backup_path": path
