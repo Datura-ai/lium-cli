@@ -1,7 +1,7 @@
 import os, sys, time, requests, webbrowser
 from typing import Optional
 
-from .utils import console
+from cli import ui
 
 class quiet_fds:
     """Redirect stdout/stderr to /dev/null (silences child processes)."""
@@ -49,13 +49,13 @@ def browser_auth() -> Optional[str]:
         browser_url, session_id = init_auth()
 
         # Clear messaging about what's happening
-        console.info("Browser opened, waiting for authentication...")
+        ui.info("Browser opened, waiting for authentication...")
 
         with quiet_fds():
             result = webbrowser.open(browser_url)
 
         if not result:
-            console.info(f"Opening browser failed. Please, open the page for authentication: {browser_url}")
+            ui.info(f"Opening browser failed. Please, open the page for authentication: {browser_url}")
 
         return poll_auth(session_id)
     except Exception:
