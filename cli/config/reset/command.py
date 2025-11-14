@@ -4,7 +4,6 @@ import click
 
 from cli import ui
 from cli.utils import handle_errors
-from . import validation
 from .actions import ResetConfigAction
 
 
@@ -14,11 +13,10 @@ from .actions import ResetConfigAction
 def config_reset_command(confirm: bool):
     """Reset configuration to defaults."""
 
-    # Validate
-    valid, error = validation.validate(confirm)
-    if not valid:
-        ui.info(error)
-        return
+    # Confirm
+    if not confirm:
+        if not ui.confirm("This will delete all configuration. Continue?", default=False):
+            return
 
     # Execute
     ctx = {}
@@ -26,8 +24,5 @@ def config_reset_command(confirm: bool):
     action = ResetConfigAction()
     result = action.execute(ctx)
 
-    if not result.ok:
-        ui.info(result.error)
-        return
-
-    ui.success("Configuration reset to defaults")
+    if result.error and not result.ok:
+        ui.error(result.error)
