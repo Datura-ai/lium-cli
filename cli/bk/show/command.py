@@ -50,8 +50,6 @@ def bk_show_command(pod_id: str):
     pod = parsed.get("pod")
     pod_name = parsed.get("pod_name")
 
-    ui.info(f"Pod: {pod.huid}")
-
     # Execute
     ctx = {"lium": lium, "pod_name": pod_name}
 
@@ -63,7 +61,6 @@ def bk_show_command(pod_id: str):
         return
 
     if not result.data.get("has_config"):
-        ui.info("No backup configuration found")
         return
 
     # Display
