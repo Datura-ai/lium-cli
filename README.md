@@ -3,7 +3,7 @@
 Command-line interface for managing GPU pods on the Lium platform.
 
 <p align="center">
-  <img src="web-app-manifest-512x512.png" alt="Lium CLI Logo" width="120" />
+  <img src="assets/web-app-logo.png" alt="Lium CLI Logo" width="120" />
 </p>
 
 <h1 align="center">Lium</h1>

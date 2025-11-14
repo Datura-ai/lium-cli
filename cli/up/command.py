@@ -223,5 +223,5 @@ def up_command(
     ssh_cmd = result.data["ssh_cmd"]
     pod = result.data["pod"]
 
-    from cli.commands.ssh import ssh_to_pod
+    from cli.ssh.command import ssh_to_pod
     ssh_to_pod(ssh_cmd, pod)

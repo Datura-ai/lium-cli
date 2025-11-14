@@ -38,7 +38,7 @@ class ResolveExecutorAction:
 
                 executor = lium.get_executor(executor_id)
                 if not executor:
-                    from cli.commands.ls import ls_store_executor
+                    from cli.ls.command import ls_store_executor
                     ls_store_executor()
                     executor = lium.get_executor(executor_id)
                     if not executor:
@@ -80,7 +80,7 @@ class ResolveExecutorAction:
                     filter_desc = ', '.join(filters) if filters else "specified filters"
                     return ActionResult(ok=False, data={}, error=f"No executors available with {filter_desc}")
 
-                from cli.commands.ls import ls_store_executor
+                from cli.ls.command import ls_store_executor
                 ls_store_executor(gpu_type=gpu)
 
                 pareto_flags = calculate_pareto_frontier(executors)
@@ -274,7 +274,7 @@ class PrepareSSHAction:
         pod_name: str = ctx["pod_name"]
 
         try:
-            from cli.commands.ssh import get_ssh_method_and_pod
+            from cli.ssh.command import get_ssh_method_and_pod
             ssh_cmd, pod = get_ssh_method_and_pod(pod_name)
             return ActionResult(ok=True, data={"ssh_cmd": ssh_cmd, "pod": pod})
 
