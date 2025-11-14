@@ -3,7 +3,7 @@ import click
 import os
 from importlib.metadata import version, PackageNotFoundError
 from .themed_console import ThemedConsole
-from .commands.init import init_command
+from .init.command import init_command
 from .ls import ls_command
 from .commands.templates import templates_command
 from .commands.up import up_command
