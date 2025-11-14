@@ -6,7 +6,7 @@ from .themed_console import ThemedConsole
 from .init.command import init_command
 from .ls import ls_command
 from .templates import templates_command
-from .commands.up import up_command
+from .up import up_command
 from .ps import ps_command
 from .commands.exec import exec_command
 from .ssh.command import ssh_command
