@@ -5,25 +5,22 @@ import click
 from cli import ui
 from cli.utils import handle_errors
 from .actions import ShowConfigAction
-from . import display
 
 
 @click.command(name="show")
-@click.option("--all", is_flag=True, help="Show all sections including internal data.")
 @handle_errors
-def config_show_command(all: bool):
+def config_show_command():
     """Show the entire configuration."""
 
     # Execute
-    ctx = {"show_all": all}
+    ctx = {}
 
     action = ShowConfigAction()
     result = action.execute(ctx)
 
-    config_data = result.data.get("config_data")
     config_path = result.data.get("config_path")
-    show_all = result.data.get("show_all")
+    content = result.data.get("content")
 
-    path, content = display.format_config(config_data, str(config_path), show_all)
-    ui.dim(f"# {path}")
-    ui.info(content)
+    ui.dim(f"# {config_path}")
+    if content:
+        ui.print(content, markup=False, highlight=False)

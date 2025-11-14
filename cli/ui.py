@@ -112,9 +112,9 @@ def dim(message: str) -> None:
     console.dim(message)
 
 
-def print(message: str) -> None:
+def print(*args, **kwargs) -> None:
     """Display plain message."""
-    console.print(message)
+    console.print(*args, **kwargs)
 
 
 def debug(message: str) -> None:

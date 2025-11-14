@@ -18,16 +18,17 @@ class ShowConfigAction:
 
     def execute(self, ctx: dict) -> ActionResult:
         """Execute config show."""
-        show_all: bool = ctx["show_all"]
-
-        config_data = config.get_all()
         config_path = config.get_config_path()
+
+        if not config_path.exists():
+            return ActionResult(ok=True, data={"config_path": config_path, "content": ""})
+
+        content = config_path.read_text()
 
         return ActionResult(
             ok=True,
             data={
-                "config_data": config_data,
                 "config_path": config_path,
-                "show_all": show_all
+                "content": content
             }
         )
