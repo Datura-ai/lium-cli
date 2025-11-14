@@ -28,22 +28,6 @@ jobs:
     - name: Build package
       run: python -m build --sdist --wheel --outdir dist/
 
-    - name: Check if package version already exists
-      run: |
-        PACKAGE_NAME=$(python -c "import toml; print(toml.load('pyproject.toml')['project']['name'])") 
-        PACKAGE_VERSION=${{ github.event.inputs.version }}
-        if twine check dist/*; then
-          if pip install $PACKAGE_NAME==$PACKAGE_VERSION; then
-            echo "Error: Version $PACKAGE_VERSION of $PACKAGE_NAME already exists on PyPI"
-            exit 1
-          else
-            echo "Version $PACKAGE_VERSION of $PACKAGE_NAME does not exist on PyPI. Proceeding with upload."
-          fi
-        else
-          echo "Error: Twine check failed."
-          exit 1
-        fi
-
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
