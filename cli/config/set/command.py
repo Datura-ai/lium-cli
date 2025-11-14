@@ -38,8 +38,3 @@ def config_set_command(key: str, value: Optional[str]):
 
     if not result.ok:
         ui.error(result.error)
-        return
-
-    new_value = result.data.get("value")
-    styled_value = mask_value(new_value, key)
-    ui.success(f"Set {key} = {styled_value}")
