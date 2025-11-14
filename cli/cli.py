@@ -5,7 +5,7 @@ from importlib.metadata import version, PackageNotFoundError
 from .themed_console import ThemedConsole
 from .init.command import init_command
 from .ls import ls_command
-from .commands.templates import templates_command
+from .templates import templates_command
 from .commands.up import up_command
 from .ps import ps_command
 from .commands.exec import exec_command
