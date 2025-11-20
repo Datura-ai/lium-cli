@@ -22,7 +22,7 @@ The ``@lium.machine`` decorator is the easiest way to offload work to a GPU pod.
 
    import lium
 
-   @lium.machine(machine="A100", requirements=["torch", "transformers"])
+   @lium.machine(machine="A100", requirements=["torch", "transformers", "accelerate"])
    def infer(prompt: str) -> str:
        from transformers import AutoTokenizer, AutoModelForCausalLM
        tokenizer = AutoTokenizer.from_pretrained("sshleifer/tiny-gpt2")
