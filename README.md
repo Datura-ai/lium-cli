@@ -23,7 +23,7 @@ Command-line interface for managing GPU pods on the Lium platform.
 ## Installation
 
 ```bash
-pip install lium-cli
+pip install lium
 ```
 
 ## Quick Start
@@ -53,6 +53,21 @@ lium ssh <pod-name>
 # Stop a pod
 lium rm <pod-name>
 ```
+
+
+## Documentation
+
+The SDK and decorator API ship with Sphinx-powered docs that are ready for Read the
+Docs. Build them locally with:
+
+```bash
+pip install -e .[docs]
+sphinx-build -b html docs docs/_build/html
+```
+
+The generated HTML lives in `docs/_build/html`. Publishing to Read the Docs only
+requires connecting this repository; the `.readthedocs.yaml` file points RTD at
+`docs/conf.py`.
 
 
  ![Area](https://github.com/user-attachments/assets/089e3a25-f246-4664-a069-1366d8357fe3)

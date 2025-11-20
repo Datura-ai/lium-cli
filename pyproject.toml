@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "lium-cli"
+name = "lium"
 version = "0.6.0"
 description = "A custom CLI tool for Lium. Lium CLI provides tools for interacting with the Lium ecosystem from the command line."
 readme = "README.md"
@@ -53,12 +53,13 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest", "black", "wheel"]
+docs = ["sphinx>=7.3", "sphinx-rtd-theme>=1.3"]
 
 [project.scripts]
-lium = "cli.cli:main"
+lium = "lium.cli.cli:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["cli", "lium_sdk.py"]
+packages = ["lium"]
 
 
 [project.urls]
