@@ -57,13 +57,12 @@ def machine(
                 template = sdk.default_docker_template(matching_executor.id)
 
                 pod_dict = sdk.up(
-                    executor=matching_executor.id,
+                    executor_id=matching_executor.id,
                     name=pod_name,
-                    template=template,
+                    template_id=template.id if template else None,
                 )
 
                 # Wait for pod to be ready
-                print(f"DEBUG: pod_dict = {pod_dict}")
                 max_wait = 300
                 pod_info = sdk.wait_ready(pod_dict, timeout=max_wait)
                 if not pod_info:
@@ -117,13 +116,13 @@ except Exception as e:
 
                 try:
                     # Step 5: Upload runner script
-                    sdk.upload(pod_info, runner_file, '/tmp/runner.py')
+                    sdk.upload(pod_info, local=runner_file, remote='/tmp/runner.py')
 
                     # Step 6: Create isolated virtual environment
                     venv_path = f"/tmp/lium_venv_{int(time.time())}_{random.randint(1000,9999)}"
                     venv_python = f"{venv_path}/bin/python"
                     venv_cmd = f"python3 -m venv {shlex.quote(venv_path)}"
-                    venv_result = sdk.exec(pod_info, command=venv_cmd, env={})
+                    venv_result = sdk.exec(pod_info, command=venv_cmd)
                     if not venv_result['success']:
                         raise LiumError(f"Failed to create virtual environment:\n{venv_result['stderr']}")
 
@@ -132,7 +131,7 @@ except Exception as e:
                     if reqs:
                         packages = " ".join(shlex.quote(req) for req in reqs)
                         install_cmd = f"{shlex.quote(venv_python)} -m pip install {packages}"
-                        install_result = sdk.exec(pod_info, command=install_cmd, env={})
+                        install_result = sdk.exec(pod_info, command=install_cmd)
                         if not install_result['success']:
                             raise LiumError(
                                 "Failed installing requirements "
@@ -142,8 +141,7 @@ except Exception as e:
                     # Step 8: Execute runner via virtual environment python
                     exec_result = sdk.exec(
                         pod_info,
-                        command=f"{shlex.quote(venv_python)} /tmp/runner.py",
-                        env={},
+                        command=f"{shlex.quote(venv_python)} /tmp/runner.py"
                     )
 
                     # Step 9: Download result (even when execution failed to capture error details)
@@ -183,14 +181,14 @@ except Exception as e:
                 # Remove virtual environment directory best-effort when pod stays alive
                 if pod_info and 'venv_path' in locals():
                     try:
-                        sdk.exec(pod_info, command=f"rm -rf {shlex.quote(venv_path)}", env={})
+                        sdk.exec(pod_info, command=f"rm -rf {shlex.quote(venv_path)}")
                     except Exception:
                         pass
 
                 # Step 10: Cleanup pod
                 if cleanup and pod_info:
                     try:
-                        sdk.down(pod_info.id)
+                        sdk.down(pod_info)
                     except Exception:
                         pass  # Best effort cleanup
 
