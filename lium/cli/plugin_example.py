@@ -82,7 +82,7 @@ def compose_up(ctx, file: str, detach: bool):
         
         # Find suitable executor
         gpu_type = model_config.get('gpu_type')
-        gpu_count = model_config.get('gpu_count', 1)
+        gpu_count = model_config.get('gpu_count', None)
         template_id = model_config.get('template_id')
         
         # Get available executors
@@ -96,6 +96,7 @@ def compose_up(ctx, file: str, detach: bool):
         pod = lium.up(
             executor=executor.id,
             name=model_name,
+            gpu_count=gpu_count,
             template=template_id,
         )
         
