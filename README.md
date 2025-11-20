@@ -23,7 +23,7 @@ Command-line interface for managing GPU pods on the Lium platform.
 ## Installation
 
 ```bash
-pip install lium
+pip install lium.io
 ```
 
 ## Quick Start
