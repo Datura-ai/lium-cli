@@ -22,7 +22,7 @@ def _mid_ellipsize(s: str, width: int = 28) -> str:
 
 def _cfg(exe: ExecutorInfo) -> str:
     """Format GPU configuration string."""
-    return f"{exe.gpu_count}×{exe.gpu_type}"
+    return f"{exe.available_gpu_count}×{exe.gpu_type}"
 
 
 def _country_name(loc: Optional[Dict]) -> str:
