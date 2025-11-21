@@ -86,7 +86,7 @@ def compose_up(ctx, file: str, detach: bool):
         template_id = model_config.get('template_id')
         
         # Get available executors
-        executors = lium.ls(gpu_type=gpu_type)
+        executors = lium.ls(gpu_type=gpu_type, gpu_count=gpu_count)
         if not executors:
             click.echo(f"No executors available for {gpu_type}", err=True)
             continue

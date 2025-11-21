@@ -25,7 +25,7 @@ from .actions import (
 @click.option("--volume", "-v", help="Volume spec: 'id:<HUID>' or 'new:name=<NAME>[,desc=<DESC>]'")
 @click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt")
 @click.option("--gpu", help="Filter executors by GPU type (e.g., H200, A6000)", shell_complete=get_gpu_completions)
-@click.option("--count", "-c", type=int, help="Number of GPUs per pod")
+@click.option("--count", "-c", type=int, required=True, help="Number of GPUs per pod")
 @click.option("--country", help="Filter executors by ISO country code (e.g., US, FR)")
 @click.option("--ports", "-p", type=int, help="Minimum number of available ports required")
 @click.option("--ttl", help="Auto-terminate after duration (e.g., 6h, 45m, 2d)")
@@ -39,7 +39,7 @@ def up_command(
     volume: Optional[str],
     yes: bool,
     gpu: Optional[str],
-    count: Optional[int],
+    count: int,
     country: Optional[str],
     ports: Optional[int],
     ttl: Optional[str],

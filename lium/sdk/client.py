@@ -255,7 +255,7 @@ class Lium:
                 params["machine_names"] = gpu_type
         if gpu_count:
             params["gpu_count_gte"] = gpu_count
-            params["gpu_count_lte"] = gpu_count
+            # params["gpu_count_lte"] = gpu_count
         if lat is not None and lon is not None:
             params["lat"] = lat
             params["lon"] = lon
