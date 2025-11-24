@@ -400,6 +400,7 @@ def store_executor_selection(executors: List[ExecutorInfo]) -> None:
             'huid': executor.huid,
             'gpu_type': executor.gpu_type,
             'gpu_count': executor.gpu_count,
+            'available_gpu_count': executor.available_gpu_count,
             'price_per_hour': executor.price_per_hour,
             'location': executor.location.get('country', 'Unknown') if executor.location else 'Unknown'
         })

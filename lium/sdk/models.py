@@ -12,6 +12,7 @@ class ExecutorInfo:
     machine_name: str
     gpu_type: str
     gpu_count: int
+    available_gpu_count: int
     price_per_hour: float
     price_per_gpu_hour: float
     location: Dict
@@ -42,6 +43,8 @@ class PodInfo:
     ports: Dict
     created_at: str
     updated_at: str
+    gpu_count: int
+    price: float
     executor: Optional[ExecutorInfo]
     template: Dict
     removal_scheduled_at: Optional[str]

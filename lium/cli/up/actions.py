@@ -32,6 +32,9 @@ class ResolveExecutorAction:
                 executor = lium.get_executor(executor_id)
                 if not executor:
                     return ActionResult(ok=False, data={}, error=f"Executor '{executor_id}' not found")
+                
+                if count and count > executor.available_gpu_count:
+                    return ActionResult(ok=False, data={}, error=f"Executor {executor.huid} has insufficient GPUs (available: {executor.available_gpu_count}, required: {count})")
 
                 if ports and (not executor.available_port_count or executor.available_port_count < ports):
                     available = executor.available_port_count or 0
@@ -44,7 +47,7 @@ class ResolveExecutorAction:
                 executors = lium.ls(gpu_type=gpu)
 
                 if count:
-                    executors = [e for e in executors if e.gpu_count == count]
+                    executors = [e for e in executors if e.available_gpu_count >= count]
                 if country:
                     executors = [
                         e for e in executors
@@ -128,6 +131,7 @@ class RentPodAction:
         lium: Lium = ctx["lium"]
         executor: ExecutorInfo = ctx["executor"]
         template: Template = ctx["template"]
+        gpu_count: Optional[int] = ctx.get("gpu_count")
         name: Optional[str] = ctx.get("name")
         volume_id: Optional[str] = ctx.get("volume_id")
         ports: Optional[int] = ctx.get("ports")
@@ -139,6 +143,7 @@ class RentPodAction:
             pod_info = lium.up(
                 executor_id=executor.id,
                 name=name,
+                gpu_count=gpu_count,
                 template_id=template.id if template else None,
                 volume_id=volume_id,
                 ports=ports,
