@@ -32,6 +32,9 @@ class ResolveExecutorAction:
                 executor = lium.get_executor(executor_id)
                 if not executor:
                     return ActionResult(ok=False, data={}, error=f"Executor '{executor_id}' not found")
+                
+                if count and count > executor.available_gpu_count:
+                    return ActionResult(ok=False, data={}, error=f"Executor {executor.huid} has insufficient GPUs (available: {executor.available_gpu_count}, required: {count})")
 
                 if ports and (not executor.available_port_count or executor.available_port_count < ports):
                     available = executor.available_port_count or 0
