@@ -24,7 +24,7 @@ executors = lium.ls(gpu_type="A100")
 assert len(executors) > 0, "No executors found"
 
 first = executors[0]
-pod = lium.up(executor_id=executors[0].id, template_id=template.id)
+pod = lium.up(executor_id=first.id, template_id=template.id)
 ready = lium.wait_ready(pod["id"])
 
 if ready:
