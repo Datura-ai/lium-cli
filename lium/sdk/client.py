@@ -139,6 +139,7 @@ class Lium:
 
         return ExecutorInfo(
             id=executor_dict.get("id", ""),
+            ip=executor_dict.get("executor_ip_address", ""),
             huid=generate_huid(executor_dict.get("id", "")),
             machine_name=machine_name,
             gpu_type=gpu_type,
