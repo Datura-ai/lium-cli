@@ -112,8 +112,8 @@ class CreateEphemeralTemplateAction:
         lium: Lium = ctx["lium"]
         image: str = ctx["image"]
         env: Dict[str, str] = ctx.get("env", {})
-        entrypoint: Optional[str] = ctx.get("entrypoint")
-        cmd: Optional[str] = ctx.get("cmd")
+        entrypoint: Optional[str] = ctx.get("entrypoint", "")
+        cmd: Optional[str] = ctx.get("cmd", "")
         ports: List[int] = ctx.get("ports", [22])
 
         try:

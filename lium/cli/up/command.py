@@ -33,9 +33,10 @@ from .actions import (
 @click.option("--until", help="Auto-terminate at time in local timezone (e.g., 'today 23:00', 'tomorrow 01:00', '2025-10-20 15:30')")
 @click.option("--jupyter", is_flag=True, help="Install Jupyter Notebook (automatically selects available port)")
 @click.option("--image", help="Docker image to run (e.g., pytorch/pytorch:2.0, nvidia/cuda:12.0)")
+@click.option("--internal-ports", help="Internal ports to expose (comma-separated, e.g., 22,8000,8080)")
 @click.option("-e", "--env", multiple=True, help="Environment variables (KEY=VALUE), can be repeated")
-@click.option("--entrypoint", help="Container entrypoint")
-@click.option("--cmd", help="Command to run in the container")
+@click.option("--entrypoint", default="", help="Container entrypoint")
+@click.option("--cmd", default="", help="Command to run in the container")
 @handle_errors
 def up_command(
     executor_id: Optional[str],
@@ -51,6 +52,7 @@ def up_command(
     until: Optional[str],
     jupyter: bool,
     image: Optional[str],
+    internal_ports: Optional[str],
     env: Tuple[str, ...],
     entrypoint: Optional[str],
     cmd: Optional[str],
@@ -84,6 +86,7 @@ def up_command(
       lium up --gpu H100 --image vllm/vllm-openai:latest -e HF_TOKEN=xxx
       lium up --gpu A6000 --image python:3.11 --cmd "python -c 'print(1+1)'"
       lium up --gpu A4000 --image myimg --entrypoint /bin/sh --cmd "-c 'echo hi'"
+      lium up --gpu A4000 --image myimg --internal-ports 22,8000,8080
     """
     ensure_config()
 
@@ -144,6 +147,18 @@ def up_command(
 
     # Resolve or create template
     if docker_run_mode:
+        # Parse internal ports (default to [22] if not specified)
+        ports_list = [22]
+        if internal_ports:
+            try:
+                ports_list = [int(p.strip()) for p in internal_ports.split(",")]
+                # Ensure port 22 is included for SSH access
+                if 22 not in ports_list:
+                    ports_list.insert(0, 22)
+            except ValueError:
+                ui.error("Invalid port format. Use comma-separated integers (e.g., 22,8000,8080)")
+                return
+
         action = CreateEphemeralTemplateAction()
         result = ui.load(
             "Creating template",
@@ -153,7 +168,7 @@ def up_command(
                 "env": env_dict,
                 "entrypoint": entrypoint,
                 "cmd": cmd,
-                "ports": [22],
+                "ports": ports_list,
             })
         )
     else:
