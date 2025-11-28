@@ -25,6 +25,7 @@ from .commands.mine import mine_command
 from .volumes import volumes_command
 from .schedules import schedules_command
 from .update.command import update_command
+from .port_forward import port_forward_command
 from .plugins import load_plugins
 
 
@@ -75,6 +76,7 @@ cli.add_command(mine_command)
 cli.add_command(volumes_command)
 cli.add_command(schedules_command, name="schedules")
 cli.add_command(update_command)
+cli.add_command(port_forward_command)
 
 # Add compose placeholder (will be overridden if plugin is installed)
 # cli.add_command(compose_command)  # Disabled for beta.1
