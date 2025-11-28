@@ -32,7 +32,7 @@ from .plugins import load_plugins
 def get_version():
     """Get version from package metadata."""
     try:
-        return version("lium")
+        return version("lium.io")
     except PackageNotFoundError:
         return "unknown"
 
