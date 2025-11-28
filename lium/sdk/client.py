@@ -139,6 +139,7 @@ class Lium:
 
         return ExecutorInfo(
             id=executor_dict.get("id", ""),
+            ip=executor_dict.get("executor_ip_address", ""),
             huid=generate_huid(executor_dict.get("id", "")),
             machine_name=machine_name,
             gpu_type=gpu_type,
@@ -231,6 +232,42 @@ class Lium:
             Raw pod data dictionary including template, executor, status, and connection info.
         """
         return self._request("GET", f"/pods/{pod_id}").json()
+
+    def logs(
+        self,
+        pod_id: str,
+        *,
+        tail: int = 100,
+        follow: bool = False,
+    ) -> Generator[bytes, None, None]:
+        """Stream logs from a pod.
+
+        Args:
+            pod_id: The unique identifier of the pod.
+            tail: Number of lines to retrieve from the end of the logs (default: 100).
+            follow: If True, stream logs continuously (default: False).
+
+        Yields:
+            Log lines as bytes.
+        """
+        params = {"tail": tail, "follow": str(follow).lower()}
+        url = f"{self.config.base_url}/pods/{pod_id}/logs"
+
+        with requests.get(url, headers=self.headers, params=params, stream=True, timeout=None if follow else 30) as response:
+            if not response.ok:
+                if response.status_code == 401:
+                    raise LiumAuthError("Invalid API key")
+                if response.status_code == 404:
+                    raise LiumNotFoundError(f"Pod not found: {pod_id}")
+                if response.status_code == 429:
+                    raise LiumRateLimitError("Rate limit exceeded")
+                if 500 <= response.status_code < 600:
+                    raise LiumServerError(f"Server error: {response.status_code}")
+                raise LiumError(f"API error {response.status_code}: {response.text}")
+
+            for line in response.iter_lines():
+                if line:
+                    yield line
 
     def edit(
         self,
